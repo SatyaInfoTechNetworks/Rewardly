@@ -12,6 +12,7 @@ import { SurveysScreen } from "@/components/earn/SurveysScreen";
 import { FeaturedOffer } from "@/components/earn/FeaturedOffer";
 import { TaskCard } from "@/components/earn/TaskCard";
 import { MoreScreen } from "@/components/more/MoreScreen";
+import { WalletScreen } from "@/components/wallet/WalletScreen";
 import { Navbar } from "@/components/layout/Navbar";
 import { VerificationOverlay } from "@/components/ui/VerificationOverlay";
 
@@ -131,6 +132,10 @@ export default function AppDashboard() {
   const renderContent = () => {
     if (activeTab === "more") {
       return <MoreScreen user={user} />;
+    }
+
+    if (activeTab === "wallet") {
+      return <WalletScreen user={user} />;
     }
 
     if (activeTab === "surveys_all") {

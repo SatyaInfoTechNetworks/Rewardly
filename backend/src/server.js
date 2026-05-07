@@ -5,6 +5,8 @@ const bodyParser = require('body-parser');
 const { validateTelegramInitData } = require('./utils/telegramAuth');
 const { sequelize, testConnection } = require('./config/database');
 const User = require('./models/User');
+const PayoutMethod = require('./models/PayoutMethod');
+const PayoutTier = require('./models/PayoutTier');
 const axios = require('axios');
 
 const app = express();
@@ -18,6 +20,10 @@ const getClientIp = (req) => {
   return req.headers['x-forwarded-for']?.split(',')[0] || req.socket.remoteAddress;
 };
 
+// Model Associations
+PayoutMethod.hasMany(PayoutTier, { as: 'tiers', foreignKey: 'payout_method_id' });
+PayoutTier.belongsTo(PayoutMethod, { foreignKey: 'payout_method_id' });
+
 // Test DB Connection & Sync Models
 testConnection().then(() => {
   sequelize.sync({ alter: true }).then(async () => {
@@ -28,6 +34,21 @@ testConnection().then(() => {
       await User.findOrCreate({ where: { telegram_id: 111111 }, defaults: { first_name: 'Satya (Test)', balance: 5000, is_phone_verified: true } });
       await User.findOrCreate({ where: { telegram_id: 222222 }, defaults: { first_name: 'Rahul (Test)', balance: 2450, is_channel_joined: true } });
       await User.findOrCreate({ where: { telegram_id: 333333 }, defaults: { first_name: 'Priya (Test)', balance: 120, google_aid: 'TEST-ID-999' } });
+      
+      // Auto-Seed Payout Methods
+      const [upi] = await PayoutMethod.findOrCreate({ 
+        where: { name: 'UPI' }, 
+        defaults: { logo_url: 'https://upload.wikimedia.org/wikipedia/commons/e/e1/UPI-Logo-vector.svg', order_index: 1 } 
+      });
+      await PayoutTier.findOrCreate({ where: { payout_method_id: upi.id, coins_required: 5000 }, defaults: { amount_text: '₹50' } });
+      await PayoutTier.findOrCreate({ where: { payout_method_id: upi.id, coins_required: 10000 }, defaults: { amount_text: '₹100' } });
+
+      const [amazon] = await PayoutMethod.findOrCreate({ 
+        where: { name: 'Amazon Pay' }, 
+        defaults: { logo_url: 'https://upload.wikimedia.org/wikipedia/commons/a/a9/Amazon_logo.svg', order_index: 2 } 
+      });
+      await PayoutTier.findOrCreate({ where: { payout_method_id: amazon.id, coins_required: 25000 }, defaults: { amount_text: '₹250' } });
+
     } catch (e) {
       console.log('Seed skip:', e.message);
     }
@@ -57,6 +78,7 @@ app.use(bodyParser.json());
 app.use('/api/surveys', require('./routes/surveys'));
 app.use('/api/postbacks', require('./routes/postbacks'));
 app.use('/api/admin', require('./routes/admin'));
+app.use('/api/payouts', require('./routes/payouts'));
 
 app.get('/', (req, res) => {
   res.json({ message: 'Rewardly Backend API is running' });

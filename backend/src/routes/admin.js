@@ -2,6 +2,8 @@ const express = require('express');
 const router = express.Router();
 const User = require('../models/User');
 const Transaction = require('../models/Transaction');
+const PayoutMethod = require('../models/PayoutMethod');
+const PayoutTier = require('../models/PayoutTier');
 const { sequelize } = require('../config/database');
 
 /**
@@ -137,6 +139,57 @@ router.delete('/users/:id', adminAuth, async (req, res) => {
     await Transaction.destroy({ where: { telegram_id: id } });
     await User.destroy({ where: { telegram_id: id } });
     res.json({ success: true, message: 'User deleted successfully' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * GET /api/admin/payout-methods
+ */
+router.get('/payout-methods', adminAuth, async (req, res) => {
+  try {
+    const methods = await PayoutMethod.findAll({
+      include: [{ model: PayoutTier, as: 'tiers' }]
+    });
+    res.json(methods);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * POST /api/admin/payout-methods
+ */
+router.post('/payout-methods', adminAuth, async (req, res) => {
+  try {
+    const method = await PayoutMethod.create(req.body);
+    res.json(method);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * PUT /api/admin/payout-methods/:id
+ */
+router.put('/payout-methods/:id', adminAuth, async (req, res) => {
+  try {
+    const { id } = req.params;
+    await PayoutMethod.update(req.body, { where: { id } });
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * POST /api/admin/payout-tiers
+ */
+router.post('/payout-tiers', adminAuth, async (req, res) => {
+  try {
+    const tier = await PayoutTier.create(req.body);
+    res.json(tier);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

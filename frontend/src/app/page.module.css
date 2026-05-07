@@ -749,3 +749,147 @@
 .modalInput:focus {
   border-color: var(--primary);
 }
+
+/* Wallet Screen */
+.walletScreen {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.statsSection {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.balanceCard {
+  padding: 16px !important;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border: 1px solid rgba(255, 255, 255, 1);
+  box-shadow: var(--shadow-soft);
+}
+
+.cardLeft {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.statIconBox {
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+}
+
+.statIconBox.blue { background: linear-gradient(135deg, #38bdf8, #0ea5e9); }
+.statIconBox.amber { background: linear-gradient(135deg, #fbbf24, #d97706); }
+
+.statLabel span {
+  font-size: 11px;
+  font-weight: 600;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.statLabel h3 {
+  font-size: 16px;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.coinDisplay {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: #f8fafc;
+  padding: 6px 12px;
+  border-radius: 12px;
+  border: 1px solid #f1f5f9;
+}
+
+.coinImg {
+  width: 20px;
+  height: 20px;
+}
+
+.coinDisplay span {
+  font-weight: 800;
+  font-size: 18px;
+  color: #0f172a;
+}
+
+.amberText {
+  color: #d97706 !important;
+}
+
+.historyBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px;
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  color: #475569;
+  font-weight: 600;
+  font-size: 13px;
+  cursor: pointer;
+  margin-top: 4px;
+}
+
+/* Payout Grid */
+.payoutGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.payoutCard {
+  padding: 20px !important;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 12px;
+  cursor: pointer;
+}
+
+.payoutIcon {
+  width: 50px;
+  height: 50px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.payoutIcon img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.payoutName {
+  font-weight: 700;
+  font-size: 14px;
+  color: #0f172a;
+}
+
+.payoutBadge {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 8px;
+  background: #ecfdf5;
+  color: #10b981;
+  border-radius: 6px;
+}

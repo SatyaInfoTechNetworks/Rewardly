@@ -205,10 +205,10 @@ router.put('/payout-methods/:id', adminAuth, async (req, res) => {
     
     if (tiers && tiers.length > 0) {
       const tiersWithMethodId = tiers.map(tier => {
-        const { id, ...cleanTier } = tier; // Strip ID to prevent conflict
+        const { id: tierId, ...cleanTier } = tier; // Rename to avoid shadowing outer 'id'
         return {
           ...cleanTier,
-          payout_method_id: id
+          payout_method_id: id // Uses 'id' from req.params
         };
       });
       await PayoutTier.bulkCreate(tiersWithMethodId, { transaction: t });

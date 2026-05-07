@@ -151,7 +151,12 @@ router.delete('/users/:id', adminAuth, async (req, res) => {
 router.get('/payout-methods', adminAuth, async (req, res) => {
   try {
     const methods = await PayoutMethod.findAll({
-      include: [{ model: PayoutTier, as: 'tiers' }]
+      include: [{ 
+        model: PayoutTier, 
+        as: 'tiers',
+        where: { status: 'active' },
+        required: false // Keep methods even if they have no active tiers
+      }]
     });
     res.json(methods);
   } catch (error) {
@@ -200,18 +205,35 @@ router.put('/payout-methods/:id', adminAuth, async (req, res) => {
     
     await PayoutMethod.update(methodData, { where: { id }, transaction: t });
     
-    // Sync Tiers: Delete and Re-create for simplicity and reliability
-    await PayoutTier.destroy({ where: { payout_method_id: id }, transaction: t });
-    
+    // Sync Tiers: Intelligent Sync to avoid Foreign Key errors
+    const currentTiers = await PayoutTier.findAll({ where: { payout_method_id: id } });
+    const currentTierIds = currentTiers.map(t => t.id);
+    const incomingTierIds = (tiers || []).filter(t => t.id).map(t => parseInt(t.id));
+
+    // 1. Handle Deletions
+    const tiersToDelete = currentTierIds.filter(cid => !incomingTierIds.includes(cid));
+    for (const tid of tiersToDelete) {
+      try {
+        await PayoutTier.destroy({ where: { id: tid }, transaction: t });
+      } catch (err) {
+        // If deletion fails due to Foreign Key (referenced by withdrawals), mark as inactive instead
+        await PayoutTier.update({ status: 'inactive' }, { where: { id: tid }, transaction: t });
+      }
+    }
+
+    // 2. Handle Updates & Creates
     if (tiers && tiers.length > 0) {
-      const tiersWithMethodId = tiers.map(tier => {
-        const { id: tierId, ...cleanTier } = tier; // Rename to avoid shadowing outer 'id'
-        return {
-          ...cleanTier,
-          payout_method_id: id // Uses 'id' from req.params
-        };
-      });
-      await PayoutTier.bulkCreate(tiersWithMethodId, { transaction: t });
+      for (const tier of tiers) {
+        if (tier.id && currentTierIds.includes(parseInt(tier.id))) {
+          // Update existing
+          const { id: tid, ...updateData } = tier;
+          await PayoutTier.update(updateData, { where: { id: tid }, transaction: t });
+        } else {
+          // Create new
+          const { id: dummy, ...newData } = tier;
+          await PayoutTier.create({ ...newData, payout_method_id: id, status: 'active' }, { transaction: t });
+        }
+      }
     }
     
     await t.commit();

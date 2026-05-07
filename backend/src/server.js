@@ -20,8 +20,17 @@ const getClientIp = (req) => {
 
 // Test DB Connection & Sync Models
 testConnection().then(() => {
-  sequelize.sync({ alter: true }).then(() => {
+  sequelize.sync({ alter: true }).then(async () => {
     console.log('✨ Database models synchronized.');
+    
+    // Auto-Seed Dummy Users for Testing
+    try {
+      await User.findOrCreate({ where: { telegram_id: 111111 }, defaults: { first_name: 'Satya (Test)', balance: 5000, is_phone_verified: true } });
+      await User.findOrCreate({ where: { telegram_id: 222222 }, defaults: { first_name: 'Rahul (Test)', balance: 2450, is_channel_joined: true } });
+      await User.findOrCreate({ where: { telegram_id: 333333 }, defaults: { first_name: 'Priya (Test)', balance: 120, google_aid: 'TEST-ID-999' } });
+    } catch (e) {
+      console.log('Seed skip:', e.message);
+    }
   });
 });
 

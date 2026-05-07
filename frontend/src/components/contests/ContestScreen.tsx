@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import styles from "./ContestScreen.module.css";
-import { Trophy, Clock, ChevronLeft, Award, TrendingUp, Info } from "lucide-react";
+import { Trophy, Clock, ChevronLeft, Award, TrendingUp, Info, Users } from "lucide-react";
 
 interface Contest {
   id: number;
@@ -99,17 +99,28 @@ export function ContestScreen({ user }: ContestScreenProps) {
         <div className={styles.heroCard}>
           <div className={styles.cardGlow} />
           <h2 className={styles.heroTitle}>{contest.name}</h2>
-          <div className={styles.heroTimer}>
-            <Clock size={16} />
-            {formatTimeLeft(contest.end_time)}
+          <div style={{ display: 'flex', gap: '12px' }}>
+            <div className={styles.heroTimer}>
+              <Clock size={14} />
+              {formatTimeLeft(contest.end_time)}
+            </div>
+            <div className={styles.heroTimer} style={{ background: 'rgba(255,255,255,0.1)', color: '#fff' }}>
+              <Trophy size={14} />
+              {contest.prize_pool_text}
+            </div>
           </div>
+        </div>
+
+        <div className={styles.prizePoolBanner}>
+          <Trophy size={20} />
+          <span>{contest.prize_pool_text} Prize Pool</span>
         </div>
 
         {/* User Stats Card */}
         <div className={styles.userRankCard}>
           <div className={styles.urRank}>
             <div className={styles.urLabel}>Your Rank</div>
-            <div className={styles.urValue}>#{userEntry?.rank || '---'}</div>
+            <div className={styles.urValue}>{userEntry?.rank ? `#${userEntry.rank}` : 'Not Ranked'}</div>
           </div>
           <div className={styles.urDivider} />
           <div className={styles.urProgress}>
@@ -133,7 +144,10 @@ export function ContestScreen({ user }: ContestScreenProps) {
             {contest.rewards?.map((reward: any) => (
               <div key={reward.id} className={styles.prizeCard}>
                 <div className={styles.pRank}>Rank {reward.rank_from}{reward.rank_to !== reward.rank_from ? `-${reward.rank_to}` : ''}</div>
-                <div className={styles.pValue}>{reward.reward_text || `${reward.reward_value} Coins`}</div>
+                <div className={styles.pValue}>
+                  <Trophy size={16} color="#eab308" />
+                  {reward.reward_text || `${reward.reward_value} Coins`}
+                </div>
               </div>
             ))}
           </div>
@@ -169,15 +183,26 @@ export function ContestScreen({ user }: ContestScreenProps) {
                 </div>
               ))
             ) : (
-              <p style={{ textAlign: 'center', color: '#64748b', fontSize: '0.875rem' }}>No participants yet. Be the first!</p>
+              <div style={{ textAlign: 'center', padding: '40px 20px' }}>
+                <p style={{ color: '#64748b', fontSize: '0.875rem', marginBottom: '16px' }}>
+                  Be the first to join the competition 🚀
+                </p>
+                <button 
+                  className={styles.viewLbBtn} 
+                  style={{ width: 'auto', padding: '10px 24px', margin: '0 auto' }}
+                  onClick={() => setSelectedContest(null)}
+                >
+                  Start Earning
+                </button>
+              </div>
             )}
           </div>
         </section>
 
         {/* Rules */}
-        <div style={{ background: '#f1f5f9', padding: '16px', borderRadius: '16px', display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
-          <Info size={20} color="#64748b" style={{ flexShrink: 0 }} />
-          <p style={{ fontSize: '0.75rem', color: '#475569', margin: 0, lineHeight: 1.5 }}>
+        <div className={styles.rulesBox}>
+          <Info size={20} color="#475569" style={{ flexShrink: 0 }} />
+          <p className={styles.rulesText}>
             {contest.rules || "Complete tasks and earn coins to climb the leaderboard. Fraudulent activity will lead to disqualification."}
           </p>
         </div>
@@ -213,12 +238,12 @@ export function ContestScreen({ user }: ContestScreenProps) {
               <div className={styles.cardInfo}>
                 <div className={styles.cardMeta}>
                   <div className={styles.prizePool}>{contest.prize_pool_text}</div>
-                  <div className={styles.timer}>
-                    <Clock size={14} />
-                    {formatTimeLeft(contest.end_time)}
+                  <div className={styles.participants}>
+                    <Users size={14} />
+                    <span>30 Participants</span>
                   </div>
                 </div>
-                <button className="claimBtn" style={{ background: '#f1f5f9', color: '#1e293b' }}>View Leaderboard</button>
+                <button className={styles.viewLbBtn}>View Leaderboard</button>
               </div>
             </div>
           ))}

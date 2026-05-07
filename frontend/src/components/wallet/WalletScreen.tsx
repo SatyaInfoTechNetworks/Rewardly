@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { Wallet, Clock, ArrowUpRight, ChevronRight, History, Star, Smartphone, Gift, CreditCard, Landmark } from 'lucide-react';
+import { Wallet, Clock, History, Star, Smartphone, ChevronRight } from 'lucide-react';
 import styles from '@/app/page.module.css';
+import { CoinBadge } from '@/components/ui/CoinBadge';
 
 interface WalletScreenProps {
   user: any;
@@ -44,10 +45,7 @@ export const WalletScreen: React.FC<WalletScreenProps> = ({ user }) => {
             </div>
           </div>
           <div className={styles.cardRight}>
-            <div className={styles.coinDisplay}>
-              <img src="/coin.png" alt="coin" className={styles.coinImg} />
-              <span>{user?.balance?.toLocaleString() || 0}</span>
-            </div>
+            <CoinBadge amount={user?.balance || 0} size="lg" />
           </div>
         </div>
 
@@ -62,10 +60,7 @@ export const WalletScreen: React.FC<WalletScreenProps> = ({ user }) => {
             </div>
           </div>
           <div className={styles.cardRight}>
-            <div className={styles.coinDisplay}>
-              <img src="/coin.png" alt="coin" className={styles.coinImg} />
-              <span className={styles.amberText}>{user?.pendingBalance?.toLocaleString() || 0}</span>
-            </div>
+            <CoinBadge amount={user?.pendingBalance || 0} size="lg" className={styles.amberBadge} />
           </div>
         </div>
 

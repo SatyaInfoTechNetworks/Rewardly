@@ -98,6 +98,8 @@ export default function AppDashboard() {
       const tg = (window as any).Telegram?.WebApp;
       const initData = tg?.initData;
 
+      console.log("🛠️ Verifying onboarding...", { phoneNumber });
+
       const response = await fetch(`${API_URL}/api/user/verify-onboarding`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -106,16 +108,23 @@ export default function AppDashboard() {
 
       if (response.ok) {
         const data = await response.json();
+        console.log("✅ Verification result:", data);
         setUser((prev: any) => ({
           ...prev,
           isPhoneVerified: data.isPhoneVerified,
           isChannelJoined: data.isChannelJoined
         }));
+        
+        if (data.isPhoneVerified && data.isChannelJoined) {
+          alert("🎉 Verification Complete! Access Granted.");
+        }
       }
     } catch (error) {
       console.error("Verification Error:", error);
     }
   };
+
+  const showVerification = user && (!user.isPhoneVerified || !user.isChannelJoined);
 
   const renderContent = () => {
     if (activeTab === "more") {
@@ -134,57 +143,68 @@ export default function AppDashboard() {
 
     if (activeTab === "earn") {
       return (
-        <main className={styles.earnScreen}>
-          {/* Hot Surveys Section */}
-          <section className={styles.surveysSection}>
-            <SectionHeader 
-              title="Hot Surveys" 
-              icon={Flame} 
-              actionText="View All" 
-              onAction={() => setActiveTab("surveys_all")}
+        <main className={styles.earnScreen} style={{ position: 'relative' }}>
+          {/* Verification Overlay - Locked State */}
+          {showVerification && (
+            <VerificationOverlay 
+              isPhoneVerified={user.isPhoneVerified}
+              isChannelJoined={user.isChannelJoined}
+              onVerify={handleOnboardingVerify}
             />
-            
-            <div className={`${styles.horizontalScroll} no-scrollbar`}>
-              {surveysLoading ? (
-                Array(3).fill(0).map((_, i) => (
-                  <SurveyCard key={`skeleton-${i}`} title="" time="" rating="" reward="" isLoading={true} />
-                ))
-              ) : surveys.length > 0 ? (
-                surveys.map((survey) => (
-                  <SurveyCard key={survey.id} {...survey} />
-                ))
-              ) : (
-                <div className={styles.noSurveysBox}>
-                  <Inbox size={32} opacity={0.3} />
-                  <p>No surveys available at the moment</p>
-                </div>
-              )}
-            </div>
-          </section>
+          )}
 
-          {/* Featured Offer Section */}
-          <FeaturedOffer 
-            title="Epic Quest: Kingdom Rise"
-            desc="Complete the tutorial & reach Level 20"
-            reward="50,000"
-            icon="🎮"
-            urgency="⚡ Boosted Reward"
-          />
+          <div style={{ filter: showVerification ? 'blur(4px) grayscale(100%)' : 'none', pointerEvents: showVerification ? 'none' : 'auto' }}>
+            {/* Hot Surveys Section */}
+            <section className={styles.surveysSection}>
+              <SectionHeader 
+                title="Hot Surveys" 
+                icon={Flame} 
+                actionText="View All" 
+                onAction={() => setActiveTab("surveys_all")}
+              />
+              
+              <div className={`${styles.horizontalScroll} no-scrollbar`}>
+                {surveysLoading ? (
+                  Array(3).fill(0).map((_, i) => (
+                    <SurveyCard key={`skeleton-${i}`} title="" time="" rating="" reward="" isLoading={true} />
+                  ))
+                ) : surveys.length > 0 ? (
+                  surveys.map((survey) => (
+                    <SurveyCard key={survey.id} {...survey} />
+                  ))
+                ) : (
+                  <div className={styles.noSurveysBox}>
+                    <Inbox size={32} opacity={0.3} />
+                    <p>No surveys available at the moment</p>
+                  </div>
+                )}
+              </div>
+            </section>
 
-          {/* Hot Reward Tasks Section */}
-          <section className={styles.tasksSection}>
-            <SectionHeader 
-              title="Hot Reward Tasks" 
-              icon={Zap} 
-              badgeText="HOT" 
+            {/* Featured Offer Section */}
+            <FeaturedOffer 
+              title="Epic Quest: Kingdom Rise"
+              desc="Complete the tutorial & reach Level 20"
+              reward="50,000"
+              icon="🎮"
+              urgency="⚡ Boosted Reward"
             />
-            
-            <div className={styles.taskVerticalList}>
-              {TASKS.map((task) => (
-                <TaskCard key={task.id} {...task} />
-              ))}
-            </div>
-          </section>
+
+            {/* Hot Reward Tasks Section */}
+            <section className={styles.tasksSection}>
+              <SectionHeader 
+                title="Hot Reward Tasks" 
+                icon={Zap} 
+                badgeText="HOT" 
+              />
+              
+              <div className={styles.taskVerticalList}>
+                {TASKS.map((task) => (
+                  <TaskCard key={task.id} {...task} />
+                ))}
+              </div>
+            </section>
+          </div>
         </main>
       );
     }
@@ -198,19 +218,8 @@ export default function AppDashboard() {
     );
   };
 
-  const showVerification = user && (!user.isPhoneVerified || !user.isChannelJoined);
-
   return (
     <div className={styles.appContainer}>
-      {/* Verification Overlay */}
-      {showVerification && (
-        <VerificationOverlay 
-          isPhoneVerified={user.isPhoneVerified}
-          isChannelJoined={user.isChannelJoined}
-          onVerify={handleOnboardingVerify}
-        />
-      )}
-
       {/* Header - Only show on main tabs, not sub-screens */}
       {activeTab === "earn" && (
         <header className={styles.earnHeader}>

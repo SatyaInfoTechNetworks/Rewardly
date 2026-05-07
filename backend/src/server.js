@@ -77,13 +77,6 @@ testConnection().then(() => {
 });
 
 // Middleware
-app.use(cors({
-  origin: true,
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'x-admin-secret', 'x-telegram-init-data']
-}));
-
 app.use(bodyParser.json());
 
 // Routes

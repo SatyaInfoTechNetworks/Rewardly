@@ -131,6 +131,12 @@ app.post('/api/auth/sync', async (req, res) => {
       console.log(`🎁 New referral: User ${tgUser.id} invited by ${referralCode}`);
     }
 
+    // Back-fill referral if it's currently null
+    if (!created && referralCode && !user.referred_by) {
+      await user.update({ referred_by: parseInt(referralCode) });
+      console.log(`🔄 Back-filled referral for User ${tgUser.id} from ${referralCode}`);
+    }
+
     // Update username if it changed
     if (!created && user.username !== tgUser.username) {
       await user.update({ username: tgUser.username });

@@ -8,6 +8,9 @@ const Referral = require('../models/Referral');
 const ReferralSetting = require('../models/ReferralSetting');
 const ReferralMilestone = require('../models/ReferralMilestone');
 const Transaction = require('../models/Transaction');
+const Contest = require('../models/Contest');
+const ContestReward = require('../models/ContestReward');
+const ContestEntry = require('../models/ContestEntry');
 const { sequelize } = require('../config/database');
 
 /**

@@ -234,8 +234,8 @@ export default function AdminPanel() {
                       <td style={{ fontSize: '0.8rem' }}>{user.phone_number || 'N/A'}</td>
                       <td>
                         <div style={{ display: 'flex', gap: '8px' }}>
-                          <CheckCircle2 size={16} color={user.is_phone_verified ? "#4ade80" : "#475569"} title="Phone Verified" />
-                          <Users size={16} color={user.is_channel_joined ? "#4ade80" : "#475569"} title="Channel Joined" />
+                          <CheckCircle2 size={16} color={user.is_phone_verified ? "#4ade80" : "#475569"} />
+                          <Users size={16} color={user.is_channel_joined ? "#4ade80" : "#475569"} />
                         </div>
                       </td>
                       <td style={{ fontWeight: 700, color: '#4ade80' }}>{user.balance?.toLocaleString() || 0}</td>

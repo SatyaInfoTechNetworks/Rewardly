@@ -1,0 +1,100 @@
+:root {
+  /* Colors - Precise Selection */
+  --bg-main: #F5F7FF;
+  --bg-card: #FFFFFF;
+  --text-primary: #111827;
+  --text-secondary: #6B7280;
+  
+  --primary: #5B5FFB;
+  --secondary: #7C4DFF;
+  --primary-gradient: linear-gradient(135deg, #5B5FFB 0%, #7C4DFF 100%);
+  
+  --reward-gold: #F59E0B;
+  --reward-bg: #FFFBEB;
+  
+  /* Shadows - Very Soft */
+  --shadow-soft: 0 4px 12px rgba(0, 0, 0, 0.04);
+  --shadow-premium: 0 8px 24px rgba(79, 70, 229, 0.06);
+  
+  /* Border Radius */
+  --radius-card: 22px;
+  --radius-button: 18px;
+  --radius-pill: 9999px;
+  
+  /* Typography Scale */
+  --fs-section: 20px;
+  --fs-card-title: 16px;
+  --fs-body: 13px;
+  --fs-label: 11px;
+  --fs-navbar: 10px;
+  
+  /* Transitions */
+  --transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+* {
+  box-sizing: border-box;
+  padding: 0;
+  margin: 0;
+  -webkit-tap-highlight-color: transparent;
+  font-family: var(--font-poppins), sans-serif;
+}
+
+body {
+  background-color: var(--bg-main);
+  color: var(--text-primary);
+  min-height: 100vh;
+  width: 100%;
+  overflow-x: hidden;
+  line-height: 1.4;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Typography Hierarchy */
+h1 { font-size: var(--fs-section); font-weight: 700; color: var(--text-primary); }
+h2 { font-size: var(--fs-section); font-weight: 700; color: var(--text-primary); }
+h3 { font-size: var(--fs-card-title); font-weight: 600; color: var(--text-primary); }
+p { font-size: var(--fs-body); font-weight: 400; color: var(--text-secondary); }
+
+small {
+  font-size: var(--fs-label);
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+/* Scrollbar - Hidden for Horizontal Scroll */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.card {
+  background: var(--bg-card);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-premium);
+  padding: 16px;
+  transition: var(--transition);
+}
+
+.card:active {
+  transform: scale(0.98);
+}
+
+.btn-primary {
+  background: var(--primary-gradient);
+  color: white;
+  padding: 10px 20px;
+  border-radius: var(--radius-pill);
+  border: none;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.btn-primary:active {
+  transform: scale(0.96);
+}

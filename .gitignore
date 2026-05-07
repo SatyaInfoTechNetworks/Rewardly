@@ -1,0 +1,28 @@
+# Node
+node_modules/
+dist/
+build/
+.next/
+out/
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# IDE
+.vscode/
+.idea/
+.DS_Store
+
+# Misc
+.gemini/
+scratch/
+artifacts/
+package-lock.json
+yarn.lock

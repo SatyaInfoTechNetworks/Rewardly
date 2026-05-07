@@ -1,0 +1,162 @@
+"use client";
+
+import { useState, useEffect } from "react";
+import styles from "@/app/page.module.css";
+import { Flame, Zap, Inbox } from "lucide-react";
+
+// Components
+import { CoinBadge } from "@/components/ui/CoinBadge";
+import { SectionHeader } from "@/components/ui/SectionHeader";
+import { SurveyCard } from "@/components/earn/SurveyCard";
+import { SurveysScreen } from "@/components/earn/SurveysScreen";
+import { FeaturedOffer } from "@/components/earn/FeaturedOffer";
+import { TaskCard } from "@/components/earn/TaskCard";
+import { MoreScreen } from "@/components/more/MoreScreen";
+import { Navbar } from "@/components/layout/Navbar";
+
+// Hooks
+import { useSurveys } from "@/hooks/useSurveys";
+
+// Data Constants
+const TASKS = [
+  { 
+    id: 1, 
+    title: "CryptoBase Account", 
+    reward: "25,000", 
+    desc: "Complete KYC & first deposit", 
+    time: "15 mins",
+    tag: "Finance",
+    urgency: "🔥 Ends in 12h",
+    icon: "💹"
+  },
+  { 
+    id: 2, 
+    title: "Space Jump Adventure", 
+    reward: "15,000", 
+    desc: "Reach 50,000 score", 
+    time: "10 mins",
+    tag: "Gaming",
+    urgency: "⚡ Popular",
+    icon: "🚀"
+  },
+];
+
+export default function AppDashboard() {
+  const [activeTab, setActiveTab] = useState("earn");
+  const { surveys, loading: surveysLoading, refetch: refreshSurveys } = useSurveys();
+
+  // Refresh surveys whenever the Earn tab is clicked
+  useEffect(() => {
+    if (activeTab === "earn") {
+      refreshSurveys();
+    }
+  }, [activeTab]);
+
+  const renderContent = () => {
+    if (activeTab === "more") {
+      return <MoreScreen />;
+    }
+
+    if (activeTab === "surveys_all") {
+      return (
+        <SurveysScreen 
+          surveys={surveys} 
+          loading={surveysLoading} 
+          onBack={() => setActiveTab("earn")} 
+        />
+      );
+    }
+
+    if (activeTab === "earn") {
+      return (
+        <main className={styles.earnScreen}>
+          {/* Hot Surveys Section */}
+          <section className={styles.surveysSection}>
+            <SectionHeader 
+              title="Hot Surveys" 
+              icon={Flame} 
+              actionText="View All" 
+              onAction={() => setActiveTab("surveys_all")}
+            />
+            
+            <div className={`${styles.horizontalScroll} no-scrollbar`}>
+              {surveysLoading ? (
+                Array(3).fill(0).map((_, i) => (
+                  <SurveyCard key={`skeleton-${i}`} title="" time="" rating="" reward="" isLoading={true} />
+                ))
+              ) : surveys.length > 0 ? (
+                surveys.map((survey) => (
+                  <SurveyCard key={survey.id} {...survey} />
+                ))
+              ) : (
+                <div className={styles.noSurveysBox}>
+                  <Inbox size={32} opacity={0.3} />
+                  <p>No surveys available at the moment</p>
+                </div>
+              )}
+            </div>
+          </section>
+
+          {/* Featured Offer Section */}
+          <FeaturedOffer 
+            title="Epic Quest: Kingdom Rise"
+            desc="Complete the tutorial & reach Level 20"
+            reward="50,000"
+            icon="🎮"
+            urgency="⚡ Boosted Reward"
+          />
+
+          {/* Hot Reward Tasks Section */}
+          <section className={styles.tasksSection}>
+            <SectionHeader 
+              title="Hot Reward Tasks" 
+              icon={Zap} 
+              badgeText="HOT" 
+            />
+            
+            <div className={styles.taskVerticalList}>
+              {TASKS.map((task) => (
+                <TaskCard key={task.id} {...task} />
+              ))}
+            </div>
+          </section>
+        </main>
+      );
+    }
+
+    return (
+      <div className={styles.emptyState}>
+        <div className={styles.emptyIcon}>🚀</div>
+        <h3>Coming Soon</h3>
+        <p>This section is under development.</p>
+      </div>
+    );
+  };
+
+  return (
+    <div className={styles.appContainer}>
+      {/* Header - Only show on main tabs, not sub-screens */}
+      {activeTab === "earn" && (
+        <header className={styles.earnHeader}>
+          <div className={styles.logoGroup}>
+            <div className={styles.appIcon}>R</div>
+            <h1 className={styles.appName}>Rewardly</h1>
+          </div>
+          
+          <div className={styles.headerActions}>
+            <CoinBadge amount="2,450" size="lg" />
+          </div>
+        </header>
+      )}
+
+      <div className={
+        activeTab === "earn" ? styles.contentWrapper : 
+        activeTab === "surveys_all" ? styles.noWrapper : styles.contentWrapperNoHeader
+      }>
+        {renderContent()}
+      </div>
+
+      <Navbar activeTab={activeTab === "surveys_all" ? "earn" : activeTab} onTabChange={setActiveTab} />
+    </div>
+  );
+}

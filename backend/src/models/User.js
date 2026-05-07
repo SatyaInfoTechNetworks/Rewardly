@@ -1,0 +1,41 @@
+const { DataTypes } = require('sequelize');
+const { sequelize } = require('../config/database');
+
+const User = sequelize.define('User', {
+  telegram_id: {
+    type: DataTypes.BIGINT,
+    allowNull: false,
+    unique: true,
+    primaryKey: true
+  },
+  username: {
+    type: DataTypes.STRING,
+    allowNull: true
+  },
+  first_name: {
+    type: DataTypes.STRING,
+    allowNull: false
+  },
+  last_name: {
+    type: DataTypes.STRING,
+    allowNull: true
+  },
+  balance: {
+    type: DataTypes.BIGINT,
+    defaultValue: 0
+  },
+  is_banned: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: false
+  },
+  ip_address: {
+    type: DataTypes.STRING,
+    allowNull: true
+  }
+}, {
+  tableName: 'users',
+  timestamps: true,
+  underscored: true
+});
+
+module.exports = User;

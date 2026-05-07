@@ -1,0 +1,113 @@
+.landingContainer {
+  min-height: 100vh;
+  background: radial-gradient(circle at top right, rgba(91, 95, 251, 0.1), transparent),
+              radial-gradient(circle at bottom left, rgba(124, 77, 255, 0.1), transparent),
+              #FFFFFF;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  text-align: center;
+  max-width: 500px;
+  margin: 0 auto;
+}
+
+.heroContent {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 24px;
+  animation: fadeInUp 0.8s ease-out;
+}
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.landingLogo {
+  width: 80px;
+  height: 80px;
+  background: linear-gradient(135deg, #5B5FFB, #7C4DFF);
+  color: white;
+  border-radius: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 42px;
+  font-weight: 800;
+  box-shadow: 0 20px 40px rgba(91, 95, 251, 0.3);
+  margin-bottom: 8px;
+}
+
+.heroTitle {
+  font-size: 42px;
+  font-weight: 800;
+  line-height: 1.1;
+  color: #1E293B;
+  letter-spacing: -1.5px;
+}
+
+.heroTitle span {
+  background: linear-gradient(135deg, #5B5FFB, #7C4DFF);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.heroDesc {
+  font-size: 18px;
+  color: #64748B;
+  line-height: 1.6;
+  max-width: 320px;
+}
+
+.getStartedBtn {
+  margin-top: 16px;
+  background: linear-gradient(135deg, #5B5FFB, #7C4DFF);
+  color: white;
+  padding: 18px 48px;
+  border-radius: 20px;
+  font-size: 18px;
+  font-weight: 700;
+  text-decoration: none;
+  box-shadow: 0 10px 25px rgba(91, 95, 251, 0.4);
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.getStartedBtn:active {
+  transform: scale(0.95);
+  box-shadow: 0 5px 15px rgba(91, 95, 251, 0.3);
+}
+
+.featureList {
+  margin-top: 64px;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+  width: 100%;
+}
+
+.featureItem {
+  background: white;
+  padding: 20px;
+  border-radius: 24px;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.featureIcon {
+  font-size: 24px;
+}
+
+.featureText {
+  font-size: 13px;
+  font-weight: 600;
+  color: #475569;
+}

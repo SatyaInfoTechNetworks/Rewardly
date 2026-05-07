@@ -18,6 +18,11 @@ export const useSurveys = (userId: string | undefined) => {
   const fetchSurveys = async () => {
     const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://rewardlyapi.satyainfotechnetworks.com';
     
+    if (!userId) {
+      setLoading(false);
+      return;
+    }
+    
     try {
       setLoading(true);
       setError(null);

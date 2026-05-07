@@ -69,4 +69,36 @@ router.get('/transactions', adminAuth, async (req, res) => {
   }
 });
 
+/**
+ * GET /api/admin/seed
+ * Populates database with mock data for testing
+ */
+router.get('/seed', adminAuth, async (req, res) => {
+  try {
+    // 1. Create Mock Users
+    const mockUsers = [
+      { telegram_id: 12345678, first_name: 'Satya', username: 'satya_dev', balance: 5000 },
+      { telegram_id: 87654321, first_name: 'Rahul', username: 'rahul_earn', balance: 2450 },
+      { telegram_id: 11223344, first_name: 'Priya', username: 'priya_surveys', balance: 1200 }
+    ];
+
+    for (const u of mockUsers) {
+      await User.findOrCreate({ where: { telegram_id: u.telegram_id }, defaults: u });
+    }
+
+    // 2. Create Mock Transactions
+    await Transaction.create({
+      telegram_id: 12345678,
+      amount: 500,
+      type: 'survey',
+      description: 'Test Survey Reward',
+      status: 'completed'
+    });
+
+    res.json({ success: true, message: 'Database seeded with mock data' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 module.exports = router;

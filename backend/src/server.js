@@ -25,7 +25,7 @@ testConnection().then(() => {
 });
 
 // Middleware
-app.use(cors());
+app.use(cors()); // Allow all for debugging
 app.use(bodyParser.json());
 
 // Routes

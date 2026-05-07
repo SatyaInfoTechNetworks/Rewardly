@@ -28,8 +28,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
+      <head>
+        <script src="https://telegram.org/js/telegram-web-app.js" defer></script>
+      </head>
       <body className={`${poppins.variable} font-poppins antialiased`}>
-        <script src="https://telegram.org/js/telegram-web-app.js" async></script>
         {children}
       </body>
     </html>

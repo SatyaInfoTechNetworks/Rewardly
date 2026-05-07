@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ShieldCheck, Phone, Users, CheckCircle2, AlertCircle, ArrowRight } from 'lucide-react';
 import styles from './VerificationOverlay.module.css';
 

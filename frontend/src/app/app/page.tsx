@@ -52,49 +52,32 @@ export default function AppDashboard() {
 
   // 1. Sync User with Backend on Startup
   useEffect(() => {
-    window.onerror = (msg, url, line) => {
-      alert(`Script Error: ${msg} at ${url}:${line}`);
-    };
-
     const syncUser = async () => {
-      console.error("🚀 DEBUG: syncUser() started");
       try {
         const tg = (window as any).Telegram?.WebApp;
         
         if (tg) {
-          console.error("📱 DEBUG: Telegram SDK found");
           tg.ready();
           tg.expand();
           const initData = tg.initData;
           
-          if (!initData) {
-            console.error("⚠️ DEBUG: No initData found!");
-          }
+          if (!initData) return;
 
-          console.error("📤 DEBUG: Sending request to:", `${API_URL}/api/auth/sync`);
-          
           const response = await fetch(`${API_URL}/api/auth/sync`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ initData })
           });
 
-          if (!response.ok) {
-            const errorData = await response.json();
-            console.error("❌ Backend sync failed:", errorData);
-            return;
+          if (response.ok) {
+            const data = await response.json();
+            if (data.success) {
+              setUser(data.user);
+            }
           }
-
-          const data = await response.json();
-          if (data.success) {
-            console.log("✅ User synced successfully:", data.user);
-            setUser(data.user);
-          }
-        } else {
-          console.error("❌ Telegram WebApp SDK not found.");
         }
       } catch (error) {
-        console.error("🚨 Critical Auth Sync Error:", error);
+        console.error("Auth Sync Error:", error);
       }
     };
 

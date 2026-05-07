@@ -25,7 +25,11 @@ testConnection().then(() => {
 });
 
 // Middleware
-app.use(cors()); // Allow all for debugging
+app.use(cors({
+  origin: ['https://rewardly.satyainfotechnetworks.com', 'http://localhost:3000'],
+  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  credentials: true
+}));
 app.use(bodyParser.json());
 
 // Routes

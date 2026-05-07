@@ -101,4 +101,42 @@ router.get('/seed', adminAuth, async (req, res) => {
   }
 });
 
+/**
+ * PUT /api/admin/users/:id
+ * Update user details (balance, status, etc.)
+ */
+router.put('/users/:id', adminAuth, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { balance, status, is_banned } = req.body;
+    
+    const user = await User.findByPk(id);
+    if (!user) return res.status(404).json({ error: 'User not found' });
+    
+    if (balance !== undefined) user.balance = balance;
+    if (status !== undefined) user.status = status;
+    if (is_banned !== undefined) user.is_banned = is_banned;
+    
+    await user.save();
+    res.json({ success: true, user });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * DELETE /api/admin/users/:id
+ * Delete user and their transactions
+ */
+router.delete('/users/:id', adminAuth, async (req, res) => {
+  try {
+    const { id } = req.params;
+    await Transaction.destroy({ where: { telegram_id: id } });
+    await User.destroy({ where: { telegram_id: id } });
+    res.json({ success: true, message: 'User deleted successfully' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 module.exports = router;

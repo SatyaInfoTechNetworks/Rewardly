@@ -24,9 +24,20 @@ const User = sequelize.define('User', {
     type: DataTypes.BIGINT,
     defaultValue: 0
   },
+  streak: {
+    type: DataTypes.INTEGER,
+    defaultValue: 0
+  },
+  last_check_in: {
+    type: DataTypes.DATE
+  },
   is_banned: {
     type: DataTypes.BOOLEAN,
     defaultValue: false
+  },
+  status: {
+    type: DataTypes.STRING,
+    defaultValue: 'active'
   },
   ip_address: {
     type: DataTypes.STRING,

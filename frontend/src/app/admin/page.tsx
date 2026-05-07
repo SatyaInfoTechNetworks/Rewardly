@@ -2,27 +2,40 @@
 
 import { useState, useEffect } from "react";
 import styles from "./admin.module.css";
-import { Users, Coins, Activity, ShieldCheck, Search } from "lucide-react";
+import { 
+  Users, Coins, Activity, ShieldCheck, Search, 
+  LayoutDashboard, History, Settings, LogOut, 
+  Edit3, Trash2, Ban, CheckCircle, X
+} from "lucide-react";
 
 export default function AdminPanel() {
+  const [activeView, setActiveView] = useState("dashboard");
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [secret, setSecret] = useState("");
   const [stats, setStats] = useState<any>(null);
   const [users, setUsers] = useState<any[]>([]);
+  const [transactions, setTransactions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  
+  // Modal State
+  const [editingUser, setEditingUser] = useState<any>(null);
+  const [newBalance, setNewBalance] = useState("");
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://rewardlyapi.satyainfotechnetworks.com";
 
-  const fetchAdminData = async (authSecret: string) => {
+  const fetchAllData = async (authSecret: string) => {
     try {
-      const [statsRes, usersRes] = await Promise.all([
-        fetch(`${API_URL}/api/admin/stats`, { headers: { 'x-admin-secret': authSecret } }),
-        fetch(`${API_URL}/api/admin/users`, { headers: { 'x-admin-secret': authSecret } })
+      const headers = { 'x-admin-secret': authSecret };
+      const [statsRes, usersRes, transRes] = await Promise.all([
+        fetch(`${API_URL}/api/admin/stats`, { headers }),
+        fetch(`${API_URL}/api/admin/users`, { headers }),
+        fetch(`${API_URL}/api/admin/transactions`, { headers })
       ]);
 
-      if (statsRes.ok && usersRes.ok) {
+      if (statsRes.ok && usersRes.ok && transRes.ok) {
         setStats(await statsRes.json());
         setUsers(await usersRes.json());
+        setTransactions(await transRes.json());
         setIsAuthenticated(true);
         localStorage.setItem("admin_secret", authSecret);
       } else {
@@ -35,11 +48,43 @@ export default function AdminPanel() {
     }
   };
 
+  const handleUpdateUser = async (userId: any, data: any) => {
+    try {
+      const res = await fetch(`${API_URL}/api/admin/users/${userId}`, {
+        method: 'PUT',
+        headers: { 
+          'Content-Type': 'application/json',
+          'x-admin-secret': secret 
+        },
+        body: JSON.stringify(data)
+      });
+      if (res.ok) {
+        fetchAllData(secret);
+        setEditingUser(null);
+      }
+    } catch (error) {
+      alert("Failed to update user");
+    }
+  };
+
+  const handleDeleteUser = async (userId: any) => {
+    if (!confirm("Are you sure? This will delete all user data and transactions!")) return;
+    try {
+      const res = await fetch(`${API_URL}/api/admin/users/${userId}`, {
+        method: 'DELETE',
+        headers: { 'x-admin-secret': secret }
+      });
+      if (res.ok) fetchAllData(secret);
+    } catch (error) {
+      alert("Failed to delete user");
+    }
+  };
+
   useEffect(() => {
     const savedSecret = localStorage.getItem("admin_secret");
     if (savedSecret) {
       setSecret(savedSecret);
-      fetchAdminData(savedSecret);
+      fetchAllData(savedSecret);
     } else {
       setLoading(false);
     }
@@ -52,18 +97,19 @@ export default function AdminPanel() {
       <div className={styles.loginOverlay}>
         <div className={styles.loginBox}>
           <ShieldCheck size={48} color="#38bdf8" style={{ marginBottom: '1rem' }} />
-          <h2 className={styles.adminTitle}>Admin Portal</h2>
-          <p style={{ color: '#94a3b8', fontSize: '0.875rem' }}>Enter your security key to continue</p>
+          <h2 style={{ fontSize: '1.5rem', fontWeight: 700, marginBottom: '0.5rem' }}>Admin Access</h2>
+          <p style={{ color: '#94a3b8', fontSize: '0.875rem', marginBottom: '2rem' }}>Enter security key to manage Rewardly</p>
           <input 
             type="password" 
-            className={styles.adminInput} 
-            placeholder="Security Key"
+            className={styles.formInput} 
+            placeholder="Secret Key"
             value={secret}
             onChange={(e) => setSecret(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && fetchAdminData(secret)}
+            onKeyDown={(e) => e.key === 'Enter' && fetchAllData(secret)}
+            style={{ marginBottom: '1rem' }}
           />
-          <button className={styles.adminBtn} onClick={() => fetchAdminData(secret)}>
-            Authorize Access
+          <button className={styles.btnPrimary} style={{ width: '100%' }} onClick={() => fetchAllData(secret)}>
+            Authorize
           </button>
         </div>
       </div>
@@ -72,72 +118,224 @@ export default function AdminPanel() {
 
   return (
     <div className={styles.adminContainer}>
-      <header className={styles.adminHeader}>
-        <div>
-          <h1 className={styles.adminTitle}>Admin Dashboard</h1>
-          <p style={{ color: '#94a3b8' }}>Management console for Rewardly</p>
+      {/* Sidebar */}
+      <aside className={styles.sidebar}>
+        <div className={styles.sidebarBrand}>
+          <div className={styles.brandIcon}>R</div>
+          <span style={{ fontWeight: 700, fontSize: '1.25rem' }}>Rewardly</span>
         </div>
-        <button 
-          className={styles.adminBtn} 
-          style={{ width: 'auto', padding: '0.5rem 1rem' }}
+
+        <nav className={styles.navMenu}>
+          <div 
+            className={`${styles.navItem} ${activeView === 'dashboard' ? styles.navItemActive : ''}`}
+            onClick={() => setActiveView('dashboard')}
+          >
+            <LayoutDashboard size={20} /> Dashboard
+          </div>
+          <div 
+            className={`${styles.navItem} ${activeView === 'users' ? styles.navItemActive : ''}`}
+            onClick={() => setActiveView('users')}
+          >
+            <Users size={20} /> Users
+          </div>
+          <div 
+            className={`${styles.navItem} ${activeView === 'transactions' ? styles.navItemActive : ''}`}
+            onClick={() => setActiveView('transactions')}
+          >
+            <History size={20} /> Transactions
+          </div>
+          <div className={styles.navItem}><Settings size={20} /> Settings</div>
+        </nav>
+
+        <div 
+          className={styles.navItem} 
+          style={{ marginTop: 'auto', color: '#ef4444' }}
           onClick={() => {
             localStorage.removeItem("admin_secret");
             setIsAuthenticated(false);
           }}
         >
-          Logout
-        </button>
-      </header>
+          <LogOut size={20} /> Logout
+        </div>
+      </aside>
 
-      <div className={styles.statsGrid}>
-        <div className={styles.statCard}>
-          <div className={styles.statLabel}>Total Users</div>
-          <div className={styles.statValue}><Users size={24} style={{ marginRight: '8px' }} /> {stats?.totalUsers || 0}</div>
-        </div>
-        <div className={styles.statCard}>
-          <div className={styles.statLabel}>Coins in System</div>
-          <div className={styles.statValue}><Coins size={24} style={{ marginRight: '8px' }} /> {stats?.totalBalance?.toLocaleString() || 0}</div>
-        </div>
-        <div className={styles.statCard}>
-          <div className={styles.statLabel}>Total Transactions</div>
-          <div className={styles.statValue}><Activity size={24} style={{ marginRight: '8px' }} /> {stats?.totalTransactions || 0}</div>
-        </div>
-      </div>
+      {/* Main Content */}
+      <main className={styles.mainContent}>
+        {activeView === 'dashboard' && (
+          <section>
+            <div className={styles.sectionHeader}>
+              <h2 className={styles.sectionTitle}>Overview</h2>
+              <p className={styles.sectionDesc}>Platform-wide performance and statistics</p>
+            </div>
 
-      <div className={styles.adminTableWrapper}>
-        <div style={{ padding: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <h3 style={{ fontWeight: 600 }}>Active Users</h3>
-          <div style={{ display: 'flex', alignItems: 'center', background: 'rgba(15,23,42,0.5)', padding: '0.5rem 1rem', borderRadius: '0.5rem', border: '1px solid rgba(255,255,255,0.1)' }}>
-            <Search size={18} color="#94a3b8" />
-            <input type="text" placeholder="Search Users..." style={{ background: 'none', border: 'none', color: '#fff', marginLeft: '0.5rem', outline: 'none' }} />
+            <div className={styles.statsGrid}>
+              <div className={styles.statCard}>
+                <div className={styles.statHeader}>
+                  <div className={styles.statLabel}>Total Users</div>
+                  <Users className={styles.statIcon} size={20} />
+                </div>
+                <div className={styles.statValue}>{stats?.totalUsers?.toLocaleString()}</div>
+              </div>
+              <div className={styles.statCard}>
+                <div className={styles.statHeader}>
+                  <div className={styles.statLabel}>Total Coins</div>
+                  <Coins className={styles.statIcon} size={20} />
+                </div>
+                <div className={styles.statValue}>{stats?.totalBalance?.toLocaleString()}</div>
+              </div>
+              <div className={styles.statCard}>
+                <div className={styles.statHeader}>
+                  <div className={styles.statLabel}>Total Transactions</div>
+                  <Activity className={styles.statIcon} size={20} />
+                </div>
+                <div className={styles.statValue}>{stats?.totalTransactions?.toLocaleString()}</div>
+              </div>
+            </div>
+          </section>
+        )}
+
+        {activeView === 'users' && (
+          <section>
+            <div className={styles.sectionHeader}>
+              <h2 className={styles.sectionTitle}>User Management</h2>
+              <p className={styles.sectionDesc}>Manage accounts, balances, and permissions</p>
+            </div>
+
+            <div className={styles.tableCard}>
+              <div className={styles.tableActions}>
+                <div className={styles.searchBox}>
+                  <Search size={18} color="#94a3b8" />
+                  <input className={styles.searchInput} placeholder="Search by name or ID..." />
+                </div>
+              </div>
+
+              <table className={styles.adminTable}>
+                <thead>
+                  <tr>
+                    <th>User</th>
+                    <th>Telegram ID</th>
+                    <th>Balance</th>
+                    <th>Status</th>
+                    <th>Joined</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {users.map(user => (
+                    <tr key={user.telegram_id}>
+                      <td>
+                        <div style={{ fontWeight: 600 }}>{user.first_name} {user.last_name}</div>
+                        <div style={{ fontSize: '0.75rem', color: '#64748b' }}>@{user.username || 'no_username'}</div>
+                      </td>
+                      <td style={{ fontFamily: 'monospace' }}>{user.telegram_id}</td>
+                      <td style={{ fontWeight: 700 }}>{user.balance.toLocaleString()}</td>
+                      <td>
+                        <span className={`${styles.badge} ${user.is_banned ? styles.badgeBanned : styles.badgeActive}`}>
+                          {user.is_banned ? 'Banned' : 'Active'}
+                        </span>
+                      </td>
+                      <td>{new Date(user.created_at).toLocaleDateString()}</td>
+                      <td>
+                        <div style={{ display: 'flex', gap: '8px' }}>
+                          <button className={styles.actionBtn} onClick={() => {
+                            setEditingUser(user);
+                            setNewBalance(user.balance.toString());
+                          }}>
+                            <Edit3 size={16} />
+                          </button>
+                          <button 
+                            className={`${styles.actionBtn} ${user.is_banned ? '' : styles.btnDanger}`}
+                            onClick={() => handleUpdateUser(user.telegram_id, { is_banned: !user.is_banned })}
+                          >
+                            <Ban size={16} />
+                          </button>
+                          <button className={`${styles.actionBtn} ${styles.btnDanger}`} onClick={() => handleDeleteUser(user.telegram_id)}>
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </section>
+        )}
+
+        {activeView === 'transactions' && (
+          <section>
+            <div className={styles.sectionHeader}>
+              <h2 className={styles.sectionTitle}>Transaction History</h2>
+              <p className={styles.sectionDesc}>Recent earning and withdrawal activities</p>
+            </div>
+
+            <div className={styles.tableCard}>
+              <table className={styles.adminTable}>
+                <thead>
+                  <tr>
+                    <th>User ID</th>
+                    <th>Type</th>
+                    <th>Amount</th>
+                    <th>Description</th>
+                    <th>Date</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {transactions.map(tx => (
+                    <tr key={tx.id}>
+                      <td style={{ fontFamily: 'monospace' }}>{tx.telegram_id}</td>
+                      <td style={{ textTransform: 'capitalize' }}>{tx.type}</td>
+                      <td style={{ color: tx.amount > 0 ? '#4ade80' : '#f87171', fontWeight: 700 }}>
+                        {tx.amount > 0 ? '+' : ''}{tx.amount.toLocaleString()}
+                      </td>
+                      <td>{tx.description}</td>
+                      <td>{new Date(tx.created_at).toLocaleString()}</td>
+                      <td>
+                        <span className={`${styles.badge} ${styles.badgeActive}`}>
+                          {tx.status}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </section>
+        )}
+      </main>
+
+      {/* Edit User Modal */}
+      {editingUser && (
+        <div className={styles.modalOverlay}>
+          <div className={styles.modalBox}>
+            <div className={styles.modalHeader}>
+              <h3 style={{ fontSize: '1.25rem', fontWeight: 600 }}>Edit User: {editingUser.first_name}</h3>
+              <X className={styles.actionBtn} onClick={() => setEditingUser(null)} />
+            </div>
+            
+            <div className={styles.formGroup}>
+              <label className={styles.formLabel}>Coin Balance</label>
+              <input 
+                type="number" 
+                className={styles.formInput}
+                value={newBalance}
+                onChange={(e) => setNewBalance(e.target.value)}
+              />
+            </div>
+
+            <div className={styles.modalActions}>
+              <button className={styles.btnSecondary} onClick={() => setEditingUser(null)}>Cancel</button>
+              <button 
+                className={styles.btnPrimary}
+                onClick={() => handleUpdateUser(editingUser.telegram_id, { balance: parseInt(newBalance) })}
+              >
+                Save Changes
+              </button>
+            </div>
           </div>
         </div>
-        
-        <table className={styles.adminTable}>
-          <thead>
-            <tr>
-              <th>Telegram ID</th>
-              <th>Name</th>
-              <th>Username</th>
-              <th>Balance</th>
-              <th>Joined</th>
-              <th>Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            {users.map((user) => (
-              <tr key={user.telegram_id} className={styles.userRow}>
-                <td style={{ color: '#38bdf8', fontWeight: 500 }}>{user.telegram_id}</td>
-                <td>{user.first_name} {user.last_name}</td>
-                <td>@{user.username || 'N/A'}</td>
-                <td style={{ fontWeight: 700 }}>{user.balance.toLocaleString()}</td>
-                <td>{new Date(user.created_at).toLocaleDateString()}</td>
-                <td><span className={`${styles.badge} ${styles.badgeSuccess}`}>Active</span></td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      )}
     </div>
   );
 }

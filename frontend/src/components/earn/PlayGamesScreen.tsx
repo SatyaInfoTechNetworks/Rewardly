@@ -1,6 +1,7 @@
 "use client";
 import React, { useState, useEffect } from 'react';
 import { Gamepad2, ChevronLeft, Wallet, PlayCircle, Trophy, Zap } from 'lucide-react';
+import { motion } from 'framer-motion';
 import styles from '@/app/page.module.css';
 import { CoinBadge } from '@/components/ui/CoinBadge';
 

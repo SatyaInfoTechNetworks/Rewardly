@@ -5,6 +5,7 @@ const ContestReward = require('../models/ContestReward');
 const ContestEntry = require('../models/ContestEntry');
 const User = require('../models/User');
 const { validateTelegramInitData } = require('../utils/telegramAuth');
+const { sequelize } = require('../config/database');
 
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 
@@ -16,11 +17,21 @@ router.get('/', async (req, res) => {
   try {
     const contests = await Contest.findAll({
       where: { status: ['active', 'upcoming'] },
-      include: [{ model: ContestReward, as: 'rewards' }],
+      include: [
+        { model: ContestReward, as: 'rewards' },
+        { model: ContestEntry, attributes: [] }
+      ],
+      attributes: {
+        include: [
+          [sequelize.fn('COUNT', sequelize.col('ContestEntries.id')), 'entriesCount']
+        ]
+      },
+      group: ['Contest.id', 'rewards.id'],
       order: [['start_time', 'ASC']]
     });
     res.json(contests);
   } catch (err) {
+    console.error("Fetch Contests Error:", err);
     res.status(500).json({ error: err.message });
   }
 });

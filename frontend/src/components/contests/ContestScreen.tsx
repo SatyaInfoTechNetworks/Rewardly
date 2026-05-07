@@ -17,6 +17,7 @@ interface Contest {
   rules?: string;
   prize_pool_text: string;
   rewards?: any[];
+  entriesCount?: number;
 }
 
 interface ContestScreenProps {
@@ -126,6 +127,11 @@ export function ContestScreen({ user }: ContestScreenProps) {
           <div className={styles.urProgress}>
             <div className={styles.urLabel}>Your Score</div>
             <div className={styles.urValue}>{userEntry?.score || 0}</div>
+            {(!userEntry?.rank || userEntry.rank > 10) && (
+              <div style={{ fontSize: '0.625rem', color: '#38bdf8', marginTop: '4px', fontWeight: 600 }}>
+                Score more to enter Top 10 🚀
+              </div>
+            )}
           </div>
           <div className={styles.urDivider} />
           <div className={styles.urRank}>
@@ -240,7 +246,7 @@ export function ContestScreen({ user }: ContestScreenProps) {
                   <div className={styles.prizePool}>{contest.prize_pool_text}</div>
                   <div className={styles.participants}>
                     <Users size={14} />
-                    <span>30 Participants</span>
+                    <span>{contest.entriesCount || 0} Participants</span>
                   </div>
                 </div>
                 <button className={styles.viewLbBtn}>View Leaderboard</button>

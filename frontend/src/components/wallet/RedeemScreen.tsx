@@ -119,8 +119,7 @@ export const RedeemScreen: React.FC<RedeemScreenProps> = ({ method, user, onBack
                 <h3>{tier.amount_text}</h3>
               </div>
               <div className={styles.tierBottom}>
-                <img src="/coin.png" alt="coin" width="14" height="14" />
-                <span>{tier.coins_required.toLocaleString()}</span>
+                <CoinBadge amount={tier.coins_required} size="sm" />
               </div>
             </div>
           ))}

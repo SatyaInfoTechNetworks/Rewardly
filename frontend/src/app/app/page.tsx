@@ -49,7 +49,7 @@ export default function AppDashboard() {
   // Dynamic API URL
   const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://rewardlyapi.satyainfotechnetworks.com';
 
-  const { surveys, loading: surveysLoading, refetch: refreshSurveys } = useSurveys(user?.id?.toString());
+  const { surveys, loading: surveysLoading, refetch: refreshSurveys } = useSurveys(user?.id ? user.id.toString() : undefined);
 
   // 1. Sync User with Backend on Startup
   useEffect(() => {

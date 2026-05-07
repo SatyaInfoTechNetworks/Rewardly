@@ -236,7 +236,7 @@ export default function AdminPanel() {
                           {user.photo_url ? (
                             <img src={user.photo_url} alt="Avatar" style={{ width: '32px', height: '32px', borderRadius: '50%', objectFit: 'cover' }} />
                           ) : (
-                            <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: '#38bdf8', color: '#0b0f19', display: 'flex', alignItems: 'center', justifyCenter: 'center', fontWeight: 700, fontSize: '0.8rem' }}>
+                            <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: '#38bdf8', color: '#0b0f19', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '0.8rem' }}>
                               {(user.first_name || 'U')[0]}
                             </div>
                           )}

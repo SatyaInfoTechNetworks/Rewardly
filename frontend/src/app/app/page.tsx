@@ -52,39 +52,39 @@ export default function AppDashboard() {
 
   const { surveys, loading: surveysLoading, refetch: refreshSurveys } = useSurveys(user?.id ? user.id.toString() : undefined);
 
-  // 1. Sync User with Backend on Startup
-  useEffect(() => {
-    const syncUser = async () => {
-      try {
-        const tg = (window as any).Telegram?.WebApp;
+  const handleSyncUser = async () => {
+    try {
+      const tg = (window as any).Telegram?.WebApp;
+      
+      if (tg) {
+        tg.ready();
+        tg.expand();
+        const initData = tg.initData;
         
-        if (tg) {
-          tg.ready();
-          tg.expand();
-          const initData = tg.initData;
-          
-          if (!initData) return;
+        if (!initData) return;
 
-          const response = await fetch(`${API_URL}/api/auth/sync`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            credentials: 'include',
-            body: JSON.stringify({ initData })
-          });
+        const response = await fetch(`${API_URL}/api/auth/sync`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ initData })
+        });
 
-          if (response.ok) {
-            const data = await response.json();
-            if (data.success) {
-              setUser(data.user);
-            }
+        if (response.ok) {
+          const data = await response.json();
+          if (data.success) {
+            setUser(data.user);
           }
         }
-      } catch (error) {
-        console.error("Auth Sync Error:", error);
       }
-    };
+    } catch (error) {
+      console.error("Auth Sync Error:", error);
+    }
+  };
 
-    syncUser();
+  // 1. Sync User with Backend on Startup
+  useEffect(() => {
+    handleSyncUser();
   }, [API_URL]);
 
   // 2. Refresh surveys whenever the Earn tab is clicked
@@ -135,7 +135,7 @@ export default function AppDashboard() {
     }
 
     if (activeTab === "wallet") {
-      return <WalletScreen user={user} />;
+      return <WalletScreen user={user} onUpdateUser={handleSyncUser} />;
     }
 
     if (activeTab === "surveys_all") {

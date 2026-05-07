@@ -15,9 +15,24 @@ const PayoutMethod = sequelize.define('PayoutMethod', {
     type: DataTypes.STRING,
     allowNull: true
   },
-  description: {
+  conversion_rate: {
     type: DataTypes.STRING,
+    allowNull: true,
+    defaultValue: "₹1 = 100 Coins"
+  },
+  fee_text: {
+    type: DataTypes.STRING,
+    allowNull: true,
+    defaultValue: "0% Fees"
+  },
+  disclaimer: {
+    type: DataTypes.TEXT,
     allowNull: true
+  },
+  custom_inputs: {
+    type: DataTypes.JSON,
+    allowNull: true,
+    defaultValue: []
   },
   status: {
     type: DataTypes.STRING,

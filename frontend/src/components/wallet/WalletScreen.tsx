@@ -1,14 +1,17 @@
 import React, { useEffect, useState } from 'react';
-import { Wallet, Clock, History, Star, Smartphone, ChevronRight } from 'lucide-react';
+import { Wallet, Clock, History, Star, ChevronRight } from 'lucide-react';
 import styles from '@/app/page.module.css';
 import { CoinBadge } from '@/components/ui/CoinBadge';
+import { RedeemScreen } from './RedeemScreen';
 
 interface WalletScreenProps {
   user: any;
+  onUpdateUser: () => void;
 }
 
-export const WalletScreen: React.FC<WalletScreenProps> = ({ user }) => {
+export const WalletScreen: React.FC<WalletScreenProps> = ({ user, onUpdateUser }) => {
   const [payoutMethods, setPayoutMethods] = useState<any[]>([]);
+  const [selectedMethod, setSelectedMethod] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://rewardlyapi.satyainfotechnetworks.com';
@@ -29,6 +32,20 @@ export const WalletScreen: React.FC<WalletScreenProps> = ({ user }) => {
     };
     fetchPayouts();
   }, []);
+
+  if (selectedMethod) {
+    return (
+      <RedeemScreen 
+        method={selectedMethod} 
+        user={user} 
+        onBack={() => setSelectedMethod(null)}
+        onSuccess={() => {
+          setSelectedMethod(null);
+          onUpdateUser();
+        }}
+      />
+    );
+  }
 
   return (
     <div className={styles.walletScreen}>
@@ -85,12 +102,16 @@ export const WalletScreen: React.FC<WalletScreenProps> = ({ user }) => {
              <div className={styles.loadingBox}>Loading methods...</div>
           ) : payoutMethods.length > 0 ? (
             payoutMethods.map((method) => (
-              <div key={method.id} className={`${styles.payoutCard} card`} onClick={() => alert(`Opening ${method.name} tiers...`)}>
+              <div 
+                key={method.id} 
+                className={`${styles.payoutCard} card`} 
+                onClick={() => setSelectedMethod(method)}
+              >
                 <div className={styles.payoutIcon}>
                   {method.logo_url ? (
                     <img src={method.logo_url} alt={method.name} />
                   ) : (
-                    <Smartphone size={32} />
+                    <Star size={32} />
                   )}
                 </div>
                 <div className={styles.payoutName}>{method.name}</div>

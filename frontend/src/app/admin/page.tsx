@@ -27,7 +27,16 @@ export default function AdminPanel() {
   // Payout Editor State
   const [isPayoutModalOpen, setIsPayoutModalOpen] = useState(false);
   const [editingPayout, setEditingPayout] = useState<any>(null);
-  const [payoutForm, setPayoutForm] = useState({ name: '', logo_url: '', order_index: 0, status: 'active' });
+  const [payoutForm, setPayoutForm] = useState({ 
+    name: '', 
+    logo_url: '', 
+    order_index: 0, 
+    status: 'active',
+    conversion_rate: '₹1 = 100 Coins',
+    fee_text: '0% Fees',
+    disclaimer: '',
+    custom_inputs: [] as any[]
+  });
   const [tiersForm, setTiersForm] = useState<any[]>([]);
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://rewardlyapi.satyainfotechnetworks.com";
@@ -474,7 +483,11 @@ export default function AdminPanel() {
                               name: method.name, 
                               logo_url: method.logo_url || '', 
                               order_index: method.order_index, 
-                              status: method.status 
+                              status: method.status,
+                              conversion_rate: method.conversion_rate || '₹1 = 100 Coins',
+                              fee_text: method.fee_text || '0% Fees',
+                              disclaimer: method.disclaimer || '',
+                              custom_inputs: method.custom_inputs || []
                             });
                             setTiersForm(method.tiers || []);
                             setIsPayoutModalOpen(true);
@@ -684,6 +697,90 @@ export default function AdminPanel() {
                   <option value="inactive">Inactive</option>
                 </select>
               </div>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.5rem' }}>
+              <div className={styles.formGroup}>
+                <label className={styles.formLabel}>Conversion Rate</label>
+                <input 
+                  className={styles.formInput}
+                  placeholder="₹1 = 100 Coins"
+                  value={payoutForm.conversion_rate}
+                  onChange={(e) => setPayoutForm({...payoutForm, conversion_rate: e.target.value})}
+                />
+              </div>
+              <div className={styles.formGroup}>
+                <label className={styles.formLabel}>Transaction Fee</label>
+                <input 
+                  className={styles.formInput}
+                  placeholder="0% Fees"
+                  value={payoutForm.fee_text}
+                  onChange={(e) => setPayoutForm({...payoutForm, fee_text: e.target.value})}
+                />
+              </div>
+            </div>
+
+            <div className={styles.formGroup} style={{ marginBottom: '1.5rem' }}>
+              <label className={styles.formLabel}>Disclaimer / Terms</label>
+              <textarea 
+                className={styles.formInput}
+                style={{ height: '80px', resize: 'vertical' }}
+                placeholder="Important terms for this method..."
+                value={payoutForm.disclaimer}
+                onChange={(e) => setPayoutForm({...payoutForm, disclaimer: e.target.value})}
+              />
+            </div>
+
+            {/* Dynamic Inputs Builder */}
+            <div style={{ borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '1.5rem', marginBottom: '1rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                <h4 style={{ fontWeight: 600 }}>User Input Fields</h4>
+                <button 
+                  className={styles.addBtn} 
+                  style={{ fontSize: '0.8rem', padding: '4px 12px' }}
+                  onClick={() => setPayoutForm({
+                    ...payoutForm, 
+                    custom_inputs: [...payoutForm.custom_inputs, { name: '', placeholder: '' }]
+                  })}
+                >
+                  + Add Input
+                </button>
+              </div>
+
+              {payoutForm.custom_inputs.map((field, idx) => (
+                <div key={idx} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr auto', gap: '10px', marginBottom: '10px' }}>
+                  <input 
+                    className={styles.formInput}
+                    placeholder="Field Name (e.g. UPI ID)"
+                    value={field.name}
+                    onChange={(e) => {
+                      const newFields = [...payoutForm.custom_inputs];
+                      newFields[idx].name = e.target.value;
+                      setPayoutForm({...payoutForm, custom_inputs: newFields});
+                    }}
+                  />
+                  <input 
+                    className={styles.formInput}
+                    placeholder="Placeholder text"
+                    value={field.placeholder}
+                    onChange={(e) => {
+                      const newFields = [...payoutForm.custom_inputs];
+                      newFields[idx].placeholder = e.target.value;
+                      setPayoutForm({...payoutForm, custom_inputs: newFields});
+                    }}
+                  />
+                  <button 
+                    className={styles.actionBtn} 
+                    style={{ color: '#ef4444' }}
+                    onClick={() => {
+                      const newFields = payoutForm.custom_inputs.filter((_, i) => i !== idx);
+                      setPayoutForm({...payoutForm, custom_inputs: newFields});
+                    }}
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                </div>
+              ))}
             </div>
 
             {/* Tiers Section */}

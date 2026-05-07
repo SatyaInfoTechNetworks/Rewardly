@@ -50,7 +50,9 @@ const User = sequelize.define('User', {
   is_channel_joined: { type: DataTypes.BOOLEAN, defaultValue: false },
   referred_by: { type: DataTypes.BIGINT, allowNull: true },
   ip_address: { type: DataTypes.STRING, allowNull: true },
-  photo_url: { type: DataTypes.STRING, allowNull: true }
+  photo_url: { type: DataTypes.STRING, allowNull: true },
+  daily_games_played: { type: DataTypes.INTEGER, defaultValue: 0 },
+  last_game_date: { type: DataTypes.DATEONLY, allowNull: true }
 }, {
   tableName: 'users',
   timestamps: true,

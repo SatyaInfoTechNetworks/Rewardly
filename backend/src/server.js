@@ -118,6 +118,7 @@ testConnection().then(() => {
 
 // Routes
 app.use('/api/surveys', require('./routes/surveys'));
+app.use('/api/games', require('./routes/games'));
 app.use('/api/postbacks', require('./routes/postbacks'));
 app.use('/api/admin', require('./routes/admin'));
 app.use('/api/payouts', require('./routes/payouts'));

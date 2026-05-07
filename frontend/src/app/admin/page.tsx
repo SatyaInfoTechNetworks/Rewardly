@@ -232,8 +232,19 @@ export default function AdminPanel() {
                   {users.map(user => (
                     <tr key={user.telegram_id}>
                       <td>
-                        <div style={{ fontWeight: 600 }}>{user.first_name} {user.last_name}</div>
-                        <div style={{ fontSize: '0.75rem', color: '#64748b' }}>@{user.username || 'no_username'}</div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                          {user.photo_url ? (
+                            <img src={user.photo_url} alt="Avatar" style={{ width: '32px', height: '32px', borderRadius: '50%', objectFit: 'cover' }} />
+                          ) : (
+                            <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: '#38bdf8', color: '#0b0f19', display: 'flex', alignItems: 'center', justifyCenter: 'center', fontWeight: 700, fontSize: '0.8rem' }}>
+                              {(user.first_name || 'U')[0]}
+                            </div>
+                          )}
+                          <div>
+                            <div style={{ fontWeight: 600 }}>{user.first_name} {user.last_name}</div>
+                            <div style={{ fontSize: '0.75rem', color: '#64748b' }}>@{user.username || 'no_username'}</div>
+                          </div>
+                        </div>
                       </td>
                       <td style={{ fontFamily: 'monospace' }}>{user.telegram_id}</td>
                       <td style={{ fontSize: '0.8rem' }}>{user.phone_number || 'N/A'}</td>

@@ -161,7 +161,8 @@ app.post('/api/auth/sync', async (req, res) => {
         first_name: tgUser.first_name,
         last_name: tgUser.last_name,
         balance: 0,
-        referred_by: referralCode ? parseInt(referralCode) : null
+        referred_by: referralCode ? parseInt(referralCode) : null,
+        photo_url: tgUser.photo_url
       }
     });
 
@@ -176,9 +177,12 @@ app.post('/api/auth/sync', async (req, res) => {
       console.log(`🔄 Back-filled referral for User ${tgUser.id} from ${referralCode}`);
     }
 
-    // Update username if it changed
-    if (!created && user.username !== tgUser.username) {
-      await user.update({ username: tgUser.username });
+    // Update username or photo if they changed
+    if (!created && (user.username !== tgUser.username || user.photo_url !== tgUser.photo_url)) {
+      await user.update({ 
+        username: tgUser.username,
+        photo_url: tgUser.photo_url 
+      });
     }
 
     console.log(`${created ? '🆕 New user' : '✅ Returning user'} synced: ${user.first_name}`);

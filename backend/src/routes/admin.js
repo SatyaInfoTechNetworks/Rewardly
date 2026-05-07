@@ -116,6 +116,9 @@ router.put('/users/:id', adminAuth, async (req, res) => {
     if (balance !== undefined) user.balance = balance;
     if (status !== undefined) user.status = status;
     if (is_banned !== undefined) user.is_banned = is_banned;
+    if (is_phone_verified !== undefined) user.is_phone_verified = is_phone_verified;
+    if (is_channel_joined !== undefined) user.is_channel_joined = is_channel_joined;
+    if (phone_number !== undefined) user.phone_number = phone_number;
     
     await user.save();
     res.json({ success: true, user });

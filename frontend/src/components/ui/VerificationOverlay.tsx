@@ -17,6 +17,11 @@ export const VerificationOverlay: React.FC<VerificationOverlayProps> = ({
 }) => {
   const [isVerifying, setIsVerifying] = useState(false);
 
+  // Check status on mount in case they shared with bot earlier
+  useEffect(() => {
+    onVerify();
+  }, []);
+
   const handlePhoneRequest = () => {
     const tg = (window as any).Telegram?.WebApp;
     if (tg) {
@@ -27,7 +32,8 @@ export const VerificationOverlay: React.FC<VerificationOverlayProps> = ({
           onVerify(res.contact.phone_number);
         } else {
           console.warn("⚠️ Contact request was cancelled or failed", res);
-          alert("Please share your contact to continue.");
+          // Just run a check anyway, maybe they already shared with the bot in chat
+          onVerify();
         }
       });
     } else {

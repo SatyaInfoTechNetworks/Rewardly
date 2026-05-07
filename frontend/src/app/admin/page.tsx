@@ -214,6 +214,8 @@ export default function AdminPanel() {
                   <tr>
                     <th>User</th>
                     <th>Telegram ID</th>
+                    <th>Phone</th>
+                    <th>Verification</th>
                     <th>Balance</th>
                     <th>Pending</th>
                     <th>Status</th>
@@ -229,6 +231,13 @@ export default function AdminPanel() {
                         <div style={{ fontSize: '0.75rem', color: '#64748b' }}>@{user.username || 'no_username'}</div>
                       </td>
                       <td style={{ fontFamily: 'monospace' }}>{user.telegram_id}</td>
+                      <td style={{ fontSize: '0.8rem' }}>{user.phone_number || 'N/A'}</td>
+                      <td>
+                        <div style={{ display: 'flex', gap: '8px' }}>
+                          <CheckCircle2 size={16} color={user.is_phone_verified ? "#4ade80" : "#475569"} title="Phone Verified" />
+                          <Users size={16} color={user.is_channel_joined ? "#4ade80" : "#475569"} title="Channel Joined" />
+                        </div>
+                      </td>
                       <td style={{ fontWeight: 700, color: '#4ade80' }}>{user.balance?.toLocaleString() || 0}</td>
                       <td style={{ fontWeight: 700, color: '#fbbf24' }}>{user.pending_balance?.toLocaleString() || 0}</td>
                       <td>
@@ -326,11 +335,51 @@ export default function AdminPanel() {
               />
             </div>
 
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.5rem' }}>
+              <div 
+                style={{ 
+                  padding: '12px', 
+                  background: 'rgba(255,255,255,0.05)', 
+                  borderRadius: '12px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '10px',
+                  cursor: 'pointer',
+                  border: editingUser.is_phone_verified ? '1px solid #4ade80' : '1px solid transparent'
+                }}
+                onClick={() => setEditingUser({...editingUser, is_phone_verified: !editingUser.is_phone_verified})}
+              >
+                <CheckCircle2 size={18} color={editingUser.is_phone_verified ? "#4ade80" : "#475569"} />
+                <span style={{ fontSize: '0.8rem' }}>Phone Verified</span>
+              </div>
+
+              <div 
+                style={{ 
+                  padding: '12px', 
+                  background: 'rgba(255,255,255,0.05)', 
+                  borderRadius: '12px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '10px',
+                  cursor: 'pointer',
+                  border: editingUser.is_channel_joined ? '1px solid #4ade80' : '1px solid transparent'
+                }}
+                onClick={() => setEditingUser({...editingUser, is_channel_joined: !editingUser.is_channel_joined})}
+              >
+                <Users size={18} color={editingUser.is_channel_joined ? "#4ade80" : "#475569"} />
+                <span style={{ fontSize: '0.8rem' }}>Joined Channel</span>
+              </div>
+            </div>
+
             <div className={styles.modalActions}>
               <button className={styles.btnSecondary} onClick={() => setEditingUser(null)}>Cancel</button>
               <button 
                 className={styles.btnPrimary}
-                onClick={() => handleUpdateUser(editingUser.telegram_id, { balance: parseInt(newBalance) })}
+                onClick={() => handleUpdateUser(editingUser.telegram_id, { 
+                  balance: parseInt(newBalance),
+                  is_phone_verified: editingUser.is_phone_verified,
+                  is_channel_joined: editingUser.is_channel_joined
+                })}
               >
                 Save Changes
               </button>

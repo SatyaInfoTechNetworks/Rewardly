@@ -52,15 +52,15 @@ export const PlayGamesScreen: React.FC<PlayGamesScreenProps> = ({ user, onBack, 
 
     setAdLoading(true);
 
-    // Trigger Monetag Rewarded Interstitial
-    if ((window as any).show_9827842) {
-      (window as any).show_9827842().then(() => {
+    // Trigger Monetag Rewarded Interstitial / Popup
+    if ((window as any).show_10977311) {
+      (window as any).show_10977311('pop').then(() => {
         // Ad completed successfully
         claimReward();
       }).catch((err: any) => {
         console.error("Ad error:", err);
         setAdLoading(false);
-        alert("Ad failed to load. Please try again later.");
+        alert("Ad failed to load or was closed early.");
       });
     } else {
       setAdLoading(false);

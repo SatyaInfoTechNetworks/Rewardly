@@ -106,23 +106,26 @@ export const RedeemScreen: React.FC<RedeemScreenProps> = ({ method, user, onBack
           </div>
         </div>
 
-        {/* Select Tier */}
-        <div className={styles.sectionLabel}>Select Amount</div>
-        <div className={styles.tiersGrid}>
-          {method.tiers?.map((tier: any) => (
-            <div 
-              key={tier.id} 
-              className={`${styles.tierCard} ${selectedTier?.id === tier.id ? styles.tierSelected : ''}`}
-              onClick={() => setSelectedTier(tier)}
-            >
-              <div className={styles.tierTop}>
-                <h3>{tier.amount_text}</h3>
-              </div>
-              <div className={styles.tierBottom}>
-                <CoinBadge amount={tier.coins_required} size="sm" />
-              </div>
-            </div>
-          ))}
+        {/* Select Tier Dropdown */}
+        <div className={styles.sectionLabel}>Choose Amount</div>
+        <div className={styles.inputGroup}>
+          <select 
+            className={styles.modalInput}
+            style={{ width: '100%', cursor: 'pointer' }}
+            onChange={(e) => {
+              const tierId = parseInt(e.target.value);
+              const tier = method.tiers.find((t: any) => t.id === tierId);
+              setSelectedTier(tier);
+            }}
+            value={selectedTier?.id || ''}
+          >
+            <option value="">Select an amount</option>
+            {method.tiers?.map((tier: any) => (
+              <option key={tier.id} value={tier.id}>
+                {tier.amount_text} ({tier.coins_required.toLocaleString()} Coins)
+              </option>
+            ))}
+          </select>
         </div>
 
         {/* Custom Inputs */}

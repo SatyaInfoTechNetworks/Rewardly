@@ -20,28 +20,7 @@ import { VerificationOverlay } from "@/components/ui/VerificationOverlay";
 import { useSurveys } from "@/hooks/useSurveys";
 
 // Data Constants
-const TASKS = [
-  { 
-    id: 1, 
-    title: "CryptoBase Account", 
-    reward: "25,000", 
-    desc: "Complete KYC & first deposit", 
-    time: "15 mins",
-    tag: "Finance",
-    urgency: "🔥 Ends in 12h",
-    icon: "💹"
-  },
-  { 
-    id: 2, 
-    title: "Space Jump Adventure", 
-    reward: "15,000", 
-    desc: "Reach 50,000 score", 
-    time: "10 mins",
-    tag: "Gaming",
-    urgency: "⚡ Popular",
-    icon: "🚀"
-  },
-];
+const TASKS: any[] = []; // Demo data removed
 
 export default function AppDashboard() {
   const [activeTab, setActiveTab] = useState("earn");

@@ -28,9 +28,9 @@ testConnection().then(() => {
 // Middleware
 app.use((req, res, next) => {
   const origin = req.headers.origin;
-  const allowedOrigins = ['https://rewardly.satyainfotechnetworks.com', 'http://localhost:3000'];
   
-  if (allowedOrigins.includes(origin)) {
+  // Allow all satyainfotechnetworks.com subdomains
+  if (origin && (origin.includes('satyainfotechnetworks.com') || origin.includes('localhost'))) {
     res.setHeader('Access-Control-Allow-Origin', origin);
   }
   

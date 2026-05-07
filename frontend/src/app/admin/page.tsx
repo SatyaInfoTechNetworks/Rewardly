@@ -218,6 +218,7 @@ export default function AdminPanel() {
                     <th>User</th>
                     <th>Telegram ID</th>
                     <th>Phone</th>
+                    <th>Invited By</th>
                     <th>Google AID / IDFA</th>
                     <th>Verification</th>
                     <th>Balance</th>
@@ -236,6 +237,7 @@ export default function AdminPanel() {
                       </td>
                       <td style={{ fontFamily: 'monospace' }}>{user.telegram_id}</td>
                       <td style={{ fontSize: '0.8rem' }}>{user.phone_number || 'N/A'}</td>
+                      <td style={{ fontSize: '0.8rem', color: '#94a3b8' }}>{user.referred_by || 'Organic'}</td>
                       <td>
                         <div style={{ fontSize: '0.7rem', color: '#94a3b8' }}>
                           <div>G: {user.google_aid || 'N/A'}</div>

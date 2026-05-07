@@ -108,7 +108,7 @@ router.get('/seed', adminAuth, async (req, res) => {
 router.put('/users/:id', adminAuth, async (req, res) => {
   try {
     const { id } = req.params;
-    const { balance, status, is_banned } = req.body;
+    const { balance, status, is_banned, is_phone_verified, is_channel_joined, phone_number } = req.body;
     
     const user = await User.findByPk(id);
     if (!user) return res.status(404).json({ error: 'User not found' });

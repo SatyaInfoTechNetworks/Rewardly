@@ -218,6 +218,7 @@ export default function AdminPanel() {
                     <th>User</th>
                     <th>Telegram ID</th>
                     <th>Phone</th>
+                    <th>Google AID / IDFA</th>
                     <th>Verification</th>
                     <th>Balance</th>
                     <th>Pending</th>
@@ -236,6 +237,12 @@ export default function AdminPanel() {
                       <td style={{ fontFamily: 'monospace' }}>{user.telegram_id}</td>
                       <td style={{ fontSize: '0.8rem' }}>{user.phone_number || 'N/A'}</td>
                       <td>
+                        <div style={{ fontSize: '0.7rem', color: '#94a3b8' }}>
+                          <div>G: {user.google_aid || 'N/A'}</div>
+                          <div>I: {user.ios_idfa || 'N/A'}</div>
+                        </div>
+                      </td>
+                      <td>
                         <div style={{ display: 'flex', gap: '8px' }}>
                           <CheckCircle2 size={16} color={user.is_phone_verified ? "#4ade80" : "#475569"} />
                           <Users size={16} color={user.is_channel_joined ? "#4ade80" : "#475569"} />
@@ -248,7 +255,7 @@ export default function AdminPanel() {
                           {user.is_banned ? 'Banned' : 'Active'}
                         </span>
                       </td>
-                      <td>{user.created_at ? new Date(user.created_at).toLocaleDateString() : 'N/A'}</td>
+                      <td>{user.created_at || user.createdAt ? new Date(user.created_at || user.createdAt).toLocaleDateString() : 'N/A'}</td>
                       <td>
                         <div style={{ display: 'flex', gap: '8px' }}>
                           <button className={styles.actionBtn} onClick={() => {

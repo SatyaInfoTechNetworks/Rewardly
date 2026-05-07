@@ -16,6 +16,7 @@ export default function AdminPanel() {
   const [activeTab, setActiveTab] = useState<'users' | 'withdrawals' | 'payouts'>('users');
   const [users, setUsers] = useState<any[]>([]);
   const [payoutMethods, setPayoutMethods] = useState<any[]>([]);
+  const [withdrawals, setWithdrawals] = useState<any[]>([]);
   const [transactions, setTransactions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   
@@ -29,17 +30,19 @@ export default function AdminPanel() {
     try {
       const headers = { 'x-admin-secret': authSecret };
       const options = { headers, credentials: 'include' as RequestCredentials };
-      const [statsRes, usersRes, payoutsRes, transRes] = await Promise.all([
+      const [statsRes, usersRes, payoutsRes, withdrawalsRes, transRes] = await Promise.all([
         fetch(`${API_URL}/api/admin/stats`, options),
         fetch(`${API_URL}/api/admin/users`, options),
         fetch(`${API_URL}/api/admin/payout-methods`, options),
+        fetch(`${API_URL}/api/admin/withdrawals`, options),
         fetch(`${API_URL}/api/admin/transactions`, options)
       ]);
 
-      if (statsRes.ok && usersRes.ok && payoutsRes.ok && transRes.ok) {
+      if (statsRes.ok && usersRes.ok && payoutsRes.ok && withdrawalsRes.ok && transRes.ok) {
         setStats(await statsRes.json());
         setUsers(await usersRes.json());
         setPayoutMethods(await payoutsRes.json());
+        setWithdrawals(await withdrawalsRes.json());
         setTransactions(await transRes.json());
         setIsAuthenticated(true);
         localStorage.setItem("admin_secret", authSecret);
@@ -98,6 +101,28 @@ export default function AdminPanel() {
   }, []);
 
   if (loading) return <div className={styles.adminContainer}>Loading...</div>;
+
+  const handleUpdateWithdrawal = async (id: number, status: string) => {
+    try {
+      const authSecret = localStorage.getItem("admin_secret");
+      const response = await fetch(`${API_URL}/api/admin/withdrawals/${id}`, {
+        method: 'PUT',
+        headers: { 
+          'Content-Type': 'application/json',
+          'x-admin-secret': authSecret || ''
+        },
+        credentials: 'include',
+        body: JSON.stringify({ status })
+      });
+
+      if (response.ok) {
+        alert(`Withdrawal ${status} successfully!`);
+        fetchAllData(authSecret || '');
+      }
+    } catch (error) {
+      alert("Failed to update withdrawal");
+    }
+  };
 
   if (!isAuthenticated) {
     return (
@@ -469,6 +494,72 @@ export default function AdminPanel() {
                     <td>{method.order_index}</td>
                     <td>
                       <button className={styles.editBtn}>Edit</button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      {activeView === 'withdrawals' && (
+        <div className={styles.tableCard}>
+          <div className={styles.tableHeader}>
+            <h2 className={styles.tableTitle}>Withdrawal Requests</h2>
+          </div>
+          <div className={styles.tableWrapper}>
+            <table className={styles.adminTable}>
+              <thead>
+                <tr>
+                  <th>User</th>
+                  <th>Method</th>
+                  <th>Amount</th>
+                  <th>Details</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {withdrawals.map(req => (
+                  <tr key={req.id}>
+                    <td>
+                      <div>
+                        <strong>{req.User?.first_name}</strong>
+                        <div style={{ fontSize: '11px', color: '#64748b' }}>@{req.User?.username}</div>
+                      </div>
+                    </td>
+                    <td>{req.PayoutMethod?.name}</td>
+                    <td>
+                      <strong>{req.amount_text}</strong>
+                      <div style={{ fontSize: '11px', color: '#64748b' }}>{req.coins_used} coins</div>
+                    </td>
+                    <td><code style={{ fontSize: '12px' }}>{req.payout_details}</code></td>
+                    <td>
+                      <span className={
+                        req.status === 'approved' ? styles.statusActive : 
+                        req.status === 'pending' ? styles.statusPending : styles.statusBlocked
+                      }>
+                        {req.status}
+                      </span>
+                    </td>
+                    <td>
+                      {req.status === 'pending' && (
+                        <div style={{ display: 'flex', gap: '8px' }}>
+                          <button 
+                            className={styles.addBtn} 
+                            style={{ padding: '6px 12px', background: '#10b981' }}
+                            onClick={() => handleUpdateWithdrawal(req.id, 'approved')}
+                          >
+                            Approve
+                          </button>
+                          <button 
+                            className={styles.editBtn} 
+                            style={{ padding: '6px 12px', background: '#ef4444', color: 'white' }}
+                            onClick={() => handleUpdateWithdrawal(req.id, 'rejected')}
+                          >
+                            Reject
+                          </button>
+                        </div>
+                      )}
                     </td>
                   </tr>
                 ))}

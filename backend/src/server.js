@@ -7,6 +7,7 @@ const { sequelize, testConnection } = require('./config/database');
 const User = require('./models/User');
 const PayoutMethod = require('./models/PayoutMethod');
 const PayoutTier = require('./models/PayoutTier');
+const WithdrawalRequest = require('./models/WithdrawalRequest');
 const axios = require('axios');
 
 const app = express();
@@ -23,6 +24,10 @@ const getClientIp = (req) => {
 // Model Associations
 PayoutMethod.hasMany(PayoutTier, { as: 'tiers', foreignKey: 'payout_method_id' });
 PayoutTier.belongsTo(PayoutMethod, { foreignKey: 'payout_method_id' });
+
+WithdrawalRequest.belongsTo(User, { foreignKey: 'user_id' });
+WithdrawalRequest.belongsTo(PayoutMethod, { foreignKey: 'payout_method_id' });
+WithdrawalRequest.belongsTo(PayoutTier, { foreignKey: 'payout_tier_id' });
 
 // Test DB Connection & Sync Models
 testConnection().then(() => {
@@ -47,7 +52,30 @@ testConnection().then(() => {
         where: { name: 'Amazon Pay' }, 
         defaults: { logo_url: 'https://upload.wikimedia.org/wikipedia/commons/a/a9/Amazon_logo.svg', order_index: 2 } 
       });
-      await PayoutTier.findOrCreate({ where: { payout_method_id: amazon.id, coins_required: 25000 }, defaults: { amount_text: '₹250' } });
+      const [amazonTier] = await PayoutTier.findOrCreate({ where: { payout_method_id: amazon.id, coins_required: 25000 }, defaults: { amount_text: '₹250' } });
+
+      // Sample Withdrawal Requests
+      await WithdrawalRequest.findOrCreate({
+        where: { user_id: 111111, payout_method_id: upi.id },
+        defaults: {
+          payout_tier_id: 1,
+          amount_text: '₹50',
+          coins_used: 5000,
+          payout_details: 'satya@upi',
+          status: 'pending'
+        }
+      });
+
+      await WithdrawalRequest.findOrCreate({
+        where: { user_id: 222222, payout_method_id: amazon.id },
+        defaults: {
+          payout_tier_id: amazonTier.id,
+          amount_text: '₹250',
+          coins_used: 25000,
+          payout_details: 'rahul@amazon',
+          status: 'pending'
+        }
+      });
 
     } catch (e) {
       console.log('Seed skip:', e.message);

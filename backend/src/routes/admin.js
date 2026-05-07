@@ -4,6 +4,7 @@ const User = require('../models/User');
 const Transaction = require('../models/Transaction');
 const PayoutMethod = require('../models/PayoutMethod');
 const PayoutTier = require('../models/PayoutTier');
+const WithdrawalRequest = require('../models/WithdrawalRequest');
 const { sequelize } = require('../config/database');
 
 /**
@@ -190,6 +191,39 @@ router.post('/payout-tiers', adminAuth, async (req, res) => {
   try {
     const tier = await PayoutTier.create(req.body);
     res.json(tier);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * GET /api/admin/withdrawals
+ */
+router.get('/withdrawals', adminAuth, async (req, res) => {
+  try {
+    const requests = await WithdrawalRequest.findAll({
+      include: [
+        { model: User, attributes: ['first_name', 'username', 'telegram_id'] },
+        { model: PayoutMethod },
+        { model: PayoutTier }
+      ],
+      order: [['created_at', 'DESC']]
+    });
+    res.json(requests);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * PUT /api/admin/withdrawals/:id
+ */
+router.put('/withdrawals/:id', adminAuth, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status, admin_note } = req.body;
+    await WithdrawalRequest.update({ status, admin_note }, { where: { id } });
+    res.json({ success: true });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

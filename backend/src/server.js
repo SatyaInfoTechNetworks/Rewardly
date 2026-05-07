@@ -26,12 +26,24 @@ testConnection().then(() => {
 });
 
 // Middleware
-app.use(cors({
-  origin: ['https://rewardly.satyainfotechnetworks.com', 'http://localhost:3000'],
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'x-admin-secret'],
-  credentials: true
-}));
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
+  const allowedOrigins = ['https://rewardly.satyainfotechnetworks.com', 'http://localhost:3000'];
+  
+  if (allowedOrigins.includes(origin)) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+  }
+  
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, x-admin-secret');
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
+
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+  next();
+});
+
 app.use(bodyParser.json());
 
 // Routes

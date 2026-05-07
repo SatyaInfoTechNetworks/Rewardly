@@ -739,14 +739,13 @@ export default function AdminPanel() {
                 onChange={(e) => setPayoutForm({...payoutForm, disclaimer: e.target.value})}
               />
             </div>
-
-            {/* Dynamic Inputs Builder */}
-            <div style={{ borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '1.5rem', marginBottom: '1rem' }}>
+                        {/* Dynamic Inputs Builder */}
+            <div style={{ borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '1.5rem', marginBottom: '1.5rem' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                <h4 style={{ fontWeight: 600 }}>User Input Fields</h4>
+                <h4 style={{ fontWeight: 600, color: '#38bdf8' }}>User Input Fields</h4>
                 <button 
                   className={styles.addBtn} 
-                  style={{ fontSize: '0.8rem', padding: '4px 12px' }}
+                  style={{ fontSize: '0.8rem', padding: '6px 14px' }}
                   onClick={() => setPayoutForm({
                     ...payoutForm, 
                     custom_inputs: [...payoutForm.custom_inputs, { name: '', placeholder: '' }]
@@ -755,62 +754,62 @@ export default function AdminPanel() {
                   + Add Input
                 </button>
               </div>
-
-              {payoutForm.custom_inputs.map((field, idx) => (
-                <div key={idx} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr auto', gap: '10px', marginBottom: '10px' }}>
-                  <input 
-                    className={styles.formInput}
-                    placeholder="Field Name (e.g. UPI ID)"
-                    value={field.name}
-                    onChange={(e) => {
-                      const newFields = [...payoutForm.custom_inputs];
-                      newFields[idx].name = e.target.value;
-                      setPayoutForm({...payoutForm, custom_inputs: newFields});
-                    }}
-                  />
-                  <input 
-                    className={styles.formInput}
-                    placeholder="Placeholder text"
-                    value={field.placeholder}
-                    onChange={(e) => {
-                      const newFields = [...payoutForm.custom_inputs];
-                      newFields[idx].placeholder = e.target.value;
-                      setPayoutForm({...payoutForm, custom_inputs: newFields});
-                    }}
-                  />
-                  <button 
-                    className={styles.actionBtn} 
-                    style={{ color: '#ef4444' }}
-                    onClick={() => {
-                      const newFields = payoutForm.custom_inputs.filter((_, i) => i !== idx);
-                      setPayoutForm({...payoutForm, custom_inputs: newFields});
-                    }}
-                  >
-                    <Trash2 size={16} />
-                  </button>
-                </div>
-              ))}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                {payoutForm.custom_inputs.map((input, idx) => (
+                  <div key={idx} style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                    <input 
+                      className={styles.formInput}
+                      placeholder="Label (e.g. UPI ID)"
+                      value={input.name}
+                      onChange={(e) => {
+                        const newInputs = [...payoutForm.custom_inputs];
+                        newInputs[idx].name = e.target.value;
+                        setPayoutForm({ ...payoutForm, custom_inputs: newInputs });
+                      }}
+                    />
+                    <input 
+                      className={styles.formInput}
+                      placeholder="Placeholder"
+                      value={input.placeholder}
+                      onChange={(e) => {
+                        const newInputs = [...payoutForm.custom_inputs];
+                        newInputs[idx].placeholder = e.target.value;
+                        setPayoutForm({ ...payoutForm, custom_inputs: newInputs });
+                      }}
+                    />
+                    <button 
+                      className={styles.actionBtn}
+                      style={{ color: '#f87171' }}
+                      onClick={() => {
+                        const newInputs = payoutForm.custom_inputs.filter((_, i) => i !== idx);
+                        setPayoutForm({ ...payoutForm, custom_inputs: newInputs });
+                      }}
+                    >
+                      <Trash2 size={18} />
+                    </button>
+                  </div>
+                ))}
+              </div>
             </div>
 
-            {/* Tiers Section */}
-            <div style={{ borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '1.5rem', marginTop: '1rem' }}>
+            {/* Tiers Builder */}
+            <div style={{ borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '1.5rem', marginBottom: '2rem' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                <h4 style={{ fontWeight: 600 }}>Manage Tiers</h4>
+                <h4 style={{ fontWeight: 600, color: '#38bdf8' }}>Manage Tiers</h4>
                 <button 
                   className={styles.addBtn} 
-                  style={{ fontSize: '0.8rem', padding: '4px 12px' }}
-                  onClick={() => setTiersForm([...tiersForm, { amount_text: '₹50', coins_required: 5000 }])}
+                  style={{ fontSize: '0.8rem', padding: '6px 14px' }}
+                  onClick={() => setTiersForm([...tiersForm, { amount_text: '', coins_required: 0 }])}
                 >
                   + Add Tier
                 </button>
               </div>
-
-              <div style={{ maxHeight: '200px', overflowY: 'auto', paddingRight: '4px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                 {tiersForm.map((tier, idx) => (
-                  <div key={idx} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr auto', gap: '10px', marginBottom: '10px', alignItems: 'center' }}>
+                  <div key={idx} style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
                     <input 
                       className={styles.formInput}
-                      placeholder="Amount (e.g. ₹100)"
+                      placeholder="Amount (e.g. ₹50)"
                       value={tier.amount_text}
                       onChange={(e) => {
                         const newTiers = [...tiersForm];
@@ -830,18 +829,21 @@ export default function AdminPanel() {
                       }}
                     />
                     <button 
-                      className={styles.actionBtn} 
-                      style={{ color: '#ef4444' }}
-                      onClick={() => setTiersForm(tiersForm.filter((_, i) => i !== idx))}
+                      className={styles.actionBtn}
+                      style={{ color: '#f87171' }}
+                      onClick={() => {
+                        const newTiers = tiersForm.filter((_, i) => i !== idx);
+                        setTiersForm(newTiers);
+                      }}
                     >
-                      <Trash2 size={16} />
+                      <Trash2 size={18} />
                     </button>
                   </div>
                 ))}
               </div>
             </div>
 
-            <div className={styles.modalActions} style={{ marginTop: '2rem' }}>
+            <div className={styles.modalActions} style={{ position: 'sticky', bottom: 0, background: '#1e293b', paddingTop: '1rem', borderTop: '1px solid rgba(255,255,255,0.1)' }}>
               <button className={styles.btnSecondary} onClick={() => setIsPayoutModalOpen(false)}>Cancel</button>
               <button className={styles.btnPrimary} onClick={handleSavePayout}>Save Method</button>
             </div>

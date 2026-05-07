@@ -132,32 +132,93 @@ export const PlayGamesScreen: React.FC<PlayGamesScreenProps> = ({ user, onBack, 
           </div>
         </div>
 
-        {/* Play Section */}
-        <section>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
-            <PlayCircle size={22} color="#6366f1" />
-            <h3 style={{ fontSize: '1.125rem', fontWeight: 800, color: '#1e293b' }}>Play Games to Earn</h3>
-          </div>
-
-          <div className="card" style={{ padding: '32px 20px', textAlign: 'center', background: 'white', border: '1px solid #e2e8f0' }}>
-            <div style={{ width: '80px', height: '80px', background: 'rgba(99, 102, 241, 0.1)', borderRadius: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' }}>
-              <Gamepad2 size={40} color="#6366f1" />
+        {/* Games Section */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.4 }}
+          className="section"
+          style={{ padding: '0 20px 100px' }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px' }}>
+            <div style={{ width: '32px', height: '32px', background: 'rgba(99, 102, 241, 0.1)', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Gamepad2 size={18} color="#6366f1" />
             </div>
-            <h4 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#1e293b', marginBottom: '8px' }}>Test Your Luck!</h4>
-            <p style={{ fontSize: '0.875rem', color: '#64748b', marginBottom: '24px', lineHeight: 1.5 }}>
-              Watch a quick video ad to claim your 5 coins. You can play up to {stats?.limit || 20} times daily!
-            </p>
-
-            <button 
-              className={styles.btnPrimary} 
-              style={{ width: '100%', padding: '16px', fontSize: '1rem', background: 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)', boxShadow: '0 10px 15px -3px rgba(99, 102, 241, 0.3)' }}
-              onClick={handlePlayGame}
-              disabled={adLoading || loading}
-            >
-              {adLoading ? 'Ad is Loading...' : 'Play & Earn 5 Coins'}
-            </button>
+            <h3 style={{ fontSize: '1.1rem', fontWeight: 800, color: '#1e293b', margin: 0 }}>Play Games to Earn</h3>
           </div>
-        </section>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '16px' }}>
+            {/* Monetag Card */}
+            <div className="card" style={{ padding: '24px 20px', textAlign: 'center', background: 'white', border: '1px solid #e2e8f0' }}>
+              <div style={{ width: '60px', height: '60px', background: 'rgba(99, 102, 241, 0.1)', borderRadius: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+                <Gamepad2 size={32} color="#6366f1" />
+              </div>
+              <h4 style={{ fontSize: '1.1rem', fontWeight: 800, color: '#1e293b', marginBottom: '4px' }}>Monetag Ads</h4>
+              <p style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '20px' }}>Watch a quick video and get rewarded instantly.</p>
+              
+              <button
+                onClick={handlePlayGame}
+                disabled={adLoading || (stats && stats.remainingPlays <= 0)}
+                className="btn-primary"
+                style={{ 
+                  width: '100%',
+                  padding: '14px',
+                  borderRadius: '16px',
+                  fontSize: '0.95rem',
+                  fontWeight: 700,
+                  opacity: (adLoading || (stats && stats.remainingPlays <= 0)) ? 0.6 : 1
+                }}
+              >
+                {adLoading ? 'Loading Ad...' : `Play & Earn 5 Coins`}
+              </button>
+            </div>
+
+            {/* RichAds Card */}
+            <div className="card" style={{ padding: '24px 20px', textAlign: 'center', background: 'white', border: '1px solid #e2e8f0' }}>
+              <div style={{ width: '60px', height: '60px', background: 'rgba(16, 185, 129, 0.1)', borderRadius: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+                <Gamepad2 size={32} color="#10b981" />
+              </div>
+              <h4 style={{ fontSize: '1.1rem', fontWeight: 800, color: '#1e293b', marginBottom: '4px' }}>RichAds Games</h4>
+              <p style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '20px' }}>Play interactive playable ads to earn more coins.</p>
+              
+              <button
+                onClick={() => {
+                  if ((window as any).TelegramAdsController) {
+                    setAdLoading(true);
+                    try {
+                      (window as any).TelegramAdsController.showAd();
+                      // Give user some time before allowing another click
+                      setTimeout(() => {
+                        claimReward();
+                        setAdLoading(false);
+                      }, 2000);
+                    } catch (e) {
+                      console.error("RichAds Error:", e);
+                      setAdLoading(false);
+                      alert("Could not start RichAds. Please try again.");
+                    }
+                  } else {
+                    alert("RichAds provider not ready.");
+                  }
+                }}
+                disabled={adLoading || (stats && stats.remainingPlays <= 0)}
+                className="btn-secondary"
+                style={{ 
+                  width: '100%',
+                  padding: '14px',
+                  background: '#10b981',
+                  color: 'white',
+                  borderRadius: '16px',
+                  fontSize: '0.95rem',
+                  fontWeight: 700,
+                  opacity: (adLoading || (stats && stats.remainingPlays <= 0)) ? 0.6 : 1
+                }}
+              >
+                {adLoading ? 'Loading Game...' : `Play & Earn 5 Coins`}
+              </button>
+            </div>
+          </div>
+        </motion.div>
 
         {/* Info Card */}
         <div style={{ background: '#EEF2FF', padding: '16px', borderRadius: '16px', display: 'flex', gap: '12px', alignItems: 'flex-start', marginTop: '24px' }}>

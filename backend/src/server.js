@@ -67,7 +67,7 @@ app.use((req, res, next) => {
   res.setHeader('Access-Control-Allow-Credentials', 'true');
 
   if (req.method === 'OPTIONS') {
-    return res.status(200).end();
+    return res.sendStatus(204);
   }
   next();
 });

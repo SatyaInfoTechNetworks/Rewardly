@@ -5,11 +5,12 @@ import styles from "./admin.module.css";
 import { 
   Users, Coins, Activity, ShieldCheck, Search, 
   LayoutDashboard, History, Settings, LogOut, 
-  Edit3, Trash2, Ban, CheckCircle2, X, Gift, ArrowUpRight
+  Edit3, Trash2, Ban, CheckCircle2, X, Gift, ArrowUpRight, Menu
 } from "lucide-react";
 
 export default function AdminPanel() {
   const [activeView, setActiveView] = useState("dashboard");
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [secret, setSecret] = useState("");
   const [stats, setStats] = useState<any>(null);
@@ -194,44 +195,43 @@ export default function AdminPanel() {
 
   return (
     <div className={styles.adminContainer}>
-      {/* Sidebar */}
-      <aside className={styles.sidebar}>
+      {/* Mobile Header */}
+      <div className={styles.mobileHeader}>
+        <div className={styles.sidebarBrand}>
+          <div className={styles.brandIcon}>R</div>
+          <span style={{ fontWeight: 700 }}>Rewardly</span>
+        </div>
+        <button className={styles.actionBtn} onClick={() => setIsSidebarOpen(!isSidebarOpen)}>
+          {isSidebarOpen ? <X size={24} /> : <Menu size={24} />}
+        </button>
+      </div>
+
+      {/* Sidebar Navigation */}
+      <aside className={`${styles.sidebar} ${isSidebarOpen ? styles.sidebarOpen : ''}`}>
         <div className={styles.sidebarBrand}>
           <div className={styles.brandIcon}>R</div>
           <span style={{ fontWeight: 700, fontSize: '1.25rem' }}>Rewardly</span>
         </div>
 
         <nav className={styles.navMenu}>
-          <div 
-            className={`${styles.navItem} ${activeView === 'dashboard' ? styles.navItemActive : ''}`}
-            onClick={() => setActiveView('dashboard')}
-          >
-            <LayoutDashboard size={20} /> Dashboard
-          </div>
-          <div 
-            className={`${styles.navItem} ${activeView === 'users' ? styles.navItemActive : ''}`}
-            onClick={() => setActiveView('users')}
-          >
-            <Users size={20} /> Users
-          </div>
-          <div 
-            className={`${styles.navItem} ${activeView === 'payouts' ? styles.navItemActive : ''}`}
-            onClick={() => setActiveView('payouts')}
-          >
-            <Gift size={20} /> Payouts
-          </div>
-          <div 
-            className={`${styles.navItem} ${activeView === 'withdrawals' ? styles.navItemActive : ''}`}
-            onClick={() => setActiveView('withdrawals')}
-          >
-            <ArrowUpRight size={20} /> Withdrawals
-          </div>
-          <div 
-            className={`${styles.navItem} ${activeView === 'transactions' ? styles.navItemActive : ''}`}
-            onClick={() => setActiveView('transactions')}
-          >
-            <History size={20} /> Transactions
-          </div>
+          {[
+            { id: 'dashboard', icon: LayoutDashboard, label: 'Dashboard' },
+            { id: 'users', icon: Users, label: 'Users' },
+            { id: 'payouts', icon: Gift, label: 'Payouts' },
+            { id: 'withdrawals', icon: ArrowUpRight, label: 'Withdrawals' },
+            { id: 'transactions', icon: History, label: 'Transactions' },
+          ].map((item) => (
+            <div 
+              key={item.id}
+              className={`${styles.navItem} ${activeView === item.id ? styles.navItemActive : ''}`}
+              onClick={() => {
+                setActiveView(item.id);
+                setIsSidebarOpen(false);
+              }}
+            >
+              <item.icon size={20} /> {item.label}
+            </div>
+          ))}
           <div className={styles.navItem}><Settings size={20} /> Settings</div>
         </nav>
 

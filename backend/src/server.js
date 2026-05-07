@@ -40,7 +40,7 @@ app.use(cors({
   credentials: true
 }));
 
-app.options('*', cors());
+app.options('(.*)', cors());
 
 // 2. Request Logger
 app.use((req, res, next) => {

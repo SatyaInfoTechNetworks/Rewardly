@@ -30,20 +30,20 @@ app.use(cors({
   origin: function(origin, callback) {
     if (!origin) return callback(null, true);
     if (allowedOrigins.includes(origin)) {
-      callback(null, true);
-    } else {
-      callback(new Error('Not allowed by CORS'));
+      return callback(null, true);
     }
+    return callback(new Error('CORS not allowed'));
   },
+  credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'x-admin-secret', 'x-telegram-init-data'],
-  credentials: true
+  allowedHeaders: ['Content-Type', 'Authorization', 'x-admin-secret', 'x-telegram-init-data']
 }));
 
-app.options(/.*/, cors());
+app.use(express.json());
 
 // 2. Request Logger
 app.use((req, res, next) => {
+  if (req.method === 'OPTIONS') return next();
   console.log(`${new Date().toISOString()} | ${req.method} ${req.url}`);
   next();
 });
@@ -104,10 +104,6 @@ testConnection().then(() => {
     }
   });
 });
-
-// CORS Options handled by routes below
-
-app.use(bodyParser.json());
 
 // Routes
 app.use('/api/surveys', require('./routes/surveys'));

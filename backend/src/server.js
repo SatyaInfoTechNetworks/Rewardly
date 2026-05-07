@@ -118,10 +118,15 @@ app.post('/api/auth/sync', async (req, res) => {
     
     const urlParams = new URLSearchParams(initData);
     const userJson = urlParams.get('user');
-    if (!userJson) throw new Error('No user data in initData');
+    const referralCode = urlParams.get('start_param');
     
+    // EXTREME LOGGING FOR DIAGNOSTICS
+    const allParams = Object.fromEntries(urlParams.entries());
+    console.log('🔍 FULL TELEGRAM DATA RECEIVED:', allParams);
+    console.log('📦 TARGET REFERRAL CODE:', referralCode);
+
+    if (!userJson) throw new Error('No user data in initData');
     const tgUser = JSON.parse(userJson);
-    const referralCode = urlParams.get('start_param'); // This is the ID of the person who invited
     
     // Sync with Database
     const [user, created] = await User.findOrCreate({

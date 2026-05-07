@@ -76,15 +76,30 @@ testConnection().then(() => {
   });
 });
 
-// Middleware
-app.use((req, res, next) => {
-  res.header('Access-Control-Allow-Origin', req.headers.origin || '*');
-  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, x-admin-secret, x-telegram-init-data');
-  res.header('Access-Control-Allow-Credentials', 'true');
-  if (req.method === 'OPTIONS') return res.sendStatus(204);
-  next();
-});
+// CORS Configuration
+const allowedOrigins = [
+  'https://rewardly.satyainfotechnetworks.com',
+  'https://www.rewardly.satyainfotechnetworks.com',
+  'https://web.telegram.org'
+];
+
+app.use(cors({
+  origin: function(origin, callback) {
+    // Allow requests with no origin (like mobile apps or curl)
+    if (!origin) return callback(null, true);
+    
+    if (allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'x-admin-secret', 'x-telegram-init-data'],
+  credentials: true
+}));
+
+app.options('*', cors());
 
 app.use(bodyParser.json());
 

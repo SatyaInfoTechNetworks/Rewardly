@@ -77,7 +77,7 @@ export default function AdminPanel() {
     try {
       const headers = { 'x-admin-secret': authSecret };
       const options = { headers, credentials: 'include' as RequestCredentials };
-      const [statsRes, usersRes, payoutsRes, withdrawalsRes, transRes, refSettingsRes, refMilestonesRes, refStatsRes] = await Promise.all([
+      const [statsRes, usersRes, payoutsRes, withdrawalsRes, transRes, refSettingsRes, refMilestonesRes, refStatsRes, contestsRes] = await Promise.all([
         fetch(`${API_URL}/api/admin/stats`, options),
         fetch(`${API_URL}/api/admin/users`, options),
         fetch(`${API_URL}/api/admin/payout-methods`, options),

@@ -70,7 +70,32 @@ app.post('/api/webhook', async (req, res) => {
   const { message } = req.body;
   if (!message) return res.sendStatus(200);
 
-  // 1. HANDLE PHONE VERIFICATION (Contact Sharing)
+  // 1. HANDLE REFERRALS FROM BOT START (e.g., /start 12345)
+  if (message.text && message.text.startsWith('/start ')) {
+    const referralCode = message.text.split(' ')[1];
+    if (referralCode) {
+      try {
+        const [user, created] = await User.findOrCreate({
+          where: { telegram_id: message.from.id },
+          defaults: {
+            username: message.from.username,
+            first_name: message.from.first_name,
+            last_name: message.from.last_name,
+            referred_by: parseInt(referralCode)
+          }
+        });
+
+        if (!created && !user.referred_by) {
+          await user.update({ referred_by: parseInt(referralCode) });
+        }
+        console.log(`🎁 Webhook Referral: User ${message.from.id} invited by ${referralCode}`);
+      } catch (err) {
+        console.error('Webhook Referral Error:', err);
+      }
+    }
+  }
+
+  // 2. HANDLE PHONE VERIFICATION (Contact Sharing)
   if (message.contact) {
     const { phone_number, user_id } = message.contact;
     try {

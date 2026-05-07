@@ -16,7 +16,7 @@ const Transaction = sequelize.define('Transaction', {
     allowNull: false
   },
   type: {
-    type: DataTypes.ENUM('survey', 'task', 'daily_streak', 'spin', 'withdrawal'),
+    type: DataTypes.ENUM('survey', 'task', 'daily_streak', 'spin', 'withdrawal', 'game'),
     allowNull: false
   },
   description: {

@@ -87,8 +87,8 @@ router.post('/reward', async (req, res) => {
 
     // Log Transaction
     await Transaction.create({
-      user_id: user.telegram_id,
-      type: 'credit',
+      telegram_id: user.telegram_id,
+      type: 'game',
       amount: GAME_REWARD_COINS,
       description: 'Reward for Play & Earn ad',
       status: 'completed'

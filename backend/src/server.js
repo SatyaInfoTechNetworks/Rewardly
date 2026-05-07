@@ -5,6 +5,7 @@ const bodyParser = require('body-parser');
 const { validateTelegramInitData } = require('./utils/telegramAuth');
 const { sequelize, testConnection } = require('./config/database');
 const User = require('./models/User');
+const axios = require('axios');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -99,12 +100,73 @@ app.post('/api/auth/sync', async (req, res) => {
         username: user.username,
         firstName: user.first_name,
         balance: user.balance,
-        pendingBalance: user.pending_balance
+        pendingBalance: user.pending_balance,
+        isPhoneVerified: user.is_phone_verified,
+        isChannelJoined: user.is_channel_joined
       }
     });
   } catch (error) {
     console.error('Sync Error:', error);
     return res.status(400).json({ error: 'Failed to sync user data' });
+  }
+});
+
+/**
+ * POST /api/user/verify-onboarding
+ * Checks if user joined channel and updates phone status
+ */
+app.post('/api/user/verify-onboarding', async (req, res) => {
+  const { initData, phone_number } = req.body;
+  const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
+  const CHANNEL_ID = process.env.REQUIRED_CHANNEL_ID || '@rewardly_india';
+
+  if (!validateTelegramInitData(initData, BOT_TOKEN) && process.env.NODE_ENV === 'production') {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+
+  try {
+    const urlParams = new URLSearchParams(initData);
+    const tgUser = JSON.parse(urlParams.get('user'));
+    
+    const user = await User.findByPk(tgUser.id);
+    if (!user) return res.status(404).json({ error: 'User not found' });
+
+    // 1. Update Phone if provided
+    if (phone_number) {
+      user.phone_number = phone_number;
+      user.is_phone_verified = true;
+    }
+
+    // 2. Check Channel Membership via Telegram Bot API
+    try {
+      const response = await axios.get(`https://api.telegram.org/bot${BOT_TOKEN}/getChatMember`, {
+        params: {
+          chat_id: CHANNEL_ID,
+          user_id: tgUser.id
+        }
+      });
+      
+      const status = response.data.result.status;
+      // status can be: creator, administrator, member, restricted, left, kicked
+      if (['creator', 'administrator', 'member', 'restricted'].includes(status)) {
+        user.is_channel_joined = true;
+      } else {
+        user.is_channel_joined = false;
+      }
+    } catch (apiError) {
+      console.error('Telegram API Error:', apiError.response?.data || apiError.message);
+      // If channel ID is wrong or bot is not admin, we might need a fallback or keep false
+    }
+    
+    await user.save();
+    res.json({ 
+      success: true, 
+      isPhoneVerified: user.is_phone_verified,
+      isChannelJoined: user.is_channel_joined,
+      user
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
   }
 });
 

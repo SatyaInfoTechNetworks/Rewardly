@@ -43,18 +43,12 @@ const User = sequelize.define('User', {
     type: DataTypes.STRING,
     defaultValue: 'active'
   },
-  google_aid: {
-    type: DataTypes.STRING,
-    allowNull: true
-  },
-  ios_idfa: {
-    type: DataTypes.STRING,
-    allowNull: true
-  },
-  ip_address: {
-    type: DataTypes.STRING,
-    allowNull: true
-  }
+  google_aid: { type: DataTypes.STRING, allowNull: true },
+  ios_idfa: { type: DataTypes.STRING, allowNull: true },
+  phone_number: { type: DataTypes.STRING, allowNull: true },
+  is_phone_verified: { type: DataTypes.BOOLEAN, defaultValue: false },
+  is_channel_joined: { type: DataTypes.BOOLEAN, defaultValue: false },
+  ip_address: { type: DataTypes.STRING, allowNull: true }
 }, {
   tableName: 'users',
   timestamps: true,

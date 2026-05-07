@@ -13,6 +13,7 @@ import { FeaturedOffer } from "@/components/earn/FeaturedOffer";
 import { TaskCard } from "@/components/earn/TaskCard";
 import { MoreScreen } from "@/components/more/MoreScreen";
 import { Navbar } from "@/components/layout/Navbar";
+import { VerificationOverlay } from "@/components/ui/VerificationOverlay";
 
 // Hooks
 import { useSurveys } from "@/hooks/useSurveys";
@@ -90,6 +91,31 @@ export default function AppDashboard() {
       refreshSurveys();
     }
   }, [activeTab]);
+
+  // 3. Handle Onboarding Verification
+  const handleOnboardingVerify = async (phoneNumber?: string) => {
+    try {
+      const tg = (window as any).Telegram?.WebApp;
+      const initData = tg?.initData;
+
+      const response = await fetch(`${API_URL}/api/user/verify-onboarding`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ initData, phone_number: phoneNumber })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setUser((prev: any) => ({
+          ...prev,
+          isPhoneVerified: data.isPhoneVerified,
+          isChannelJoined: data.isChannelJoined
+        }));
+      }
+    } catch (error) {
+      console.error("Verification Error:", error);
+    }
+  };
 
   const renderContent = () => {
     if (activeTab === "more") {
@@ -172,8 +198,19 @@ export default function AppDashboard() {
     );
   };
 
+  const showVerification = user && (!user.isPhoneVerified || !user.isChannelJoined);
+
   return (
     <div className={styles.appContainer}>
+      {/* Verification Overlay */}
+      {showVerification && (
+        <VerificationOverlay 
+          isPhoneVerified={user.isPhoneVerified}
+          isChannelJoined={user.isChannelJoined}
+          onVerify={handleOnboardingVerify}
+        />
+      )}
+
       {/* Header - Only show on main tabs, not sub-screens */}
       {activeTab === "earn" && (
         <header className={styles.earnHeader}>

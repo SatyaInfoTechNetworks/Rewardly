@@ -895,361 +895,132 @@
 }
 
 /* Redeem Screen Pro Styles */
-.balanceInfoCardPro {
-  background: white;
-  padding: 24px;
-  border-radius: 24px;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.03);
-  margin-bottom: 24px;
-  border: 1px solid #f1f5f9;
-}
-
-.balanceHeader {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 8px;
-}
-
-.balanceHeader span {
-  font-size: 14px;
-  font-weight: 600;
-  color: #64748b;
-}
-
-.balanceValueEst {
-  font-size: 14px;
-  font-weight: 600;
-  color: #10b981;
-}
-
-.sectionLabelPro {
-  font-size: 11px;
-  font-weight: 800;
-  color: #6b7280;
-  letter-spacing: 0.8px;
-  margin-bottom: 12px;
-  margin-left: 4px;
-}
-
-.selectorTrigger {
-  width: 100%;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 16px 20px;
-  background: white;
-  border: 1px solid #e2e8f0;
-  border-radius: 16px;
-  cursor: pointer;
-  margin-bottom: 24px;
-  transition: all 0.2s;
-}
-
-.selectorTrigger:active {
+.redeemScreen {
+  height: 100vh;
   background: #f8fafc;
-  transform: scale(0.99);
-}
-
-.selectorPlaceholder {
-  color: #94a3b8;
-  font-size: 14px;
-  font-weight: 600;
-}
-
-.selectedContent {
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
+  overflow: hidden; /* Header stays, content scrolls */
 }
 
-.selectedAmount {
-  font-size: 16px;
-  font-weight: 700;
-  color: #0f172a;
-}
-
-.selectedCoins {
-  font-size: 12px;
-  color: #64748b;
-}
-
-.inputsContainerPro {
-  background: white;
-  padding: 20px;
-  border-radius: 20px;
-  border: 1px solid #e2e8f0;
-  margin-bottom: 24px;
-}
-
-.inputGroupPro {
-  margin-bottom: 20px;
-}
-
-.inputGroupPro:last-child {
-  margin-bottom: 0;
-}
-
-.inputLabelRow {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 8px;
-}
-
-.inputGroupPro label {
-  font-size: 13px;
-  font-weight: 600;
-  color: #475569;
-}
-
-.inputGroupPro input {
-  width: 100%;
-  padding: 14px;
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
-  border-radius: 12px;
-  font-size: 14px;
-  color: #0f172a;
-  outline: none;
-  transition: all 0.2s;
-}
-
-.inputGroupPro input:focus {
-  border-color: #4F46E5;
-  background: white;
-}
-
-.activeInput {
-  border-color: #10b981 !important;
-}
-
-.breakdownCard {
-  background: #f8fafc;
-  border-radius: 20px;
-  padding: 20px;
-  margin-bottom: 24px;
-  border: 1px dashed #e2e8f0;
-}
-
-.breakdownItem {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 12px;
-}
-
-.breakdownItem:last-child {
-  margin-bottom: 0;
-}
-
-.breakdownItem span:first-child {
-  font-size: 13px;
-  color: #64748b;
-  font-weight: 600;
-}
-
-.spendText {
-  color: #0f172a;
-  font-weight: 700;
-}
-
-.feeText {
-  color: #ef4444;
-  font-weight: 600;
-}
-
-.dividerDashed {
-  height: 1px;
-  border-top: 1px dashed #e2e8f0;
-  margin: 12px 0;
-}
-
-.receiveLabel {
-  color: #0f172a !important;
-  font-size: 14px !important;
-  font-weight: 700 !important;
-}
-
-.receiveValue {
-  color: #4F46E5;
-  font-size: 20px;
-  font-weight: 800;
-}
-
-.trustRow {
-  display: flex;
-  justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 24px;
-}
-
-.trustItem {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 10px;
-  font-weight: 600;
-  color: #64748b;
-  background: white;
-  padding: 8px 10px;
-  border-radius: 10px;
-  border: 1px solid #f1f5f9;
-}
-
-.trustItem svg {
-  color: #4F46E5;
-}
-
-.errorMessagePro {
-  background: #fef2f2;
-  color: #ef4444;
-  padding: 12px;
-  border-radius: 12px;
-  font-size: 13px;
-  font-weight: 600;
-  text-align: center;
-  margin-bottom: 20px;
-}
-
-.withdrawBtnPro {
-  width: 100%;
+.redeemHeader {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(16px);
   padding: 16px;
-  background: linear-gradient(90deg, #4F46E5, #7C3AED);
-  color: white;
-  border: none;
-  border-radius: 16px;
-  font-size: 16px;
-  font-weight: 800;
-  cursor: pointer;
-  transition: all 0.2s;
-  box-shadow: 0 10px 20px rgba(79, 70, 229, 0.2);
-  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  border-bottom: 1px solid #e2e8f0;
 }
 
-.withdrawBtnPro:disabled {
-  background: #e2e8f0;
-  color: #94a3b8;
-  box-shadow: none;
-  cursor: not-allowed;
-}
-
-.manualReviewNote {
+.backBtn {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: #fff;
+  border: 1px solid #e2e8f0;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
-  font-size: 11px;
-  color: #94a3b8;
-  font-weight: 500;
+  color: #0f172a;
 }
 
-/* Bottom Sheet */
-.bottomSheetOverlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.5);
-  z-index: 2000;
+.headerTitle {
   display: flex;
-  align-items: flex-end;
-  animation: fadeIn 0.3s;
-}
-
-.bottomSheet {
-  width: 100%;
-  background: white;
-  border-radius: 24px 24px 0 0;
-  padding: 20px;
-  animation: slideUp 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  max-height: 80vh;
-  overflow-y: auto;
-}
-
-@keyframes slideUp {
-  from { transform: translateY(100%); }
-  to { transform: translateY(0); }
-}
-
-@keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-
-.sheetHeader {
-  display: flex;
-  flex-direction: column;
   align-items: center;
-  margin-bottom: 20px;
+  gap: 12px;
 }
 
-.sheetHandle {
-  width: 40px;
-  height: 4px;
-  background: #e2e8f0;
-  border-radius: 2px;
-  margin-bottom: 16px;
-}
-
-.sheetHeader h3 {
-  font-size: 18px;
+.headerTitle h2 {
+  font-size: 1.125rem;
   font-weight: 700;
   color: #0f172a;
 }
 
-.tierList {
+.methodLogoSmall {
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
+}
+
+.redeemContent {
+  padding: 24px 20px 100px; /* Extra bottom padding for scroll space */
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  overflow-y: auto;
+  flex: 1;
+  -webkit-overflow-scrolling: touch;
+}
+
+.balanceInfoCard {
+  background: linear-gradient(135deg, #f0f4ff, #ffffff);
+  padding: 24px;
+  border-radius: 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  color: #1e293b;
+  border: 1px solid rgba(59, 130, 246, 0.1);
+  box-shadow: 0 10px 25px rgba(59, 130, 246, 0.05);
+}
+
+.balanceLeft span {
+  font-size: 0.75rem;
+  color: #64748b;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.balanceLeft h3 {
+  font-size: 1.25rem;
+  font-weight: 800;
+  margin-top: 4px;
+  color: #0f172a;
+}
+
+.rulesGrid {
   display: flex;
   flex-direction: column;
   gap: 12px;
 }
 
-.tierItem {
+.ruleItem {
+  background: #fff;
+  padding: 18px;
+  border-radius: 20px;
+  border: 1px solid #e2e8f0;
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  padding: 16px;
-  border: 1px solid #f1f5f9;
-  border-radius: 16px;
-  transition: all 0.2s;
+  gap: 16px;
+  color: #3b82f6;
+  width: 100%;
 }
 
-.selectedTier {
-  border-color: #4F46E5;
-  background: #f5f3ff;
+.ruleItem span {
+  font-size: 0.7rem;
+  color: #64748b;
+  font-weight: 600;
 }
 
-.tierInfo {
-  display: flex;
-  flex-direction: column;
-}
-
-.tierAmount {
-  font-size: 16px;
+.ruleItem p {
+  font-size: 0.875rem;
   font-weight: 700;
   color: #0f172a;
 }
 
-.tierCoins {
-  font-size: 12px;
+.sectionLabel {
+  font-size: 0.875rem;
+  font-weight: 800;
   color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 1px;
 }
 
-.disclaimerBox {
-  display: flex;
-  gap: 10px;
-  background: #fffbeb;
-  border: 1px solid #fef3c7;
-  padding: 12px;
-  border-radius: 12px;
-  margin-bottom: 24px;
-}
-
-.disclaimerBox p {
-  font-size: 12px;
-  color: #92400e;
-  line-height: 1.4;
-  margin: 0;
-}
 .tiersGrid {
   display: grid;
   grid-template-columns: 1fr 1fr;

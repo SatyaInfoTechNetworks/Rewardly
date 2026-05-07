@@ -48,6 +48,9 @@ router.get('/cpx', async (req, res) => {
     }, { transaction: t });
 
     await t.commit();
+    const { trackContestActivity } = require('../utils/contestTracker');
+    await trackContestActivity(user_id, 'earning', rewardAmount);
+
     console.log(`✅ User ${user_id} credited with ${rewardAmount} coins.`);
     return res.send('OK');
   } catch (error) {

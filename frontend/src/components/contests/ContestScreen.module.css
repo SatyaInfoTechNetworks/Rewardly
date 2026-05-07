@@ -1,0 +1,326 @@
+.container {
+  padding: 16px;
+  background-color: #f8fafc;
+  min-height: 100vh;
+}
+
+/* Contest Card List */
+.contestGrid {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.contestCard {
+  background: white;
+  border-radius: 20px;
+  overflow: hidden;
+  border: 1px solid #e2e8f0;
+  transition: transform 0.2s;
+  cursor: pointer;
+}
+
+.contestCard:active {
+  transform: scale(0.98);
+}
+
+.cardBanner {
+  height: 120px;
+  background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.cardGlow {
+  position: absolute;
+  top: -20px;
+  right: -20px;
+  width: 100px;
+  height: 100px;
+  background: radial-gradient(circle, rgba(37, 99, 235, 0.4) 0%, rgba(37, 99, 235, 0) 70%);
+  filter: blur(20px);
+}
+
+.cardBadge {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  background: #2563eb;
+  color: white;
+  padding: 4px 10px;
+  border-radius: 8px;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.cardTitle {
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: white;
+  text-align: center;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.cardInfo {
+  padding: 16px;
+}
+
+.cardMeta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.prizePool {
+  font-size: 1.125rem;
+  font-weight: 800;
+  color: #1e293b;
+}
+
+.timer {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #ef4444;
+}
+
+/* Detail View */
+.detailHeader {
+  margin-bottom: 24px;
+}
+
+.backBtn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: transparent;
+  border: none;
+  color: #64748b;
+  font-weight: 600;
+  font-size: 0.875rem;
+  margin-bottom: 16px;
+  padding: 0;
+}
+
+.heroCard {
+  background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+  border-radius: 24px;
+  padding: 24px;
+  color: white;
+  position: relative;
+  overflow: hidden;
+  margin-bottom: 24px;
+}
+
+.heroTitle {
+  font-size: 1.75rem;
+  font-weight: 800;
+  margin-bottom: 8px;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+}
+
+.heroTimer {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(239, 68, 68, 0.2);
+  color: #fca5a5;
+  padding: 6px 12px;
+  border-radius: 10px;
+  font-size: 0.8125rem;
+  font-weight: 700;
+}
+
+/* Leaderboard */
+.leaderboardSection {
+  background: white;
+  border-radius: 24px;
+  border: 1px solid #e2e8f0;
+  padding: 20px;
+  margin-bottom: 24px;
+}
+
+.lbHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.lbTitle {
+  font-size: 1.125rem;
+  font-weight: 800;
+  color: #1e293b;
+}
+
+.lbList {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.lbItem {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px;
+  border-radius: 16px;
+  transition: background 0.2s;
+}
+
+.lbItemActive {
+  background: #f0f7ff;
+  border: 1px solid #bfdbfe;
+}
+
+.rank {
+  width: 24px;
+  font-weight: 800;
+  font-size: 0.875rem;
+  color: #64748b;
+  text-align: center;
+}
+
+.rank1 { color: #eab308; }
+.rank2 { color: #94a3b8; }
+.rank3 { color: #d97706; }
+
+.avatar {
+  width: 36px;
+  height: 36px;
+  background: #f1f5f9;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  color: #2563eb;
+  font-size: 0.875rem;
+}
+
+.userInfo {
+  flex: 1;
+}
+
+.userName {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.userScore {
+  font-size: 0.75rem;
+  color: #64748b;
+}
+
+.reward {
+  font-weight: 800;
+  font-size: 0.875rem;
+  color: #10b981;
+}
+
+/* User Rank Card */
+.userRankCard {
+  background: #1e293b;
+  border-radius: 20px;
+  padding: 16px;
+  color: white;
+  margin-bottom: 24px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.urRank {
+  text-align: center;
+}
+
+.urLabel {
+  font-size: 0.6875rem;
+  color: #94a3b8;
+  text-transform: uppercase;
+  margin-bottom: 2px;
+}
+
+.urValue {
+  font-size: 1.25rem;
+  font-weight: 800;
+}
+
+.urDivider {
+  width: 1px;
+  height: 40px;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.urProgress {
+  flex: 1;
+}
+
+.urMessage {
+  font-size: 0.8125rem;
+  color: #cbd5e1;
+  line-height: 1.4;
+}
+
+.urMessage strong {
+  color: #38bdf8;
+}
+
+/* Prize Section */
+.prizeSection {
+  margin-bottom: 32px;
+}
+
+.prizeGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
+.prizeCard {
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.pRank {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #64748b;
+  margin-bottom: 4px;
+}
+
+.pValue {
+  font-size: 1rem;
+  font-weight: 800;
+  color: #1e293b;
+}
+
+/* Empty State */
+.emptyBox {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  text-align: center;
+  color: #64748b;
+}
+
+.emptyBox h3 {
+  color: #1e293b;
+  margin: 16px 0 8px;
+}

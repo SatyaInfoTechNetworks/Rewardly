@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ChevronLeft, Info, AlertCircle, CheckCircle2, ShieldCheck, Clock, Check } from 'lucide-react';
+import { ChevronLeft, Info, AlertCircle, CheckCircle2 } from 'lucide-react';
 import styles from '@/app/page.module.css';
 import { CoinBadge } from '@/components/ui/CoinBadge';
 
@@ -12,7 +12,6 @@ interface RedeemScreenProps {
 
 export const RedeemScreen: React.FC<RedeemScreenProps> = ({ method, user, onBack, onSuccess }) => {
   const [selectedTier, setSelectedTier] = useState<any>(null);
-  const [isSelectorOpen, setIsSelectorOpen] = useState(false);
   const [inputValues, setInputValues] = useState<any>({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -25,6 +24,7 @@ export const RedeemScreen: React.FC<RedeemScreenProps> = ({ method, user, onBack
       return;
     }
 
+    // Validate custom inputs
     for (const field of method.custom_inputs || []) {
       if (!inputValues[field.name]) {
         setError(`Please enter your ${field.name}`);
@@ -66,9 +66,6 @@ export const RedeemScreen: React.FC<RedeemScreenProps> = ({ method, user, onBack
     }
   };
 
-  const fixedFee = 400; // Example fixed fee
-  const estValue = (user.balance / 100).toFixed(2);
-
   return (
     <div className={styles.redeemScreen}>
       <div className={styles.redeemHeader}>
@@ -82,131 +79,89 @@ export const RedeemScreen: React.FC<RedeemScreenProps> = ({ method, user, onBack
       </div>
 
       <div className={styles.redeemContent}>
-        {/* Rich Balance Info */}
-        <div className={styles.balanceInfoCardPro}>
-          <div className={styles.balanceHeader}>
-            <span>Available Balance</span>
-            <CoinBadge amount={user.balance} size="lg" />
+        {/* Balance Info */}
+        <div className={styles.balanceInfoCard}>
+          <div className={styles.balanceLeft}>
+            <span>Your Current Balance</span>
+            <h3>Available for Payout</h3>
           </div>
-          <div className={styles.balanceValueEst}>
-            ≈ ₹{estValue}
+          <CoinBadge amount={user.balance} size="lg" />
+        </div>
+
+        {/* Method Rules */}
+        <div className={styles.rulesGrid}>
+          <div className={styles.ruleItem}>
+            <Info size={16} />
+            <div>
+              <span>Conversion</span>
+              <p>{method.conversion_rate || '₹1 = 100 Coins'}</p>
+            </div>
+          </div>
+          <div className={styles.ruleItem}>
+            <CheckCircle2 size={16} />
+            <div>
+              <span>Fee</span>
+              <p>{method.fee_text || 'No Service Fee'}</p>
+            </div>
           </div>
         </div>
 
-        {/* Custom Selector Trigger */}
-        <div className={styles.sectionLabelPro}>CHOOSE AMOUNT</div>
-        <button 
-          className={styles.selectorTrigger} 
-          onClick={() => setIsSelectorOpen(true)}
-        >
-          {selectedTier ? (
-            <div className={styles.selectedContent}>
-              <span className={styles.selectedAmount}>{selectedTier.amount_text}</span>
-              <span className={styles.selectedCoins}>{selectedTier.coins_required.toLocaleString()} Coins</span>
-            </div>
-          ) : (
-            <span className={styles.selectorPlaceholder}>Select withdrawal amount</span>
-          )}
-          <ChevronLeft size={20} style={{ transform: 'rotate(-90deg)', color: '#94a3b8' }} />
-        </button>
+        {/* Select Tier Dropdown */}
+        <div className={styles.sectionLabel}>Choose Amount</div>
+        <div className={styles.inputGroup}>
+          <select 
+            className={styles.modalInput}
+            style={{ width: '100%', cursor: 'pointer' }}
+            onChange={(e) => {
+              const tierId = parseInt(e.target.value);
+              const tier = method.tiers.find((t: any) => t.id === tierId);
+              setSelectedTier(tier);
+            }}
+            value={selectedTier?.id || ''}
+          >
+            <option value="">Select an amount</option>
+            {method.tiers?.map((tier: any) => (
+              <option key={tier.id} value={tier.id}>
+                {tier.amount_text} ({tier.coins_required.toLocaleString()} Coins)
+              </option>
+            ))}
+          </select>
+        </div>
 
         {/* Custom Inputs */}
-        <div className={styles.sectionLabelPro}>PAYOUT DETAILS</div>
-        <div className={styles.inputsContainerPro}>
+        <div className={styles.sectionLabel}>Payout Details</div>
+        <div className={styles.inputsContainer}>
           {method.custom_inputs?.map((field: any, idx: number) => (
-            <div key={idx} className={styles.inputGroupPro}>
-              <div className={styles.inputLabelRow}>
-                <label>{field.name}</label>
-                {inputValues[field.name] && <Check size={14} color="#10b981" />}
-              </div>
+            <div key={idx} className={styles.inputGroup}>
+              <label>{field.name}</label>
               <input 
                 type="text"
                 placeholder={field.placeholder}
                 value={inputValues[field.name] || ''}
                 onChange={(e) => setInputValues({ ...inputValues, [field.name]: e.target.value })}
-                className={inputValues[field.name] ? styles.activeInput : ''}
               />
             </div>
           ))}
         </div>
 
-        {/* Transaction Breakdown */}
-        {selectedTier && (
-          <div className={styles.breakdownCard}>
-            <div className={styles.breakdownItem}>
-              <span>You Spend</span>
-              <span className={styles.spendText}>{selectedTier.coins_required.toLocaleString()} Coins</span>
-            </div>
-            <div className={styles.breakdownItem}>
-              <span>Fixed Fee</span>
-              <span className={styles.feeText}>{fixedFee} Coins</span>
-            </div>
-            <div className={styles.dividerDashed}></div>
-            <div className={styles.breakdownItem}>
-              <span className={styles.receiveLabel}>You Will Receive</span>
-              <span className={styles.receiveValue}>{selectedTier.amount_text}</span>
-            </div>
+        {/* Disclaimer */}
+        {method.disclaimer && (
+          <div className={styles.disclaimerBox}>
+            <AlertCircle size={16} />
+            <p>{method.disclaimer}</p>
           </div>
         )}
 
-        {/* Trust & Time Indicators */}
-        <div className={styles.trustRow}>
-          <div className={styles.trustItem}>
-            <Clock size={14} />
-            <span>Processed within 24h</span>
-          </div>
-          <div className={styles.trustItem}>
-            <ShieldCheck size={14} />
-            <span>Secure payout processing</span>
-          </div>
-        </div>
-
-        {error && <div className={styles.errorMessagePro}>{error}</div>}
+        {error && <div className={styles.errorMessage}>{error}</div>}
 
         <button 
-          className={styles.withdrawBtnPro} 
+          className={styles.withdrawBtn} 
           disabled={loading || !selectedTier}
           onClick={handleWithdraw}
         >
           {loading ? 'Processing...' : 'Submit Request'}
         </button>
-
-        <p className={styles.manualReviewNote}>
-          <Info size={12} />
-          Reviewed manually to prevent fraud
-        </p>
       </div>
-
-      {/* Custom Bottom Sheet Selector */}
-      {isSelectorOpen && (
-        <div className={styles.bottomSheetOverlay} onClick={() => setIsSelectorOpen(false)}>
-          <div className={styles.bottomSheet} onClick={e => e.stopPropagation()}>
-            <div className={styles.sheetHeader}>
-              <div className={styles.sheetHandle}></div>
-              <h3>Select Amount</h3>
-            </div>
-            <div className={styles.tierList}>
-              {method.tiers?.map((tier: any) => (
-                <div 
-                  key={tier.id} 
-                  className={`${styles.tierItem} ${selectedTier?.id === tier.id ? styles.selectedTier : ''}`}
-                  onClick={() => {
-                    setSelectedTier(tier);
-                    setIsSelectorOpen(false);
-                    setError('');
-                  }}
-                >
-                  <div className={styles.tierInfo}>
-                    <span className={styles.tierAmount}>{tier.amount_text}</span>
-                    <span className={styles.tierCoins}>{tier.coins_required.toLocaleString()} Coins</span>
-                  </div>
-                  {selectedTier?.id === tier.id && <CheckCircle2 size={20} color="#4F46E5" />}
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

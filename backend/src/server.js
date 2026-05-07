@@ -11,6 +11,9 @@ const WithdrawalRequest = require('./models/WithdrawalRequest');
 const Referral = require('./models/Referral');
 const ReferralSetting = require('./models/ReferralSetting');
 const ReferralMilestone = require('./models/ReferralMilestone');
+const Contest = require('./models/Contest');
+const ContestReward = require('./models/ContestReward');
+const ContestEntry = require('./models/ContestEntry');
 const axios = require('axios');
 
 const app = express();
@@ -64,6 +67,14 @@ WithdrawalRequest.belongsTo(PayoutTier, { foreignKey: 'payout_tier_id' });
 Referral.belongsTo(User, { as: 'referrer', foreignKey: 'referrer_id' });
 Referral.belongsTo(User, { as: 'referred', foreignKey: 'referred_user_id' });
 
+// Contest Associations
+Contest.hasMany(ContestReward, { as: 'rewards', foreignKey: 'contest_id' });
+ContestReward.belongsTo(Contest, { foreignKey: 'contest_id' });
+Contest.hasMany(ContestEntry, { as: 'entries', foreignKey: 'contest_id' });
+ContestEntry.belongsTo(Contest, { foreignKey: 'contest_id' });
+ContestEntry.belongsTo(User, { foreignKey: 'user_id' });
+User.hasMany(ContestEntry, { foreignKey: 'user_id' });
+
 // Test DB Connection & Sync Models
 testConnection().then(() => {
   sequelize.sync({ alter: true }).then(async () => {
@@ -111,6 +122,7 @@ app.use('/api/postbacks', require('./routes/postbacks'));
 app.use('/api/admin', require('./routes/admin'));
 app.use('/api/payouts', require('./routes/payouts'));
 app.use('/api/referrals', require('./routes/referrals'));
+app.use('/api/contests', require('./routes/contests'));
 
 app.get('/', (req, res) => {
   res.json({ message: 'Rewardly Backend API is running' });
@@ -266,8 +278,22 @@ app.post('/api/auth/sync', async (req, res) => {
       });
     }
 
-    // Update profile info
-    if (!created) {
+    // Update profile info & Streak tracking
+    const today = new Date().toISOString().split('T')[0];
+    const lastCheckIn = user.last_check_in ? new Date(user.last_check_in).toISOString().split('T')[0] : null;
+
+    if (lastCheckIn !== today) {
+      await user.update({ 
+        last_check_in: new Date(),
+        username: tgUser.username,
+        photo_url: tgUser.photo_url,
+        ip_address: clientIp
+      });
+
+      // Track Streak Contest
+      const { trackContestActivity } = require('./utils/contestTracker');
+      await trackContestActivity(tgUser.id, 'streak', 1);
+    } else if (!created) {
       await user.update({ 
         username: tgUser.username,
         photo_url: tgUser.photo_url,

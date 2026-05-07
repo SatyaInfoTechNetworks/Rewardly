@@ -16,6 +16,7 @@ import { WalletScreen } from "@/components/wallet/WalletScreen";
 import { Navbar } from "@/components/layout/Navbar";
 import { VerificationOverlay } from "@/components/ui/VerificationOverlay";
 import { ReferralScreen } from "@/components/share/ReferralScreen";
+import { ContestScreen } from "@/components/contests/ContestScreen";
 
 // Hooks
 import { useSurveys } from "@/hooks/useSurveys";
@@ -120,6 +121,10 @@ export default function AppDashboard() {
 
     if (activeTab === "share") {
       return <ReferralScreen user={user} />;
+    }
+
+    if (activeTab === "contest") {
+      return <ContestScreen user={user} />;
     }
 
     if (activeTab === "surveys_all") {

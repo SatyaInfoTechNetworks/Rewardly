@@ -1,0 +1,432 @@
+.container {
+  padding: 16px;
+  background-color: #f8fafc;
+  min-height: 100vh;
+}
+
+.loadingContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 60vh;
+  color: #64748b;
+}
+
+.loader {
+  width: 40px;
+  height: 40px;
+  border: 4px solid #e2e8f0;
+  border-top-color: #2563eb;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 16px;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Hero Card */
+.heroCard {
+  position: relative;
+  background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+  border-radius: 24px;
+  padding: 24px;
+  color: white;
+  overflow: hidden;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  margin-bottom: 16px;
+}
+
+.heroGlow {
+  position: absolute;
+  top: -50px;
+  right: -50px;
+  width: 150px;
+  height: 150px;
+  background: radial-gradient(circle, rgba(37, 99, 235, 0.3) 0%, rgba(37, 99, 235, 0) 70%);
+  filter: blur(20px);
+}
+
+.heroTitle {
+  font-size: 1.5rem;
+  font-weight: 800;
+  margin-bottom: 8px;
+  line-height: 1.2;
+}
+
+.heroSubtitle {
+  font-size: 0.875rem;
+  color: #94a3b8;
+  margin-bottom: 24px;
+  line-height: 1.5;
+}
+
+.linkBox {
+  display: flex;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px dashed rgba(255, 255, 255, 0.2);
+  border-radius: 12px;
+  padding: 12px 16px;
+  margin-bottom: 16px;
+}
+
+.linkText {
+  flex: 1;
+  font-size: 0.8125rem;
+  font-family: monospace;
+  color: #cbd5e1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.copyBtn {
+  background: transparent;
+  border: none;
+  color: #38bdf8;
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.shareBtn {
+  width: 100%;
+  background: #2563eb;
+  color: white;
+  border: none;
+  border-radius: 12px;
+  padding: 12px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 24px;
+  box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.4);
+}
+
+.heroStats {
+  display: flex;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 16px;
+  padding: 16px;
+}
+
+.heroStatItem {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.heroStatLabel {
+  font-size: 0.75rem;
+  color: #94a3b8;
+  margin-bottom: 4px;
+}
+
+.heroStatValue {
+  font-size: 1.125rem;
+  font-weight: 800;
+  color: white;
+}
+
+.heroStatDivider {
+  width: 1px;
+  background: rgba(255, 255, 255, 0.1);
+  margin: 0 16px;
+}
+
+/* Banner */
+.bonusBanner {
+  background: #f0fdf4;
+  border: 1px solid #dcfce7;
+  border-radius: 12px;
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.bonusIcon {
+  color: #10b981;
+}
+
+.bonusBanner p {
+  font-size: 0.8125rem;
+  color: #065f46;
+  margin: 0;
+}
+
+/* Sections */
+.section {
+  margin-bottom: 32px;
+}
+
+.sectionHeader {
+  margin-bottom: 16px;
+}
+
+.sectionTitleGroup {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.sectionTitle {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: #1e293b;
+  margin: 0;
+}
+
+.sectionDesc {
+  font-size: 0.8125rem;
+  color: #64748b;
+  margin: 0;
+}
+
+/* Milestones */
+.milestoneGrid {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.milestoneCard {
+  background: white;
+  border-radius: 20px;
+  padding: 16px;
+  border: 1px solid #e2e8f0;
+  transition: all 0.2s;
+}
+
+.milestoneUnlocked {
+  border-color: #4ade80;
+  background: #f0fdf4;
+}
+
+.milestoneHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 16px;
+}
+
+.milestoneTarget {
+  font-weight: 700;
+  color: #1e293b;
+  margin-bottom: 2px;
+}
+
+.milestoneReward {
+  font-size: 0.75rem;
+  color: #64748b;
+}
+
+.milestoneBadge {
+  background: #f1f5f9;
+  padding: 4px 8px;
+  border-radius: 8px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.milestoneUnlocked .milestoneBadge {
+  background: #4ade80;
+  color: white;
+}
+
+.progressContainer {
+  margin-bottom: 16px;
+}
+
+.progressHeader {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #64748b;
+  margin-bottom: 6px;
+}
+
+.progressBar {
+  height: 6px;
+  background: #e2e8f0;
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.progressFill {
+  height: 100%;
+  background: linear-gradient(90deg, #38bdf8 0%, #2563eb 100%);
+  border-radius: 3px;
+  transition: width 0.5s ease-out;
+}
+
+.milestoneUnlocked .progressFill {
+  background: #4ade80;
+}
+
+.claimBtn {
+  width: 100%;
+  padding: 10px;
+  border-radius: 10px;
+  border: none;
+  font-weight: 700;
+  font-size: 0.875rem;
+  cursor: pointer;
+  background: #2563eb;
+  color: white;
+  transition: all 0.2s;
+}
+
+.claimBtnLocked {
+  background: #f1f5f9;
+  color: #94a3b8;
+  cursor: not-allowed;
+}
+
+/* Steps */
+.stepsGrid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+}
+
+.stepItem {
+  background: white;
+  border-radius: 16px;
+  padding: 16px;
+  border: 1px solid #e2e8f0;
+  text-align: center;
+}
+
+.stepCircle {
+  width: 32px;
+  height: 32px;
+  background: #2563eb;
+  color: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  margin: 0 auto 12px;
+}
+
+.stepItem h3 {
+  font-size: 0.9375rem;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.stepItem p {
+  font-size: 0.75rem;
+  color: #64748b;
+  margin: 0;
+  line-height: 1.4;
+}
+
+/* Activity */
+.activityList {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.activityItem {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: white;
+  padding: 12px;
+  border-radius: 16px;
+  border: 1px solid #e2e8f0;
+}
+
+.activityUser {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.userAvatar {
+  width: 36px;
+  height: 36px;
+  background: #f1f5f9;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  color: #2563eb;
+}
+
+.userName {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.userStatus {
+  font-size: 0.75rem;
+  color: #94a3b8;
+}
+
+.activityReward {
+  background: #f0fdf4;
+  color: #10b981;
+  padding: 4px 8px;
+  border-radius: 8px;
+  font-size: 0.8125rem;
+  font-weight: 700;
+}
+
+/* Rules */
+.rulesSection {
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+.rulesToggle {
+  width: 100%;
+  padding: 16px;
+  background: transparent;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: #1e293b;
+  font-weight: 600;
+  font-size: 0.875rem;
+  cursor: pointer;
+}
+
+.rulesContent {
+  padding: 0 16px 16px;
+}
+
+.rulesContent ul {
+  margin: 0;
+  padding-left: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.rulesContent li {
+  font-size: 0.75rem;
+  color: #64748b;
+  line-height: 1.4;
+}

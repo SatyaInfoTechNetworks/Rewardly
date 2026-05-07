@@ -8,6 +8,9 @@ const User = require('./models/User');
 const PayoutMethod = require('./models/PayoutMethod');
 const PayoutTier = require('./models/PayoutTier');
 const WithdrawalRequest = require('./models/WithdrawalRequest');
+const Referral = require('./models/Referral');
+const ReferralSetting = require('./models/ReferralSetting');
+const ReferralMilestone = require('./models/ReferralMilestone');
 const axios = require('axios');
 
 const app = express();
@@ -29,16 +32,35 @@ WithdrawalRequest.belongsTo(User, { foreignKey: 'user_id' });
 WithdrawalRequest.belongsTo(PayoutMethod, { foreignKey: 'payout_method_id' });
 WithdrawalRequest.belongsTo(PayoutTier, { foreignKey: 'payout_tier_id' });
 
+Referral.belongsTo(User, { as: 'referrer', foreignKey: 'referrer_id' });
+Referral.belongsTo(User, { as: 'referred', foreignKey: 'referred_user_id' });
+
 // Test DB Connection & Sync Models
 testConnection().then(() => {
   sequelize.sync({ alter: true }).then(async () => {
     console.log('✨ Database models synchronized.');
     
-    // Auto-Seed Dummy Users for Testing
+    // Auto-Seed Defaults
     try {
+      // Seed Referral Settings
+      const [refSettings] = await ReferralSetting.findOrCreate({ 
+        where: { id: 1 }, 
+        defaults: { 
+          welcome_bonus: 50, 
+          referral_reward: 300, 
+          reward_trigger: 'redeem_approved',
+          min_redeem_amount: 10,
+          same_device_block: true
+        } 
+      });
+
+      // Seed Referral Milestones
+      await ReferralMilestone.findOrCreate({ where: { required_referrals: 10 }, defaults: { reward_coins: 1000, icon: 'Gift' } });
+      await ReferralMilestone.findOrCreate({ where: { required_referrals: 50 }, defaults: { reward_coins: 7000, icon: 'Zap' } });
+      await ReferralMilestone.findOrCreate({ where: { required_referrals: 100 }, defaults: { reward_coins: 15000, icon: 'Trophy' } });
+
       await User.findOrCreate({ where: { telegram_id: 111111 }, defaults: { first_name: 'Satya (Test)', balance: 5000, is_phone_verified: true } });
       await User.findOrCreate({ where: { telegram_id: 222222 }, defaults: { first_name: 'Rahul (Test)', balance: 2450, is_channel_joined: true } });
-      await User.findOrCreate({ where: { telegram_id: 333333 }, defaults: { first_name: 'Priya (Test)', balance: 120, google_aid: 'TEST-ID-999' } });
       
       // Auto-Seed Payout Methods
       const [upi] = await PayoutMethod.findOrCreate({ 
@@ -47,35 +69,6 @@ testConnection().then(() => {
       });
       await PayoutTier.findOrCreate({ where: { payout_method_id: upi.id, coins_required: 5000 }, defaults: { amount_text: '₹50' } });
       await PayoutTier.findOrCreate({ where: { payout_method_id: upi.id, coins_required: 10000 }, defaults: { amount_text: '₹100' } });
-
-      const [amazon] = await PayoutMethod.findOrCreate({ 
-        where: { name: 'Amazon Pay' }, 
-        defaults: { logo_url: 'https://upload.wikimedia.org/wikipedia/commons/a/a9/Amazon_logo.svg', order_index: 2 } 
-      });
-      const [amazonTier] = await PayoutTier.findOrCreate({ where: { payout_method_id: amazon.id, coins_required: 25000 }, defaults: { amount_text: '₹250' } });
-
-      // Sample Withdrawal Requests
-      await WithdrawalRequest.findOrCreate({
-        where: { user_id: 111111, payout_method_id: upi.id },
-        defaults: {
-          payout_tier_id: 1,
-          amount_text: '₹50',
-          coins_used: 5000,
-          payout_details: 'satya@upi',
-          status: 'pending'
-        }
-      });
-
-      await WithdrawalRequest.findOrCreate({
-        where: { user_id: 222222, payout_method_id: amazon.id },
-        defaults: {
-          payout_tier_id: amazonTier.id,
-          amount_text: '₹250',
-          coins_used: 25000,
-          payout_details: 'rahul@amazon',
-          status: 'pending'
-        }
-      });
 
     } catch (e) {
       console.log('Seed skip:', e.message);
@@ -107,6 +100,7 @@ app.use('/api/surveys', require('./routes/surveys'));
 app.use('/api/postbacks', require('./routes/postbacks'));
 app.use('/api/admin', require('./routes/admin'));
 app.use('/api/payouts', require('./routes/payouts'));
+app.use('/api/referrals', require('./routes/referrals'));
 
 app.get('/', (req, res) => {
   res.json({ message: 'Rewardly Backend API is running' });
@@ -202,6 +196,7 @@ app.post('/api/auth/sync', async (req, res) => {
 
     if (!userJson) throw new Error('No user data in initData');
     const tgUser = JSON.parse(userJson);
+    const clientIp = getClientIp(req);
     
     // Sync with Database
     const [user, created] = await User.findOrCreate({
@@ -212,30 +207,63 @@ app.post('/api/auth/sync', async (req, res) => {
         last_name: tgUser.last_name,
         balance: 0,
         referred_by: referralCode ? parseInt(referralCode) : null,
-        photo_url: tgUser.photo_url
+        photo_url: tgUser.photo_url,
+        ip_address: clientIp
       }
     });
 
-    // If new user joined via referral, we can add bonus here later
+    // Handle New Referral Logic
     if (created && referralCode) {
-      console.log(`🎁 New referral: User ${tgUser.id} invited by ${referralCode}`);
+      const referrerId = parseInt(referralCode);
+      const settings = await ReferralSetting.findByPk(1);
+
+      // Fraud Check: Referrer cannot be self
+      if (referrerId !== tgUser.id) {
+        // Create Referral Record
+        await Referral.create({
+          referrer_id: referrerId,
+          referred_user_id: tgUser.id,
+          status: 'pending',
+          ip_address: clientIp
+        });
+
+        // Award Welcome Bonus if configured
+        if (settings && settings.welcome_bonus > 0) {
+          await user.increment('balance', { by: settings.welcome_bonus });
+          await Transaction.create({
+            telegram_id: tgUser.id,
+            amount: settings.welcome_bonus,
+            type: 'bonus',
+            description: 'Referral Welcome Bonus',
+            status: 'completed'
+          });
+        }
+      }
     }
 
     // Back-fill referral if it's currently null
-    if (!created && referralCode && !user.referred_by) {
+    if (!created && referralCode && !user.referred_by && parseInt(referralCode) !== user.telegram_id) {
       await user.update({ referred_by: parseInt(referralCode) });
-      console.log(`🔄 Back-filled referral for User ${tgUser.id} from ${referralCode}`);
-    }
-
-    // Update username or photo if they changed
-    if (!created && (user.username !== tgUser.username || user.photo_url !== tgUser.photo_url)) {
-      await user.update({ 
-        username: tgUser.username,
-        photo_url: tgUser.photo_url 
+      
+      // Also create a referral record if none exists
+      await Referral.findOrCreate({
+        where: { referred_user_id: user.telegram_id },
+        defaults: {
+          referrer_id: parseInt(referralCode),
+          status: 'pending',
+          ip_address: clientIp
+        }
       });
     }
 
-    console.log(`${created ? '🆕 New user' : '✅ Returning user'} synced: ${user.first_name}`);
+    // Update profile info
+    if (!created) {
+      await user.update({ 
+        username: tgUser.username,
+        photo_url: tgUser.photo_url,
+        ip_address: clientIp
+      });
+    }
 
     return res.json({
       success: true,

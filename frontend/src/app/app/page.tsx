@@ -15,6 +15,7 @@ import { MoreScreen } from "@/components/more/MoreScreen";
 import { WalletScreen } from "@/components/wallet/WalletScreen";
 import { Navbar } from "@/components/layout/Navbar";
 import { VerificationOverlay } from "@/components/ui/VerificationOverlay";
+import { ReferralScreen } from "@/components/share/ReferralScreen";
 
 // Hooks
 import { useSurveys } from "@/hooks/useSurveys";
@@ -115,6 +116,10 @@ export default function AppDashboard() {
 
     if (activeTab === "wallet") {
       return <WalletScreen user={user} onUpdateUser={handleSyncUser} />;
+    }
+
+    if (activeTab === "share") {
+      return <ReferralScreen user={user} />;
     }
 
     if (activeTab === "surveys_all") {

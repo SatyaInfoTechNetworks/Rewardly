@@ -21,6 +21,11 @@ export default function AdminPanel() {
   const [transactions, setTransactions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   
+  // Referral States
+  const [referralSettings, setReferralSettings] = useState<any>(null);
+  const [referralMilestones, setReferralMilestones] = useState<any[]>([]);
+  const [referralStats, setReferralStats] = useState<any>(null);
+
   // Modal State
   const [editingUser, setEditingUser] = useState<any>(null);
   const [newBalance, setNewBalance] = useState("");
@@ -54,12 +59,15 @@ export default function AdminPanel() {
     try {
       const headers = { 'x-admin-secret': authSecret };
       const options = { headers, credentials: 'include' as RequestCredentials };
-      const [statsRes, usersRes, payoutsRes, withdrawalsRes, transRes] = await Promise.all([
+      const [statsRes, usersRes, payoutsRes, withdrawalsRes, transRes, refSettingsRes, refMilestonesRes, refStatsRes] = await Promise.all([
         fetch(`${API_URL}/api/admin/stats`, options),
         fetch(`${API_URL}/api/admin/users`, options),
         fetch(`${API_URL}/api/admin/payout-methods`, options),
         fetch(`${API_URL}/api/admin/withdrawals`, options),
-        fetch(`${API_URL}/api/admin/transactions`, options)
+        fetch(`${API_URL}/api/admin/transactions`, options),
+        fetch(`${API_URL}/api/admin/referral/settings`, options),
+        fetch(`${API_URL}/api/admin/referral/milestones`, options),
+        fetch(`${API_URL}/api/admin/referral/stats`, options)
       ]);
 
       if (statsRes.ok && usersRes.ok && payoutsRes.ok && withdrawalsRes.ok && transRes.ok) {
@@ -68,6 +76,9 @@ export default function AdminPanel() {
         setPayoutMethods(await payoutsRes.json());
         setWithdrawals(await withdrawalsRes.json());
         setTransactions(await transRes.json());
+        if (refSettingsRes.ok) setReferralSettings(await refSettingsRes.json());
+        if (refMilestonesRes.ok) setReferralMilestones(await refMilestonesRes.json());
+        if (refStatsRes.ok) setReferralStats(await refStatsRes.json());
         setIsAuthenticated(true);
         localStorage.setItem("admin_secret", authSecret);
       } else {
@@ -185,6 +196,62 @@ export default function AdminPanel() {
     }
   };
 
+  const handleUpdateReferralSettings = async () => {
+    try {
+      const res = await fetch(`${API_URL}/api/admin/referral/settings`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'x-admin-secret': secret },
+        credentials: 'include',
+        body: JSON.stringify(referralSettings)
+      });
+      if (res.ok) {
+        showToast("Referral settings updated");
+        fetchAllData(secret);
+      }
+    } catch (error) {
+      showToast("Failed to update settings", "error");
+    }
+  };
+
+  const handleSaveMilestone = async (milestone: any) => {
+    try {
+      const method = milestone.id ? 'PUT' : 'POST';
+      const url = milestone.id 
+        ? `${API_URL}/api/admin/referral/milestones/${milestone.id}`
+        : `${API_URL}/api/admin/referral/milestones`;
+
+      const res = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json', 'x-admin-secret': secret },
+        credentials: 'include',
+        body: JSON.stringify(milestone)
+      });
+      if (res.ok) {
+        showToast("Milestone saved");
+        fetchAllData(secret);
+      }
+    } catch (error) {
+      showToast("Failed to save milestone", "error");
+    }
+  };
+
+  const handleDeleteMilestone = async (id: number) => {
+    if (!confirm("Delete this milestone?")) return;
+    try {
+      const res = await fetch(`${API_URL}/api/admin/referral/milestones/${id}`, {
+        method: 'DELETE',
+        headers: { 'x-admin-secret': secret },
+        credentials: 'include'
+      });
+      if (res.ok) {
+        showToast("Milestone deleted");
+        fetchAllData(secret);
+      }
+    } catch (error) {
+      showToast("Failed to delete milestone", "error");
+    }
+  };
+
   if (!isAuthenticated) {
     return (
       <div className={styles.loginOverlay}>
@@ -244,6 +311,7 @@ export default function AdminPanel() {
             { id: 'dashboard', icon: LayoutDashboard, label: 'Dashboard' },
             { id: 'users', icon: Users, label: 'User Management' },
             { id: 'payouts', icon: Gift, label: 'Payout Methods' },
+            { id: 'referrals', icon: Users, label: 'Referral System' },
             { id: 'withdrawals', icon: ArrowUpRight, label: 'Withdrawals' },
             { id: 'transactions', icon: History, label: 'Audit Log' },
           ].map((item) => (
@@ -639,6 +707,155 @@ export default function AdminPanel() {
                   ))}
                 </tbody>
               </table>
+            </div>
+          </section>
+        )}
+
+        {activeView === 'referrals' && (
+          <section>
+            <div className={styles.sectionHeader}>
+              <h2 className={styles.sectionTitle}>Referral System</h2>
+              <p className={styles.sectionDesc}>Configure invitation rewards, welcome bonuses, and milestones</p>
+            </div>
+
+            <div className={styles.statsGrid} style={{ marginBottom: '2rem' }}>
+              <div className={styles.statCard}>
+                <div className={styles.statHeader}>
+                   <div className={styles.statLabel}>Total Invitations</div>
+                   <Users size={20} className={styles.statIcon} />
+                </div>
+                <div className={styles.statValue}>{referralStats?.totalInvites || 0}</div>
+              </div>
+              <div className={styles.statCard}>
+                <div className={styles.statHeader}>
+                   <div className={styles.statLabel}>Qualified Referrals</div>
+                   <CheckCircle2 size={20} className={styles.statIcon} />
+                </div>
+                <div className={styles.statValue}>{referralStats?.rewardedInvites || 0}</div>
+              </div>
+              <div className={styles.statCard}>
+                <div className={styles.statHeader}>
+                   <div className={styles.statLabel}>Conversion Rate</div>
+                   <Activity size={20} className={styles.statIcon} />
+                </div>
+                <div className={styles.statValue}>{referralStats?.conversionRate || 0}%</div>
+              </div>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.5fr', gap: '2rem' }}>
+              {/* Settings Column */}
+              <div className={styles.tableCard} style={{ padding: '2rem' }}>
+                <h3 style={{ marginBottom: '1.5rem', fontWeight: 700, color: '#38bdf8' }}>General Settings</h3>
+                <div className={styles.formGroup}>
+                  <label className={styles.formLabel}>Welcome Bonus (Invitee)</label>
+                  <input 
+                    type="number" className={styles.formInput} 
+                    value={referralSettings?.welcome_bonus} 
+                    onChange={(e) => setReferralSettings({...referralSettings, welcome_bonus: parseInt(e.target.value)})}
+                  />
+                </div>
+                <div className={styles.formGroup}>
+                  <label className={styles.formLabel}>Referrer Reward (Inviter)</label>
+                  <input 
+                    type="number" className={styles.formInput} 
+                    value={referralSettings?.referral_reward} 
+                    onChange={(e) => setReferralSettings({...referralSettings, referral_reward: parseInt(e.target.value)})}
+                  />
+                </div>
+                <div className={styles.formGroup}>
+                  <label className={styles.formLabel}>Reward Trigger</label>
+                  <select 
+                    className={styles.formInput}
+                    value={referralSettings?.reward_trigger}
+                    onChange={(e) => setReferralSettings({...referralSettings, reward_trigger: e.target.value})}
+                  >
+                    <option value="signup">Immediate Signup</option>
+                    <option value="earning">Minimum Earnings Met</option>
+                    <option value="redeem_request">First Redeem Requested</option>
+                    <option value="redeem_approved">First Redeem Approved (Best)</option>
+                  </select>
+                </div>
+                <div className={styles.formGroup}>
+                  <label className={styles.formLabel}>Min Redeem for Reward (₹)</label>
+                  <input 
+                    type="number" className={styles.formInput} 
+                    value={referralSettings?.min_redeem_amount} 
+                    onChange={(e) => setReferralSettings({...referralSettings, min_redeem_amount: parseInt(e.target.value)})}
+                  />
+                </div>
+                
+                <div style={{ marginTop: '2rem', padding: '1.5rem', background: 'rgba(239,68,68,0.05)', borderRadius: '1rem', border: '1px solid rgba(239,68,68,0.1)' }}>
+                   <h4 style={{ color: '#f87171', fontWeight: 600, fontSize: '0.875rem', marginBottom: '1rem' }}>Fraud Protection</h4>
+                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
+                      <span style={{ fontSize: '0.875rem' }}>Block Same Device</span>
+                      <input type="checkbox" checked={referralSettings?.same_device_block} onChange={(e) => setReferralSettings({...referralSettings, same_device_block: e.target.checked})} />
+                   </div>
+                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <span style={{ fontSize: '0.875rem' }}>VPN/Proxy Detection</span>
+                      <input type="checkbox" checked={referralSettings?.vpn_detection} onChange={(e) => setReferralSettings({...referralSettings, vpn_detection: e.target.checked})} />
+                   </div>
+                </div>
+
+                <button className={styles.btnPrimary} style={{ width: '100%', marginTop: '2rem' }} onClick={handleUpdateReferralSettings}>
+                   Save Configuration
+                </button>
+              </div>
+
+              {/* Milestones Column */}
+              <div className={styles.tableCard} style={{ padding: '2rem' }}>
+                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                    <h3 style={{ fontWeight: 700, color: '#4ade80' }}>Volume Milestones</h3>
+                    <button className={styles.addBtn} style={{ fontSize: '0.75rem', padding: '6px 12px' }} onClick={() => handleSaveMilestone({ required_referrals: 0, reward_coins: 0 })}>+ Add Milestone</button>
+                 </div>
+                 
+                 <table className={styles.adminTable}>
+                    <thead>
+                       <tr>
+                          <th>Invites Req.</th>
+                          <th>Bonus Coins</th>
+                          <th style={{ textAlign: 'right' }}>Actions</th>
+                       </tr>
+                    </thead>
+                    <tbody>
+                       {referralMilestones.map(m => (
+                         <tr key={m.id}>
+                            <td>
+                               <input 
+                                 type="number" className={styles.formInput} 
+                                 style={{ padding: '4px 8px', width: '80px' }} 
+                                 value={m.required_referrals} 
+                                 onChange={(e) => {
+                                    const newM = [...referralMilestones];
+                                    const item = newM.find(it => it.id === m.id);
+                                    if (item) item.required_referrals = parseInt(e.target.value);
+                                    setReferralMilestones(newM);
+                                 }}
+                               />
+                            </td>
+                            <td>
+                               <input 
+                                 type="number" className={styles.formInput} 
+                                 style={{ padding: '4px 8px', width: '100px', fontWeight: 700, color: '#4ade80' }} 
+                                 value={m.reward_coins} 
+                                 onChange={(e) => {
+                                    const newM = [...referralMilestones];
+                                    const item = newM.find(it => it.id === m.id);
+                                    if (item) item.reward_coins = parseInt(e.target.value);
+                                    setReferralMilestones(newM);
+                                 }}
+                               />
+                            </td>
+                            <td>
+                               <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                                  <button className={styles.actionBtn} title="Save" onClick={() => handleSaveMilestone(m)}><CheckCircle2 size={16} color="#10b981" /></button>
+                                  <button className={styles.actionBtn} title="Delete" style={{ color: '#f87171' }} onClick={() => handleDeleteMilestone(m.id)}><Trash2 size={16} /></button>
+                               </div>
+                            </td>
+                         </tr>
+                       ))}
+                    </tbody>
+                 </table>
+              </div>
             </div>
           </section>
         )}

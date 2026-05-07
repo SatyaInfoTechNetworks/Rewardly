@@ -1,10 +1,14 @@
 const express = require('express');
 const router = express.Router();
-const User = require('../models/User');
-const Transaction = require('../models/Transaction');
 const PayoutMethod = require('../models/PayoutMethod');
 const PayoutTier = require('../models/PayoutTier');
 const WithdrawalRequest = require('../models/WithdrawalRequest');
+const User = require('../models/User');
+const Referral = require('../models/Referral');
+const ReferralSetting = require('../models/ReferralSetting');
+const ReferralMilestone = require('../models/ReferralMilestone');
+const Transaction = require('../models/Transaction');
+const adminAuth = require('../utils/adminAuth');
 const { sequelize } = require('../config/database');
 
 /**
@@ -279,13 +283,129 @@ router.get('/withdrawals', adminAuth, async (req, res) => {
  * PUT /api/admin/withdrawals/:id
  */
 router.put('/withdrawals/:id', adminAuth, async (req, res) => {
+  const t = await sequelize.transaction();
   try {
     const { id } = req.params;
     const { status, admin_note } = req.body;
-    await WithdrawalRequest.update({ status, admin_note }, { where: { id } });
+    
+    const withdrawal = await WithdrawalRequest.findByPk(id, { include: [User] });
+    if (!withdrawal) return res.status(404).json({ error: 'Withdrawal not found' });
+
+    await WithdrawalRequest.update({ status, admin_note }, { where: { id }, transaction: t });
+
+    // Handle Referral Reward on Approval
+    if (status === 'approved' && withdrawal.User.referred_by) {
+      const settings = await ReferralSetting.findByPk(1);
+      
+      if (settings && settings.reward_trigger === 'redeem_approved') {
+        const referral = await Referral.findOne({ 
+          where: { 
+            referred_user_id: withdrawal.user_id,
+            status: 'pending'
+          }
+        });
+
+        if (referral) {
+          // Award Referrer
+          const referrer = await User.findByPk(withdrawal.User.referred_by);
+          if (referrer) {
+            await referrer.increment('balance', { by: settings.referral_reward, transaction: t });
+            await referral.update({ 
+              status: 'rewarded', 
+              reward_given: true, 
+              completed_at: new Date() 
+            }, { transaction: t });
+
+            await Transaction.create({
+              telegram_id: referrer.telegram_id,
+              amount: settings.referral_reward,
+              type: 'referral',
+              description: `Referral Reward: ${withdrawal.User.first_name} completed first redeem`,
+              status: 'completed'
+            }, { transaction: t });
+          }
+        }
+      }
+    }
+
+    await t.commit();
     res.json({ success: true });
   } catch (error) {
+    await t.rollback();
     res.status(500).json({ error: error.message });
+  }
+});
+
+// --- Referral Settings & Milestones ---
+
+router.get('/referral/settings', adminAuth, async (req, res) => {
+  try {
+    const settings = await ReferralSetting.findByPk(1);
+    res.json(settings);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.put('/referral/settings', adminAuth, async (req, res) => {
+  try {
+    await ReferralSetting.update(req.body, { where: { id: 1 } });
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.get('/referral/milestones', adminAuth, async (req, res) => {
+  try {
+    const milestones = await ReferralMilestone.findAll({ order: [['required_referrals', 'ASC']] });
+    res.json(milestones);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.post('/referral/milestones', adminAuth, async (req, res) => {
+  try {
+    const milestone = await ReferralMilestone.create(req.body);
+    res.json(milestone);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.put('/referral/milestones/:id', adminAuth, async (req, res) => {
+  try {
+    await ReferralMilestone.update(req.body, { where: { id: req.params.id } });
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.delete('/referral/milestones/:id', adminAuth, async (req, res) => {
+  try {
+    await ReferralMilestone.destroy({ where: { id: req.params.id } });
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.get('/referral/stats', adminAuth, async (req, res) => {
+  try {
+    const totalInvites = await Referral.count();
+    const rewardedInvites = await Referral.count({ where: { status: 'rewarded' } });
+    const pendingInvites = await Referral.count({ where: { status: 'pending' } });
+    
+    res.json({
+      totalInvites,
+      rewardedInvites,
+      pendingInvites,
+      conversionRate: totalInvites > 0 ? ((rewardedInvites / totalInvites) * 100).toFixed(1) : 0
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 

@@ -432,6 +432,7 @@ router.post('/contests', adminAuth, async (req, res) => {
     const contest = await Contest.create(req.body);
     res.json(contest);
   } catch (err) {
+    console.error("Contest Creation Error:", err);
     res.status(500).json({ error: err.message });
   }
 });

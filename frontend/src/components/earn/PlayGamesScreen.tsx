@@ -140,7 +140,7 @@ export const PlayGamesScreen: React.FC<PlayGamesScreenProps> = ({ user, onBack, 
           </div>
 
           <div className="card" style={{ padding: '32px 20px', textAlign: 'center', background: 'white', border: '1px solid #e2e8f0' }}>
-            <div style={{ width: '80px', height: '80px', background: 'rgba(99, 102, 241, 0.1)', borderRadius: '24px', display: 'flex', alignItems: 'center', justifyCenter: 'center', margin: '0 auto 20px', justifyContent: 'center' }}>
+            <div style={{ width: '80px', height: '80px', background: 'rgba(99, 102, 241, 0.1)', borderRadius: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' }}>
               <Gamepad2 size={40} color="#6366f1" />
             </div>
             <h4 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#1e293b', marginBottom: '8px' }}>Test Your Luck!</h4>

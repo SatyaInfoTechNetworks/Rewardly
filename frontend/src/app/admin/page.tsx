@@ -215,6 +215,7 @@ export default function AdminPanel() {
                     <th>User</th>
                     <th>Telegram ID</th>
                     <th>Balance</th>
+                    <th>Pending</th>
                     <th>Status</th>
                     <th>Joined</th>
                     <th>Actions</th>
@@ -228,13 +229,14 @@ export default function AdminPanel() {
                         <div style={{ fontSize: '0.75rem', color: '#64748b' }}>@{user.username || 'no_username'}</div>
                       </td>
                       <td style={{ fontFamily: 'monospace' }}>{user.telegram_id}</td>
-                      <td style={{ fontWeight: 700 }}>{user.balance.toLocaleString()}</td>
+                      <td style={{ fontWeight: 700, color: '#4ade80' }}>{user.balance?.toLocaleString() || 0}</td>
+                      <td style={{ fontWeight: 700, color: '#fbbf24' }}>{user.pending_balance?.toLocaleString() || 0}</td>
                       <td>
                         <span className={`${styles.badge} ${user.is_banned ? styles.badgeBanned : styles.badgeActive}`}>
                           {user.is_banned ? 'Banned' : 'Active'}
                         </span>
                       </td>
-                      <td>{new Date(user.created_at).toLocaleDateString()}</td>
+                      <td>{user.created_at ? new Date(user.created_at).toLocaleDateString() : 'N/A'}</td>
                       <td>
                         <div style={{ display: 'flex', gap: '8px' }}>
                           <button className={styles.actionBtn} onClick={() => {

@@ -1,18 +1,56 @@
-import React from 'react';
-import { Copy, Apple, FileText, Shield, Handshake, Mail, ChevronRight, Fingerprint } from 'lucide-react';
+import React, { useState } from 'react';
+import { Copy, Apple, FileText, Shield, Handshake, Mail, ChevronRight, Fingerprint, X } from 'lucide-react';
 import styles from '@/app/page.module.css';
 
-export const MoreScreen: React.FC = () => {
+interface MoreScreenProps {
+  user: any;
+}
+
+export const MoreScreen: React.FC<MoreScreenProps> = ({ user }) => {
+  const [modalType, setModalType] = useState<'gaid' | 'idfa' | null>(null);
+  const [inputValue, setInputValue] = useState("");
+  const [isUpdating, setIsUpdating] = useState(false);
+
+  const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://rewardlyapi.satyainfotechnetworks.com';
+
+  const handleUpdate = async () => {
+    try {
+      setIsUpdating(true);
+      const tg = (window as any).Telegram?.WebApp;
+      const initData = tg?.initData;
+
+      const payload: any = { initData };
+      if (modalType === 'gaid') payload.google_aid = inputValue;
+      else payload.ios_idfa = inputValue;
+
+      const response = await fetch(`${API_URL}/api/user/update-ids`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      if (response.ok) {
+        setModalType(null);
+        setInputValue("");
+        alert("ID Updated successfully");
+      }
+    } catch (error) {
+      alert("Failed to update ID");
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
   return (
     <div className={styles.moreScreen}>
       {/* Profile Card */}
       <div className={`${styles.profileCard} card`}>
         <div className={styles.profileMain}>
-          <div className={styles.largeAvatar}>D</div>
+          <div className={styles.largeAvatar}>{(user?.firstName || 'U')[0]}</div>
           <div className={styles.profileInfo}>
-            <h2>Devraj</h2>
+            <h2>{user?.firstName || 'User'}</h2>
             <div className={styles.idBadge}>
-              <span>ID: 1981634693</span>
+              <span>ID: {user?.id || '00000000'}</span>
               <Copy size={14} className={styles.copyIcon} />
             </div>
           </div>
@@ -21,7 +59,7 @@ export const MoreScreen: React.FC = () => {
 
       {/* Menu List */}
       <div className={`${styles.menuCard} card`}>
-        <div className={styles.menuItem}>
+        <div className={styles.menuItem} onClick={() => setModalType('gaid')}>
           <div className={`${styles.menuIconContainer} ${styles.red}`}>
             <Fingerprint size={20} />
           </div>
@@ -29,7 +67,7 @@ export const MoreScreen: React.FC = () => {
           <ChevronRight size={18} className={styles.chevron} />
         </div>
         
-        <div className={styles.menuItem}>
+        <div className={styles.menuItem} onClick={() => setModalType('idfa')}>
           <div className={`${styles.menuIconContainer} ${styles.indigo}`}>
             <Apple size={20} />
           </div>
@@ -69,6 +107,52 @@ export const MoreScreen: React.FC = () => {
           <ChevronRight size={18} className={styles.chevron} />
         </div>
       </div>
+
+      {/* ID Update Modal */}
+      {modalType && (
+        <div className={styles.modalOverlay}>
+          <div className={styles.modalBox}>
+            <div className={styles.modalHeader}>
+              <h3>Update {modalType === 'gaid' ? 'Google AID' : 'iOS IDFA'}</h3>
+              <X size={20} onClick={() => setModalType(null)} style={{ cursor: 'pointer' }} />
+            </div>
+            <p style={{ fontSize: '0.8rem', color: '#94a3b8', marginBottom: '1rem' }}>
+              Please enter your {modalType === 'gaid' ? 'Google Advertising ID' : 'iOS IDFA'} for better offer tracking.
+            </p>
+            <input 
+              type="text" 
+              className={styles.modalInput}
+              placeholder="Paste your ID here..."
+              value={inputValue}
+              onChange={(e) => setInputValue(e.target.value)}
+              style={{
+                width: '100%',
+                padding: '12px',
+                background: '#0b0f19',
+                border: '1px solid rgba(255,255,255,0.1)',
+                borderRadius: '8px',
+                color: '#fff',
+                marginBottom: '1.5rem'
+              }}
+            />
+            <div style={{ display: 'flex', gap: '12px' }}>
+              <button 
+                onClick={() => setModalType(null)}
+                style={{ flex: 1, padding: '12px', borderRadius: '8px', border: 'none', background: 'rgba(255,255,255,0.05)', color: '#fff' }}
+              >
+                Cancel
+              </button>
+              <button 
+                onClick={handleUpdate}
+                disabled={isUpdating}
+                style={{ flex: 1, padding: '12px', borderRadius: '8px', border: 'none', background: '#38bdf8', color: '#0b0f19', fontWeight: 600 }}
+              >
+                {isUpdating ? "Updating..." : "Update"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

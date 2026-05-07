@@ -10,7 +10,7 @@ export interface Survey {
   category?: string;
 }
 
-export const useSurveys = (userId: string = "1981634693") => {
+export const useSurveys = (userId: string | undefined) => {
   const [surveys, setSurveys] = useState<Survey[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -54,7 +54,9 @@ export const useSurveys = (userId: string = "1981634693") => {
   };
 
   useEffect(() => {
-    fetchSurveys();
+    if (userId) {
+      fetchSurveys();
+    }
   }, [userId]);
 
   return { surveys, loading, error, refetch: fetchSurveys };

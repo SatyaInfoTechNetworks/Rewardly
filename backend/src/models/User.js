@@ -24,6 +24,10 @@ const User = sequelize.define('User', {
     type: DataTypes.BIGINT,
     defaultValue: 0
   },
+  pending_balance: {
+    type: DataTypes.BIGINT,
+    defaultValue: 0
+  },
   streak: {
     type: DataTypes.INTEGER,
     defaultValue: 0
@@ -38,6 +42,14 @@ const User = sequelize.define('User', {
   status: {
     type: DataTypes.STRING,
     defaultValue: 'active'
+  },
+  google_aid: {
+    type: DataTypes.STRING,
+    allowNull: true
+  },
+  ios_idfa: {
+    type: DataTypes.STRING,
+    allowNull: true
   },
   ip_address: {
     type: DataTypes.STRING,

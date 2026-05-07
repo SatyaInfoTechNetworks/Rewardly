@@ -93,7 +93,7 @@ export default function AppDashboard() {
 
   const renderContent = () => {
     if (activeTab === "more") {
-      return <MoreScreen />;
+      return <MoreScreen user={user} />;
     }
 
     if (activeTab === "surveys_all") {

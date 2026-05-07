@@ -98,12 +98,42 @@ app.post('/api/auth/sync', async (req, res) => {
         id: user.telegram_id,
         username: user.username,
         firstName: user.first_name,
-        balance: user.balance
+        balance: user.balance,
+        pendingBalance: user.pending_balance
       }
     });
   } catch (error) {
     console.error('Sync Error:', error);
     return res.status(400).json({ error: 'Failed to sync user data' });
+  }
+});
+
+/**
+ * POST /api/user/update-ids
+ * Update Google AID or iOS IDFA
+ */
+app.post('/api/user/update-ids', async (req, res) => {
+  const { initData, google_aid, ios_idfa } = req.body;
+  const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
+
+  if (!validateTelegramInitData(initData, BOT_TOKEN) && process.env.NODE_ENV === 'production') {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+
+  try {
+    const urlParams = new URLSearchParams(initData);
+    const tgUser = JSON.parse(urlParams.get('user'));
+    
+    const user = await User.findByPk(tgUser.id);
+    if (!user) return res.status(404).json({ error: 'User not found' });
+
+    if (google_aid !== undefined) user.google_aid = google_aid;
+    if (ios_idfa !== undefined) user.ios_idfa = ios_idfa;
+    
+    await user.save();
+    res.json({ success: true, user });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
   }
 });
 

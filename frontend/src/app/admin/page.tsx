@@ -25,6 +25,24 @@ export default function AdminPanel() {
   const [referralSettings, setReferralSettings] = useState<any>(null);
   const [referralMilestones, setReferralMilestones] = useState<any[]>([]);
   const [referralStats, setReferralStats] = useState<any>(null);
+  
+  // Contest States
+  const [contests, setContests] = useState<any[]>([]);
+  const [isContestModalOpen, setIsContestModalOpen] = useState(false);
+  const [editingContest, setEditingContest] = useState<any>(null);
+  const [contestForm, setContestForm] = useState({
+    name: '',
+    slug: '',
+    type: 'earning',
+    status: 'active',
+    start_time: new Date().toISOString().slice(0, 16),
+    end_time: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 16),
+    description: '',
+    rules: '',
+    min_qualification: 0,
+    prize_pool_text: '₹0',
+    is_auto_distribute: false
+  });
 
   // Modal State
   const [editingUser, setEditingUser] = useState<any>(null);
@@ -67,7 +85,8 @@ export default function AdminPanel() {
         fetch(`${API_URL}/api/admin/transactions`, options),
         fetch(`${API_URL}/api/admin/referral/settings`, options),
         fetch(`${API_URL}/api/admin/referral/milestones`, options),
-        fetch(`${API_URL}/api/admin/referral/stats`, options)
+        fetch(`${API_URL}/api/admin/referral/stats`, options),
+        fetch(`${API_URL}/api/admin/contests`, options)
       ]);
 
       if (statsRes.ok && usersRes.ok && payoutsRes.ok && withdrawalsRes.ok && transRes.ok) {
@@ -79,6 +98,7 @@ export default function AdminPanel() {
         if (refSettingsRes.ok) setReferralSettings(await refSettingsRes.json());
         if (refMilestonesRes.ok) setReferralMilestones(await refMilestonesRes.json());
         if (refStatsRes.ok) setReferralStats(await refStatsRes.json());
+        if (contestsRes.ok) setContests(await contestsRes.json());
         setIsAuthenticated(true);
         localStorage.setItem("admin_secret", authSecret);
       } else {
@@ -252,6 +272,63 @@ export default function AdminPanel() {
     }
   };
 
+  const handleSaveContest = async () => {
+    try {
+      const method = editingContest ? 'PUT' : 'POST';
+      const url = editingContest 
+        ? `${API_URL}/api/admin/contests/${editingContest.id}`
+        : `${API_URL}/api/admin/contests`;
+
+      const res = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json', 'x-admin-secret': secret },
+        credentials: 'include',
+        body: JSON.stringify(contestForm)
+      });
+      if (res.ok) {
+        showToast("Contest saved");
+        setIsContestModalOpen(false);
+        fetchAllData(secret);
+      }
+    } catch (error) {
+      showToast("Failed to save contest", "error");
+    }
+  };
+
+  const handleDeleteContest = async (id: number) => {
+    if (!confirm("Delete this contest? All entries will be lost.")) return;
+    try {
+      const res = await fetch(`${API_URL}/api/admin/contests/${id}`, {
+        method: 'DELETE',
+        headers: { 'x-admin-secret': secret },
+        credentials: 'include'
+      });
+      if (res.ok) {
+        showToast("Contest deleted");
+        fetchAllData(secret);
+      }
+    } catch (error) {
+      showToast("Failed to delete contest", "error");
+    }
+  };
+
+  const handleAddContestReward = async (contestId: number, reward: any) => {
+    try {
+      const res = await fetch(`${API_URL}/api/admin/contests/${contestId}/rewards`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-admin-secret': secret },
+        credentials: 'include',
+        body: JSON.stringify(reward)
+      });
+      if (res.ok) {
+        showToast("Reward added");
+        fetchAllData(secret);
+      }
+    } catch (error) {
+      showToast("Failed to add reward", "error");
+    }
+  };
+
   if (!isAuthenticated) {
     return (
       <div className={styles.loginOverlay}>
@@ -312,6 +389,7 @@ export default function AdminPanel() {
             { id: 'users', icon: Users, label: 'User Management' },
             { id: 'payouts', icon: Gift, label: 'Payout Methods' },
             { id: 'referrals', icon: Users, label: 'Referral System' },
+            { id: 'contests', icon: Trophy, label: 'Contest System' },
             { id: 'withdrawals', icon: ArrowUpRight, label: 'Withdrawals' },
             { id: 'transactions', icon: History, label: 'Audit Log' },
           ].map((item) => (
@@ -659,6 +737,99 @@ export default function AdminPanel() {
                               </button>
                             </>
                           )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </section>
+        )}
+
+        {activeView === 'contests' && (
+          <section>
+            <div className={styles.sectionHeader} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
+              <div>
+                <h2 className={styles.sectionTitle}>Contest System</h2>
+                <p className={styles.sectionDesc}>Create and manage platform-wide challenges</p>
+              </div>
+              <button 
+                className={styles.addBtn} 
+                onClick={() => {
+                  setEditingContest(null);
+                  setContestForm({
+                    name: '',
+                    slug: '',
+                    type: 'earning',
+                    status: 'active',
+                    start_time: new Date().toISOString().slice(0, 16),
+                    end_time: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 16),
+                    description: '',
+                    rules: '',
+                    min_qualification: 0,
+                    prize_pool_text: '₹0',
+                    is_auto_distribute: false
+                  });
+                  setIsContestModalOpen(true);
+                }}
+              >
+                + Start New Contest
+              </button>
+            </div>
+
+            <div className={styles.tableCard}>
+              <table className={styles.adminTable}>
+                <thead>
+                  <tr>
+                    <th>Challenge</th>
+                    <th>Type</th>
+                    <th>Timing</th>
+                    <th>Prize Pool</th>
+                    <th>Status</th>
+                    <th style={{ textAlign: 'right' }}>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {contests.map(contest => (
+                    <tr key={contest.id}>
+                      <td>
+                        <div style={{ fontWeight: 600, color: '#fff' }}>{contest.name}</div>
+                        <div style={{ fontSize: '0.75rem', color: '#64748b' }}>/{contest.slug}</div>
+                      </td>
+                      <td>
+                        <span style={{ textTransform: 'uppercase', fontSize: '0.75rem', fontWeight: 700, color: '#38bdf8' }}>{contest.type}</span>
+                      </td>
+                      <td>
+                        <div style={{ fontSize: '0.8125rem', color: '#cbd5e1' }}>
+                          Ends: {new Date(contest.end_time).toLocaleDateString()}
+                        </div>
+                      </td>
+                      <td>
+                        <div style={{ fontWeight: 700, color: '#10b981' }}>{contest.prize_pool_text}</div>
+                        <div style={{ fontSize: '0.75rem', color: '#64748b' }}>{contest.rewards?.length || 0} Reward Tiers</div>
+                      </td>
+                      <td>
+                        <span className={`${styles.badge} ${contest.status === 'active' ? styles.badgeActive : styles.badgeBanned}`}>
+                          {contest.status.toUpperCase()}
+                        </span>
+                      </td>
+                      <td>
+                        <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                          <button className={styles.actionBtn} onClick={() => {
+                            setEditingContest(contest);
+                            setContestForm({
+                              ...contest,
+                              start_time: new Date(contest.start_time).toISOString().slice(0, 16),
+                              end_time: new Date(contest.end_time).toISOString().slice(0, 16)
+                            });
+                            setIsContestModalOpen(true);
+                          }}>
+                            <Edit3 size={18} />
+                          </button>
+                          <button className={`${styles.actionBtn} ${styles.btnDanger}`} onClick={() => handleDeleteContest(contest.id)}>
+                            <Trash2 size={18} />
+                          </button>
                         </div>
                       </td>
                     </tr>
@@ -1146,6 +1317,138 @@ export default function AdminPanel() {
             <div className={styles.modalActions}>
               <button className={styles.btnSecondary} onClick={() => setIsPayoutModalOpen(false)}>Discard</button>
               <button className={styles.btnPrimary} onClick={handleSavePayout}>Commit Gateway Changes</button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Contest Editor Modal */}
+      {isContestModalOpen && (
+        <div className={styles.modalOverlay}>
+          <div className={styles.modalBox}>
+            <div className={styles.modalHeader}>
+              <h3 style={{ fontSize: '1.5rem', fontWeight: 700 }}>
+                {editingContest ? 'Edit Contest' : 'New Contest'}
+              </h3>
+              <X className={styles.actionBtn} onClick={() => setIsContestModalOpen(false)} />
+            </div>
+
+            <div className={styles.modalContent}>
+              <div className={styles.formGroup}>
+                <label className={styles.formLabel}>Contest Name</label>
+                <input 
+                  className={styles.formInput}
+                  placeholder="Weekly Earning Challenge"
+                  value={contestForm.name}
+                  onChange={(e) => setContestForm({...contestForm, name: e.target.value})}
+                />
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem', marginBottom: '1.5rem' }}>
+                <div className={styles.formGroup}>
+                  <label className={styles.formLabel}>URL Slug</label>
+                  <input 
+                    className={styles.formInput}
+                    placeholder="weekly-earning"
+                    value={contestForm.slug}
+                    onChange={(e) => setContestForm({...contestForm, slug: e.target.value})}
+                  />
+                </div>
+                <div className={styles.formGroup}>
+                  <label className={styles.formLabel}>Tracking Type</label>
+                  <select 
+                    className={styles.formInput}
+                    value={contestForm.type}
+                    onChange={(e) => setContestForm({...contestForm, type: e.target.value as any})}
+                  >
+                    <option value="earning">Earning (Coins)</option>
+                    <option value="referral">Referral (Invites)</option>
+                    <option value="streak">Streak (Daily Logins)</option>
+                  </select>
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem', marginBottom: '1.5rem' }}>
+                <div className={styles.formGroup}>
+                  <label className={styles.formLabel}>Start Time</label>
+                  <input 
+                    type="datetime-local"
+                    className={styles.formInput}
+                    value={contestForm.start_time}
+                    onChange={(e) => setContestForm({...contestForm, start_time: e.target.value})}
+                  />
+                </div>
+                <div className={styles.formGroup}>
+                  <label className={styles.formLabel}>End Time</label>
+                  <input 
+                    type="datetime-local"
+                    className={styles.formInput}
+                    value={contestForm.end_time}
+                    onChange={(e) => setContestForm({...contestForm, end_time: e.target.value})}
+                  />
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem', marginBottom: '1.5rem' }}>
+                <div className={styles.formGroup}>
+                  <label className={styles.formLabel}>Prize Pool Text</label>
+                  <input 
+                    className={styles.formInput}
+                    placeholder="₹5000"
+                    value={contestForm.prize_pool_text}
+                    onChange={(e) => setContestForm({...contestForm, prize_pool_text: e.target.value})}
+                  />
+                </div>
+                <div className={styles.formGroup}>
+                  <label className={styles.formLabel}>Status</label>
+                  <select 
+                    className={styles.formInput}
+                    value={contestForm.status}
+                    onChange={(e) => setContestForm({...contestForm, status: e.target.value as any})}
+                  >
+                    <option value="upcoming">Upcoming</option>
+                    <option value="active">Active</option>
+                    <option value="ended">Ended</option>
+                  </select>
+                </div>
+              </div>
+
+              {editingContest && (
+                <div style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: '1.5rem', marginBottom: '1.5rem' }}>
+                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                      <h4 style={{ fontWeight: 600, color: '#10b981' }}>Reward Tiers</h4>
+                      <button 
+                        className={styles.addBtn}
+                        onClick={() => {
+                          const rank = prompt("Enter Rank From:");
+                          const value = prompt("Enter Reward Coins:");
+                          const text = prompt("Enter Display Text (e.g. ₹500):");
+                          if (rank && value) {
+                            handleAddContestReward(editingContest.id, {
+                              rank_from: parseInt(rank),
+                              rank_to: parseInt(rank),
+                              reward_value: parseInt(value),
+                              reward_text: text || `${value} Coins`
+                            });
+                          }
+                        }}
+                      >
+                        + Add Reward
+                      </button>
+                   </div>
+                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
+                      {editingContest.rewards?.map((r: any) => (
+                        <div key={r.id} style={{ background: 'rgba(16,185,129,0.1)', color: '#10b981', padding: '8px 12px', borderRadius: '12px', display: 'flex', alignItems: 'center', gap: '10px', fontSize: '0.875rem' }}>
+                           <span>Rank {r.rank_from}: <strong>{r.reward_text}</strong></span>
+                        </div>
+                      ))}
+                   </div>
+                </div>
+              )}
+            </div>
+
+            <div className={styles.modalActions}>
+              <button className={styles.btnSecondary} onClick={() => setIsContestModalOpen(false)}>Cancel</button>
+              <button className={styles.btnPrimary} onClick={handleSaveContest}>Save Contest</button>
             </div>
           </div>
         </div>

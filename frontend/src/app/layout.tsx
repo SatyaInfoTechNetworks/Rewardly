@@ -31,6 +31,20 @@ export default function RootLayout({
       <head>
         <script src="https://telegram.org/js/telegram-web-app.js" defer></script>
         <script src="//libtl.com/sdk.js" data-zone="10977311" data-sdk="show_10977311" defer></script>
+        <script src="https://richinfo.co/richpartners/telegram/js/tg-ob.js" defer></script>
+        <script dangerouslySetInnerHTML={{
+          __html: `
+            window.addEventListener('load', function() {
+              if (typeof TelegramAdsController !== 'undefined') {
+                window.TelegramAdsController = new TelegramAdsController();
+                window.TelegramAdsController.initialize({
+                  pubId: "1010920",
+                  appId: "7351",
+                });
+              }
+            });
+          `
+        }} />
       </head>
       <body className={`${poppins.variable} font-poppins antialiased`}>
         {children}

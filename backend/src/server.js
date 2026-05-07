@@ -31,6 +31,7 @@ app.use(bodyParser.json());
 // Routes
 app.use('/api/surveys', require('./routes/surveys'));
 app.use('/api/postbacks', require('./routes/postbacks'));
+app.use('/api/admin', require('./routes/admin'));
 
 app.get('/', (req, res) => {
   res.json({ message: 'Rewardly Backend API is running' });

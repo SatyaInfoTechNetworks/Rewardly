@@ -170,10 +170,13 @@ router.post('/payout-methods', adminAuth, async (req, res) => {
     const method = await PayoutMethod.create(methodData, { transaction: t });
     
     if (tiers && tiers.length > 0) {
-      const tiersWithMethodId = tiers.map(tier => ({
-        ...tier,
-        payout_method_id: method.id
-      }));
+      const tiersWithMethodId = tiers.map(tier => {
+        const { id, ...cleanTier } = tier; // Strip ID to prevent conflict
+        return {
+          ...cleanTier,
+          payout_method_id: method.id
+        };
+      });
       await PayoutTier.bulkCreate(tiersWithMethodId, { transaction: t });
     }
     
@@ -201,10 +204,13 @@ router.put('/payout-methods/:id', adminAuth, async (req, res) => {
     await PayoutTier.destroy({ where: { payout_method_id: id }, transaction: t });
     
     if (tiers && tiers.length > 0) {
-      const tiersWithMethodId = tiers.map(tier => ({
-        ...tier,
-        payout_method_id: id
-      }));
+      const tiersWithMethodId = tiers.map(tier => {
+        const { id, ...cleanTier } = tier; // Strip ID to prevent conflict
+        return {
+          ...cleanTier,
+          payout_method_id: id
+        };
+      });
       await PayoutTier.bulkCreate(tiersWithMethodId, { transaction: t });
     }
     

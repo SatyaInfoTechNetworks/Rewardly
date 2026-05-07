@@ -43,9 +43,43 @@ const TASKS = [
 
 export default function AppDashboard() {
   const [activeTab, setActiveTab] = useState("earn");
-  const { surveys, loading: surveysLoading, refetch: refreshSurveys } = useSurveys();
+  const [user, setUser] = useState<any>(null);
+  
+  // Dynamic API URL
+  const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 
-  // Refresh surveys whenever the Earn tab is clicked
+  const { surveys, loading: surveysLoading, refetch: refreshSurveys } = useSurveys(user?.id?.toString());
+
+  // 1. Sync User with Backend on Startup
+  useEffect(() => {
+    const syncUser = async () => {
+      try {
+        const tg = (window as any).Telegram?.WebApp;
+        if (tg) {
+          tg.expand(); // Expand to full height for premium feel
+          
+          const initData = tg.initData;
+          
+          const response = await fetch(`${API_URL}/api/auth/sync`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ initData })
+          });
+
+          const data = await response.json();
+          if (data.success) {
+            setUser(data.user);
+          }
+        }
+      } catch (error) {
+        console.error("Auth Sync Error:", error);
+      }
+    };
+
+    syncUser();
+  }, []);
+
+  // 2. Refresh surveys whenever the Earn tab is clicked
   useEffect(() => {
     if (activeTab === "earn") {
       refreshSurveys();
@@ -140,11 +174,11 @@ export default function AppDashboard() {
         <header className={styles.earnHeader}>
           <div className={styles.logoGroup}>
             <div className={styles.appIcon}>R</div>
-            <h1 className={styles.appName}>Rewardly</h1>
+            <h1 className={styles.appName}>{user?.firstName || 'Rewardly'}</h1>
           </div>
           
           <div className={styles.headerActions}>
-            <CoinBadge amount="2,450" size="lg" />
+            <CoinBadge amount={user?.balance || '0'} size="lg" />
           </div>
         </header>
       )}

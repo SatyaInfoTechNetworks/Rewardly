@@ -9,6 +9,14 @@ const User = require('./models/User');
 const app = express();
 const PORT = process.env.PORT || 5000;
 
+// Trust proxy for Dokploy/Nginx to get real IP
+app.set('trust proxy', true);
+
+// Utility to get real IP
+const getClientIp = (req) => {
+  return req.headers['x-forwarded-for']?.split(',')[0] || req.socket.remoteAddress;
+};
+
 // Test DB Connection & Sync Models
 testConnection().then(() => {
   sequelize.sync({ alter: true }).then(() => {
@@ -21,6 +29,9 @@ app.use(cors());
 app.use(bodyParser.json());
 
 // Routes
+app.use('/api/surveys', require('./routes/surveys'));
+app.use('/api/postbacks', require('./routes/postbacks'));
+
 app.get('/', (req, res) => {
   res.json({ message: 'Rewardly Backend API is running' });
 });

@@ -16,11 +16,13 @@ export const useSurveys = (userId: string = "1981634693") => {
   const [error, setError] = useState<string | null>(null);
 
   const fetchSurveys = async () => {
+    const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+    
     try {
       setLoading(true);
       setError(null);
       
-      const response = await fetch(`/api/surveys?userId=${userId}`);
+      const response = await fetch(`${API_URL}/api/surveys/cpx?userId=${userId}`);
       const data = await response.json();
 
       if (data.status === "success" && data.surveys && data.surveys.length > 0) {

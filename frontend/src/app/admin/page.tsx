@@ -24,6 +24,12 @@ export default function AdminPanel() {
   const [editingUser, setEditingUser] = useState<any>(null);
   const [newBalance, setNewBalance] = useState("");
 
+  // Payout Editor State
+  const [isPayoutModalOpen, setIsPayoutModalOpen] = useState(false);
+  const [editingPayout, setEditingPayout] = useState<any>(null);
+  const [payoutForm, setPayoutForm] = useState({ name: '', logo_url: '', order_index: 0, status: 'active' });
+  const [tiersForm, setTiersForm] = useState<any[]>([]);
+
   const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://rewardlyapi.satyainfotechnetworks.com";
 
   const fetchAllData = async (authSecret: string) => {
@@ -121,6 +127,35 @@ export default function AdminPanel() {
       }
     } catch (error) {
       alert("Failed to update withdrawal");
+    }
+  };
+
+  const handleSavePayout = async () => {
+    try {
+      const authSecret = localStorage.getItem("admin_secret");
+      const method = editingPayout ? 'PUT' : 'POST';
+      const url = editingPayout 
+        ? `${API_URL}/api/admin/payout-methods/${editingPayout.id}`
+        : `${API_URL}/api/admin/payout-methods`;
+
+      const response = await fetch(url, {
+        method,
+        headers: { 
+          'Content-Type': 'application/json',
+          'x-admin-secret': authSecret || ''
+        },
+        credentials: 'include',
+        body: JSON.stringify({ ...payoutForm, tiers: tiersForm })
+      });
+
+      if (response.ok) {
+        alert("Payout method saved successfully!");
+        setIsPayoutModalOpen(false);
+        setEditingPayout(null);
+        fetchAllData(authSecret || '');
+      }
+    } catch (error) {
+      alert("Failed to save payout method");
     }
   };
 
@@ -383,7 +418,17 @@ export default function AdminPanel() {
           <div className={styles.tableCard}>
             <div className={styles.tableHeader}>
               <h2 className={styles.tableTitle}>Payout Methods</h2>
-              <button className={styles.addBtn} onClick={() => alert("Payout editor coming soon!")}>+ Add Method</button>
+              <button 
+                className={styles.addBtn} 
+                onClick={() => {
+                  setEditingPayout(null);
+                  setPayoutForm({ name: '', logo_url: '', order_index: payoutMethods.length + 1, status: 'active' });
+                  setTiersForm([]);
+                  setIsPayoutModalOpen(true);
+                }}
+              >
+                + Add Method
+              </button>
             </div>
             <div className={styles.tableWrapper}>
               <table className={styles.adminTable}>
@@ -421,7 +466,22 @@ export default function AdminPanel() {
                       </td>
                       <td>{method.order_index}</td>
                       <td>
-                        <button className={styles.editBtn}>Edit</button>
+                        <button 
+                          className={styles.editBtn}
+                          onClick={() => {
+                            setEditingPayout(method);
+                            setPayoutForm({ 
+                              name: method.name, 
+                              logo_url: method.logo_url || '', 
+                              order_index: method.order_index, 
+                              status: method.status 
+                            });
+                            setTiersForm(method.tiers || []);
+                            setIsPayoutModalOpen(true);
+                          }}
+                        >
+                          Edit
+                        </button>
                       </td>
                     </tr>
                   ))}
@@ -567,6 +627,117 @@ export default function AdminPanel() {
               >
                 Save Changes
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Payout Editor Modal */}
+      {isPayoutModalOpen && (
+        <div className={styles.modalOverlay}>
+          <div className={styles.modalBox} style={{ maxWidth: '600px' }}>
+            <div className={styles.modalHeader}>
+              <h3 style={{ fontSize: '1.25rem', fontWeight: 600 }}>
+                {editingPayout ? 'Edit Payout Method' : 'Add Payout Method'}
+              </h3>
+              <X className={styles.actionBtn} onClick={() => setIsPayoutModalOpen(false)} />
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.5rem' }}>
+              <div className={styles.formGroup}>
+                <label className={styles.formLabel}>Method Name</label>
+                <input 
+                  className={styles.formInput}
+                  placeholder="e.g. UPI, Amazon Pay"
+                  value={payoutForm.name}
+                  onChange={(e) => setPayoutForm({...payoutForm, name: e.target.value})}
+                />
+              </div>
+              <div className={styles.formGroup}>
+                <label className={styles.formLabel}>Logo URL</label>
+                <input 
+                  className={styles.formInput}
+                  placeholder="https://icon-url.com/img.png"
+                  value={payoutForm.logo_url}
+                  onChange={(e) => setPayoutForm({...payoutForm, logo_url: e.target.value})}
+                />
+              </div>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.5rem' }}>
+              <div className={styles.formGroup}>
+                <label className={styles.formLabel}>Order Index</label>
+                <input 
+                  type="number"
+                  className={styles.formInput}
+                  value={payoutForm.order_index}
+                  onChange={(e) => setPayoutForm({...payoutForm, order_index: parseInt(e.target.value)})}
+                />
+              </div>
+              <div className={styles.formGroup}>
+                <label className={styles.formLabel}>Status</label>
+                <select 
+                  className={styles.formInput}
+                  value={payoutForm.status}
+                  onChange={(e) => setPayoutForm({...payoutForm, status: e.target.value})}
+                >
+                  <option value="active">Active</option>
+                  <option value="inactive">Inactive</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Tiers Section */}
+            <div style={{ borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '1.5rem', marginTop: '1rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                <h4 style={{ fontWeight: 600 }}>Manage Tiers</h4>
+                <button 
+                  className={styles.addBtn} 
+                  style={{ fontSize: '0.8rem', padding: '4px 12px' }}
+                  onClick={() => setTiersForm([...tiersForm, { amount_text: '₹50', coins_required: 5000 }])}
+                >
+                  + Add Tier
+                </button>
+              </div>
+
+              <div style={{ maxHeight: '200px', overflowY: 'auto', paddingRight: '4px' }}>
+                {tiersForm.map((tier, idx) => (
+                  <div key={idx} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr auto', gap: '10px', marginBottom: '10px', alignItems: 'center' }}>
+                    <input 
+                      className={styles.formInput}
+                      placeholder="Amount (e.g. ₹100)"
+                      value={tier.amount_text}
+                      onChange={(e) => {
+                        const newTiers = [...tiersForm];
+                        newTiers[idx].amount_text = e.target.value;
+                        setTiersForm(newTiers);
+                      }}
+                    />
+                    <input 
+                      type="number"
+                      className={styles.formInput}
+                      placeholder="Coins"
+                      value={tier.coins_required}
+                      onChange={(e) => {
+                        const newTiers = [...tiersForm];
+                        newTiers[idx].coins_required = parseInt(e.target.value);
+                        setTiersForm(newTiers);
+                      }}
+                    />
+                    <button 
+                      className={styles.actionBtn} 
+                      style={{ color: '#ef4444' }}
+                      onClick={() => setTiersForm(tiersForm.filter((_, i) => i !== idx))}
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className={styles.modalActions} style={{ marginTop: '2rem' }}>
+              <button className={styles.btnSecondary} onClick={() => setIsPayoutModalOpen(false)}>Cancel</button>
+              <button className={styles.btnPrimary} onClick={handleSavePayout}>Save Method</button>
             </div>
           </div>
         </div>

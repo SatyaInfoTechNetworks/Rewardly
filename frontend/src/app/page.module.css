@@ -896,10 +896,11 @@
 
 /* Redeem Screen Pro Styles */
 .redeemScreen {
-  min-height: 100vh;
+  height: 100vh;
   background: #f8fafc;
   display: flex;
   flex-direction: column;
+  overflow: hidden; /* Header stays, content scrolls */
 }
 
 .redeemHeader {
@@ -946,10 +947,13 @@
 }
 
 .redeemContent {
-  padding: 24px 20px;
+  padding: 24px 20px 100px; /* Extra bottom padding for scroll space */
   display: flex;
   flex-direction: column;
   gap: 24px;
+  overflow-y: auto;
+  flex: 1;
+  -webkit-overflow-scrolling: touch;
 }
 
 .balanceInfoCard {

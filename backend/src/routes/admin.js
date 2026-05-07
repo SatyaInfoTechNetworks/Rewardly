@@ -161,25 +161,57 @@ router.get('/payout-methods', adminAuth, async (req, res) => {
 
 /**
  * POST /api/admin/payout-methods
+ * Create method and its tiers
  */
 router.post('/payout-methods', adminAuth, async (req, res) => {
+  const t = await sequelize.transaction();
   try {
-    const method = await PayoutMethod.create(req.body);
+    const { tiers, ...methodData } = req.body;
+    const method = await PayoutMethod.create(methodData, { transaction: t });
+    
+    if (tiers && tiers.length > 0) {
+      const tiersWithMethodId = tiers.map(tier => ({
+        ...tier,
+        payout_method_id: method.id
+      }));
+      await PayoutTier.bulkCreate(tiersWithMethodId, { transaction: t });
+    }
+    
+    await t.commit();
     res.json(method);
   } catch (error) {
+    await t.rollback();
     res.status(500).json({ error: error.message });
   }
 });
 
 /**
  * PUT /api/admin/payout-methods/:id
+ * Update method and sync tiers
  */
 router.put('/payout-methods/:id', adminAuth, async (req, res) => {
+  const t = await sequelize.transaction();
   try {
     const { id } = req.params;
-    await PayoutMethod.update(req.body, { where: { id } });
+    const { tiers, ...methodData } = req.body;
+    
+    await PayoutMethod.update(methodData, { where: { id }, transaction: t });
+    
+    // Sync Tiers: Delete and Re-create for simplicity and reliability
+    await PayoutTier.destroy({ where: { payout_method_id: id }, transaction: t });
+    
+    if (tiers && tiers.length > 0) {
+      const tiersWithMethodId = tiers.map(tier => ({
+        ...tier,
+        payout_method_id: id
+      }));
+      await PayoutTier.bulkCreate(tiersWithMethodId, { transaction: t });
+    }
+    
+    await t.commit();
     res.json({ success: true });
   } catch (error) {
+    await t.rollback();
     res.status(500).json({ error: error.message });
   }
 });

@@ -28,9 +28,7 @@ testConnection().then(() => {
 // Middleware
 app.use((req, res, next) => {
   const origin = req.headers.origin;
-  
-  // Allow all satyainfotechnetworks.com subdomains
-  if (origin && (origin.includes('satyainfotechnetworks.com') || origin.includes('localhost'))) {
+  if (origin) {
     res.setHeader('Access-Control-Allow-Origin', origin);
   }
   

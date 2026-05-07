@@ -21,7 +21,7 @@ export const viewport: Viewport = {
   userScalable: false,
 };
 
-import Script from 'next/script';
+import AdScripts from '@/components/AdScripts';
 
 export default function RootLayout({
   children,
@@ -31,36 +31,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head>
-        <Script src="https://telegram.org/js/telegram-web-app.js" strategy="beforeInteractive" />
-        <Script 
-          src="//libtl.com/sdk.js" 
-          data-zone="10977311" 
-          data-sdk="show_10977311" 
-          strategy="afterInteractive"
-          onLoad={() => { (window as any).monetagReady = true; console.log("✅ Monetag Ready"); }}
-        />
-        <Script 
-          src="https://richinfo.co/richpartners/telegram/js/tg-ob.js" 
-          strategy="afterInteractive"
-          onLoad={() => {
-            if (typeof (window as any).TelegramAdsController !== 'undefined') {
-              const tg = (window as any).Telegram?.WebApp;
-              if (tg && tg.initDataUnsafe && tg.initDataUnsafe.user) {
-                try {
-                  (window as any).TelegramAdsController = new (window as any).TelegramAdsController();
-                  (window as any).TelegramAdsController.initialize({
-                    pubId: "1010920",
-                    appId: "7351",
-                  });
-                  (window as any).richAdsReady = true;
-                  console.log("✅ RichAds Initialized");
-                } catch (e) {
-                  console.error("RichAds Init Error:", e);
-                }
-              }
-            }
-          }}
-        />
+        <AdScripts />
       </head>
       <body className={`${poppins.variable} font-poppins antialiased`}>
         {children}

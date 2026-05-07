@@ -67,6 +67,7 @@ export default function AppDashboard() {
           const response = await fetch(`${API_URL}/api/auth/sync`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
             body: JSON.stringify({ initData })
           });
 
@@ -103,6 +104,7 @@ export default function AppDashboard() {
       const response = await fetch(`${API_URL}/api/user/verify-onboarding`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({ initData, phone_number: phoneNumber })
       });
 

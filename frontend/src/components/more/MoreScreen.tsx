@@ -26,6 +26,7 @@ export const MoreScreen: React.FC<MoreScreenProps> = ({ user }) => {
       const response = await fetch(`${API_URL}/api/user/update-ids`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify(payload)
       });
 

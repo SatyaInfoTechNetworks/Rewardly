@@ -26,10 +26,11 @@ export default function AdminPanel() {
   const fetchAllData = async (authSecret: string) => {
     try {
       const headers = { 'x-admin-secret': authSecret };
+      const options = { headers, credentials: 'include' as RequestCredentials };
       const [statsRes, usersRes, transRes] = await Promise.all([
-        fetch(`${API_URL}/api/admin/stats`, { headers }),
-        fetch(`${API_URL}/api/admin/users`, { headers }),
-        fetch(`${API_URL}/api/admin/transactions`, { headers })
+        fetch(`${API_URL}/api/admin/stats`, options),
+        fetch(`${API_URL}/api/admin/users`, options),
+        fetch(`${API_URL}/api/admin/transactions`, options)
       ]);
 
       if (statsRes.ok && usersRes.ok && transRes.ok) {
@@ -56,6 +57,7 @@ export default function AdminPanel() {
           'Content-Type': 'application/json',
           'x-admin-secret': secret 
         },
+        credentials: 'include',
         body: JSON.stringify(data)
       });
       if (res.ok) {
@@ -72,7 +74,8 @@ export default function AdminPanel() {
     try {
       const res = await fetch(`${API_URL}/api/admin/users/${userId}`, {
         method: 'DELETE',
-        headers: { 'x-admin-secret': secret }
+        headers: { 'x-admin-secret': secret },
+        credentials: 'include'
       });
       if (res.ok) fetchAllData(secret);
     } catch (error) {

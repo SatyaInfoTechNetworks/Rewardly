@@ -22,7 +22,9 @@ export const useSurveys = (userId: string | undefined) => {
       setLoading(true);
       setError(null);
       
-      const response = await fetch(`${API_URL}/api/surveys/cpx?userId=${userId}`);
+      const response = await fetch(`${API_URL}/api/surveys/cpx?userId=${userId}`, {
+        credentials: 'include'
+      });
       const data = await response.json();
 
       if (data.status === "success" && data.surveys && data.surveys.length > 0) {

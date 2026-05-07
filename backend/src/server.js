@@ -28,7 +28,8 @@ testConnection().then(() => {
 // Middleware
 app.use(cors({
   origin: ['https://rewardly.satyainfotechnetworks.com', 'http://localhost:3000'],
-  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'x-admin-secret'],
   credentials: true
 }));
 app.use(bodyParser.json());

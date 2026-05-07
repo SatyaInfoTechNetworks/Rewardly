@@ -47,12 +47,19 @@ export const MoreScreen: React.FC<MoreScreenProps> = ({ user }) => {
       {/* Profile Card */}
       <div className={`${styles.profileCard} card`}>
         <div className={styles.profileMain}>
-          <div className={styles.largeAvatar}>{(user?.firstName || 'U')[0]}</div>
+          {user?.photo_url ? (
+            <img src={user.photo_url} alt="Profile" className={styles.largeAvatar} style={{ objectFit: 'cover', padding: 0 }} />
+          ) : (
+            <div className={styles.largeAvatar}>{(user?.firstName || 'U')[0]}</div>
+          )}
           <div className={styles.profileInfo}>
             <h2>{user?.firstName || 'User'}</h2>
             <div className={styles.idBadge}>
               <span>ID: {user?.id || '00000000'}</span>
-              <Copy size={14} className={styles.copyIcon} />
+              <Copy size={14} className={styles.copyIcon} onClick={() => {
+                navigator.clipboard.writeText(user?.id || '');
+                alert("ID copied to clipboard!");
+              }} />
             </div>
           </div>
         </div>
@@ -114,10 +121,10 @@ export const MoreScreen: React.FC<MoreScreenProps> = ({ user }) => {
         <div className={styles.modalOverlay}>
           <div className={styles.modalBox}>
             <div className={styles.modalHeader}>
-              <h3>Update {modalType === 'gaid' ? 'Google AID' : 'iOS IDFA'}</h3>
-              <X size={20} onClick={() => setModalType(null)} style={{ cursor: 'pointer' }} />
+              <h3>{modalType === 'gaid' ? 'Google AID' : 'iOS IDFA'}</h3>
+              <X size={20} onClick={() => setModalType(null)} style={{ cursor: 'pointer', color: '#64748b' }} />
             </div>
-            <p style={{ fontSize: '0.8rem', color: '#94a3b8', marginBottom: '1rem' }}>
+            <p style={{ fontSize: '13px', color: '#64748b', marginBottom: '16px', lineHeight: '1.4' }}>
               Please enter your {modalType === 'gaid' ? 'Google Advertising ID' : 'iOS IDFA'} for better offer tracking.
             </p>
             <input 
@@ -126,27 +133,19 @@ export const MoreScreen: React.FC<MoreScreenProps> = ({ user }) => {
               placeholder="Paste your ID here..."
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
-              style={{
-                width: '100%',
-                padding: '12px',
-                background: '#0b0f19',
-                border: '1px solid rgba(255,255,255,0.1)',
-                borderRadius: '8px',
-                color: '#fff',
-                marginBottom: '1.5rem'
-              }}
+              autoFocus
             />
-            <div style={{ display: 'flex', gap: '12px' }}>
+            <div style={{ display: 'flex', gap: '12px', marginTop: '20px' }}>
               <button 
                 onClick={() => setModalType(null)}
-                style={{ flex: 1, padding: '12px', borderRadius: '8px', border: 'none', background: 'rgba(255,255,255,0.05)', color: '#fff' }}
+                style={{ flex: 1, padding: '14px', borderRadius: '12px', border: '1px solid #e2e8f0', background: 'white', color: '#64748b', fontWeight: 600 }}
               >
                 Cancel
               </button>
               <button 
                 onClick={handleUpdate}
                 disabled={isUpdating}
-                style={{ flex: 1, padding: '12px', borderRadius: '8px', border: 'none', background: '#38bdf8', color: '#0b0f19', fontWeight: 600 }}
+                style={{ flex: 1, padding: '14px', borderRadius: '12px', border: 'none', background: 'var(--primary-gradient)', color: 'white', fontWeight: 700 }}
               >
                 {isUpdating ? "Updating..." : "Update"}
               </button>

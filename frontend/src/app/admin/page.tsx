@@ -431,7 +431,16 @@ export default function AdminPanel() {
                 className={styles.addBtn} 
                 onClick={() => {
                   setEditingPayout(null);
-                  setPayoutForm({ name: '', logo_url: '', order_index: payoutMethods.length + 1, status: 'active' });
+                  setPayoutForm({ 
+                    name: '', 
+                    logo_url: '', 
+                    order_index: payoutMethods.length + 1, 
+                    status: 'active',
+                    conversion_rate: '₹1 = 100 Coins',
+                    fee_text: '0% Fees',
+                    disclaimer: '',
+                    custom_inputs: []
+                  });
                   setTiersForm([]);
                   setIsPayoutModalOpen(true);
                 }}

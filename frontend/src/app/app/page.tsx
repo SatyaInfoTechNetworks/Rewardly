@@ -63,9 +63,13 @@ export default function AppDashboard() {
     }
   };
 
-  // 1. Sync User with Backend on Startup
+  // 1. Sync User with Backend on Startup & Polling
   useEffect(() => {
     handleSyncUser();
+    
+    // Real-time polling every 30 seconds
+    const interval = setInterval(handleSyncUser, 30000);
+    return () => clearInterval(interval);
   }, [API_URL]);
 
   // 2. Refresh surveys whenever the Earn tab is clicked
@@ -177,14 +181,6 @@ export default function AppDashboard() {
               </div>
             </section>
 
-            {/* Featured Offer Section */}
-            <FeaturedOffer 
-              title="Epic Quest: Kingdom Rise"
-              desc="Complete the tutorial & reach Level 20"
-              reward="50,000"
-              icon="🎮"
-              urgency="⚡ Boosted Reward"
-            />
 
             {/* Hot Reward Tasks Section */}
             <section className={styles.tasksSection}>
@@ -220,8 +216,12 @@ export default function AppDashboard() {
       {activeTab === "earn" && (
         <header className={styles.earnHeader}>
           <div className={styles.logoGroup}>
-            <div className={styles.appIcon}>R</div>
-            <h1 className={styles.appName}>{user?.firstName || 'Rewardly'}</h1>
+            {user?.photo_url ? (
+              <img src={user.photo_url} alt="Profile" className={styles.appIcon} style={{ objectFit: 'cover' }} />
+            ) : (
+              <div className={styles.appIcon}>{user?.first_name?.charAt(0) || 'R'}</div>
+            )}
+            <h1 className={styles.appName}>{user?.first_name || 'Rewardly'}</h1>
           </div>
           
           <div className={styles.headerActions}>

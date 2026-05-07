@@ -30,7 +30,9 @@
 /* Hero Card */
 .heroCard {
   position: relative;
-  background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+  background: 
+    linear-gradient(to bottom, rgba(0, 0, 0, 0.25), transparent),
+    linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
   border-radius: 24px;
   padding: 24px;
   color: white;
@@ -47,11 +49,14 @@
   height: 150px;
   background: radial-gradient(circle, rgba(37, 99, 235, 0.3) 0%, rgba(37, 99, 235, 0) 70%);
   filter: blur(20px);
+  opacity: 0.5;
 }
 
 .heroTitle {
   font-size: 1.5rem;
   font-weight: 800;
+  color: #ffffff;
+  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.35);
   margin-bottom: 8px;
   line-height: 1.2;
 }

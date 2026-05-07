@@ -19,6 +19,35 @@ const PORT = process.env.PORT || 5000;
 // Trust proxy for Dokploy/Nginx to get real IP
 app.set('trust proxy', true);
 
+// 1. CORS Configuration - MUST BE FIRST
+const allowedOrigins = [
+  'https://rewardly.satyainfotechnetworks.com',
+  'https://www.rewardly.satyainfotechnetworks.com',
+  'https://web.telegram.org'
+];
+
+app.use(cors({
+  origin: function(origin, callback) {
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'x-admin-secret', 'x-telegram-init-data'],
+  credentials: true
+}));
+
+app.options('*', cors());
+
+// 2. Request Logger
+app.use((req, res, next) => {
+  console.log(`${new Date().toISOString()} | ${req.method} ${req.url}`);
+  next();
+});
+
 // Utility to get real IP
 const getClientIp = (req) => {
   return req.headers['x-forwarded-for']?.split(',')[0] || req.socket.remoteAddress;
@@ -76,30 +105,7 @@ testConnection().then(() => {
   });
 });
 
-// CORS Configuration
-const allowedOrigins = [
-  'https://rewardly.satyainfotechnetworks.com',
-  'https://www.rewardly.satyainfotechnetworks.com',
-  'https://web.telegram.org'
-];
-
-app.use(cors({
-  origin: function(origin, callback) {
-    // Allow requests with no origin (like mobile apps or curl)
-    if (!origin) return callback(null, true);
-    
-    if (allowedOrigins.includes(origin)) {
-      callback(null, true);
-    } else {
-      callback(new Error('Not allowed by CORS'));
-    }
-  },
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'x-admin-secret', 'x-telegram-init-data'],
-  credentials: true
-}));
-
-app.options('*', cors());
+// CORS Options handled by routes below
 
 app.use(bodyParser.json());
 
@@ -382,6 +388,6 @@ app.post('/api/user/update-ids', async (req, res) => {
   }
 });
 
-app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`✨ Server started on 0.0.0.0:${PORT}`);
 });

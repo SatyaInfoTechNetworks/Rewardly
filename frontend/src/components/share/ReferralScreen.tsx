@@ -19,7 +19,7 @@ export const ReferralScreen: React.FC<ReferralScreenProps> = ({ user }) => {
   const [copyStatus, setCopyStatus] = useState(false);
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://rewardlyapi.satyainfotechnetworks.com';
-  const BOT_USERNAME = "play2reward_bot"; // Update this with actual bot username
+  const BOT_USERNAME = "rewardly_india_bot"; // Update this with actual bot username
   const referralLink = `https://t.me/${BOT_USERNAME}?startapp=${user?.id}`;
 
   useEffect(() => {

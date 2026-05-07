@@ -60,4 +60,55 @@ router.get('/cpx', async (req, res) => {
   }
 });
 
+/**
+ * Monetag Postback
+ * Credits coins for Monetag ad events (Rewarded, Push, etc.)
+ */
+router.get('/monetag', async (req, res) => {
+  const { user_id, event, reward, price, trans_id } = req.query;
+
+  console.log(`📥 Monetag Postback: User=${user_id}, Event=${event}, Reward=${reward}, Trans=${trans_id}`);
+
+  // Only credit if it's a rewardable event
+  if (reward !== 'yes') {
+    return res.send('OK');
+  }
+
+  const t = await sequelize.transaction();
+
+  try {
+    const existing = await Transaction.findOne({ where: { external_id: trans_id } });
+    if (existing) return res.send('OK');
+
+    const user = await User.findByPk(user_id);
+    if (!user) return res.status(404).send('User not found');
+
+    // Reward calculation: for now fixed 5 coins or based on price?
+    // Let's use a default or logic based on event type
+    const rewardAmount = 5; 
+    
+    await user.update({ balance: user.balance + rewardAmount }, { transaction: t });
+
+    await Transaction.create({
+      user_id: user_id,
+      amount: rewardAmount,
+      type: 'ad',
+      description: `Monetag Ad Reward (${event})`,
+      external_id: trans_id,
+      status: 'completed'
+    }, { transaction: t });
+
+    await t.commit();
+
+    const { trackContestActivity } = require('../utils/contestTracker');
+    await trackContestActivity(user_id, 'earning', rewardAmount);
+
+    return res.send('OK');
+  } catch (error) {
+    if (t) await t.rollback();
+    console.error('❌ Monetag Postback Error:', error);
+    return res.status(500).send('Internal Error');
+  }
+});
+
 module.exports = router;

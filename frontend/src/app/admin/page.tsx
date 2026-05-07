@@ -378,6 +378,126 @@ export default function AdminPanel() {
             </div>
           </section>
         )}
+
+        {activeView === 'payouts' && (
+          <div className={styles.tableCard}>
+            <div className={styles.tableHeader}>
+              <h2 className={styles.tableTitle}>Payout Methods</h2>
+              <button className={styles.addBtn} onClick={() => alert("Payout editor coming soon!")}>+ Add Method</button>
+            </div>
+            <div className={styles.tableWrapper}>
+              <table className={styles.adminTable}>
+                <thead>
+                  <tr>
+                    <th>Method</th>
+                    <th>Tiers</th>
+                    <th>Status</th>
+                    <th>Order</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {payoutMethods.map(method => (
+                    <tr key={method.id}>
+                      <td>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                          {method.logo_url && <img src={method.logo_url} width="24" height="24" style={{ objectFit: 'contain' }} />}
+                          <strong>{method.name}</strong>
+                        </div>
+                      </td>
+                      <td>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
+                          {method.tiers?.map((t: any) => (
+                            <span key={t.id} style={{ background: '#f1f5f9', color: '#475569', padding: '2px 8px', borderRadius: '4px', fontSize: '0.7rem', fontWeight: 600 }}>
+                              {t.amount_text}: {t.coins_required}
+                            </span>
+                          ))}
+                        </div>
+                      </td>
+                      <td>
+                        <span className={method.status === 'active' ? styles.statusActive : styles.statusPending}>
+                          {method.status}
+                        </span>
+                      </td>
+                      <td>{method.order_index}</td>
+                      <td>
+                        <button className={styles.editBtn}>Edit</button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {activeView === 'withdrawals' && (
+          <div className={styles.tableCard}>
+            <div className={styles.tableHeader}>
+              <h2 className={styles.tableTitle}>Withdrawal Requests</h2>
+            </div>
+            <div className={styles.tableWrapper}>
+              <table className={styles.adminTable}>
+                <thead>
+                  <tr>
+                    <th>User</th>
+                    <th>Method</th>
+                    <th>Amount</th>
+                    <th>Details</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {withdrawals.map(req => (
+                    <tr key={req.id}>
+                      <td>
+                        <div>
+                          <strong>{req.User?.first_name}</strong>
+                          <div style={{ fontSize: '11px', color: '#64748b' }}>@{req.User?.username}</div>
+                        </div>
+                      </td>
+                      <td>{req.PayoutMethod?.name}</td>
+                      <td>
+                        <strong>{req.amount_text}</strong>
+                        <div style={{ fontSize: '11px', color: '#64748b' }}>{req.coins_used} coins</div>
+                      </td>
+                      <td><code style={{ fontSize: '12px' }}>{req.payout_details}</code></td>
+                      <td>
+                        <span className={
+                          req.status === 'approved' ? styles.statusActive : 
+                          req.status === 'pending' ? styles.statusPending : styles.statusBlocked
+                        }>
+                          {req.status}
+                        </span>
+                      </td>
+                      <td>
+                        {req.status === 'pending' && (
+                          <div style={{ display: 'flex', gap: '8px' }}>
+                            <button 
+                              className={styles.addBtn} 
+                              style={{ padding: '6px 12px', background: '#10b981' }}
+                              onClick={() => handleUpdateWithdrawal(req.id, 'approved')}
+                            >
+                              Approve
+                            </button>
+                            <button 
+                              className={styles.editBtn} 
+                              style={{ padding: '6px 12px', background: '#ef4444', color: 'white' }}
+                              onClick={() => handleUpdateWithdrawal(req.id, 'rejected')}
+                            >
+                              Reject
+                            </button>
+                          </div>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
       </main>
 
       {/* Edit User Modal */}
@@ -451,124 +571,6 @@ export default function AdminPanel() {
           </div>
         </div>
       )}
-      {activeView === 'payouts' && (
-        <div className={styles.tableCard}>
-          <div className={styles.tableHeader}>
-            <h2 className={styles.tableTitle}>Payout Methods</h2>
-            <button className={styles.addBtn} onClick={() => alert("Payout editor coming soon!")}>+ Add Method</button>
-          </div>
-          <div className={styles.tableWrapper}>
-            <table className={styles.adminTable}>
-              <thead>
-                <tr>
-                  <th>Method</th>
-                  <th>Tiers</th>
-                  <th>Status</th>
-                  <th>Order</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {payoutMethods.map(method => (
-                  <tr key={method.id}>
-                    <td>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                        {method.logo_url && <img src={method.logo_url} width="24" height="24" style={{ objectFit: 'contain' }} />}
-                        <strong>{method.name}</strong>
-                      </div>
-                    </td>
-                    <td>
-                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
-                        {method.tiers?.map((t: any) => (
-                          <span key={t.id} style={{ background: '#f1f5f9', color: '#475569', padding: '2px 8px', borderRadius: '4px', fontSize: '0.7rem', fontWeight: 600 }}>
-                            {t.amount_text}: {t.coins_required}
-                          </span>
-                        ))}
-                      </div>
-                    </td>
-                    <td>
-                      <span className={method.status === 'active' ? styles.statusActive : styles.statusPending}>
-                        {method.status}
-                      </span>
-                    </td>
-                    <td>{method.order_index}</td>
-                    <td>
-                      <button className={styles.editBtn}>Edit</button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      {activeView === 'withdrawals' && (
-        <div className={styles.tableCard}>
-          <div className={styles.tableHeader}>
-            <h2 className={styles.tableTitle}>Withdrawal Requests</h2>
-          </div>
-          <div className={styles.tableWrapper}>
-            <table className={styles.adminTable}>
-              <thead>
-                <tr>
-                  <th>User</th>
-                  <th>Method</th>
-                  <th>Amount</th>
-                  <th>Details</th>
-                  <th>Status</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {withdrawals.map(req => (
-                  <tr key={req.id}>
-                    <td>
-                      <div>
-                        <strong>{req.User?.first_name}</strong>
-                        <div style={{ fontSize: '11px', color: '#64748b' }}>@{req.User?.username}</div>
-                      </div>
-                    </td>
-                    <td>{req.PayoutMethod?.name}</td>
-                    <td>
-                      <strong>{req.amount_text}</strong>
-                      <div style={{ fontSize: '11px', color: '#64748b' }}>{req.coins_used} coins</div>
-                    </td>
-                    <td><code style={{ fontSize: '12px' }}>{req.payout_details}</code></td>
-                    <td>
-                      <span className={
-                        req.status === 'approved' ? styles.statusActive : 
-                        req.status === 'pending' ? styles.statusPending : styles.statusBlocked
-                      }>
-                        {req.status}
-                      </span>
-                    </td>
-                    <td>
-                      {req.status === 'pending' && (
-                        <div style={{ display: 'flex', gap: '8px' }}>
-                          <button 
-                            className={styles.addBtn} 
-                            style={{ padding: '6px 12px', background: '#10b981' }}
-                            onClick={() => handleUpdateWithdrawal(req.id, 'approved')}
-                          >
-                            Approve
-                          </button>
-                          <button 
-                            className={styles.editBtn} 
-                            style={{ padding: '6px 12px', background: '#ef4444', color: 'white' }}
-                            onClick={() => handleUpdateWithdrawal(req.id, 'rejected')}
-                          >
-                            Reject
-                          </button>
-                        </div>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
-    </main>
-  </div>
+    </div>
   );
 }

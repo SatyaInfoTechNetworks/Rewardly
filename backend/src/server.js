@@ -131,9 +131,12 @@ app.post('/api/user/verify-onboarding', async (req, res) => {
     const user = await User.findByPk(tgUser.id);
     if (!user) return res.status(404).json({ error: 'User not found' });
 
-    // 1. Update Phone if provided
+    // 1. Update Phone if provided or check if already exists
     if (phone_number) {
       user.phone_number = phone_number;
+      user.is_phone_verified = true;
+    } else if (user.phone_number) {
+      // If it's already in the DB from a previous interaction, mark as verified
       user.is_phone_verified = true;
     }
 

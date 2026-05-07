@@ -20,9 +20,14 @@ export const VerificationOverlay: React.FC<VerificationOverlayProps> = ({
   const handlePhoneRequest = () => {
     const tg = (window as any).Telegram?.WebApp;
     if (tg) {
+      console.log("📱 Requesting contact...");
       tg.requestContact((res: any) => {
         if (res && res.contact) {
+          console.log("✅ Contact received:", res.contact.phone_number);
           onVerify(res.contact.phone_number);
+        } else {
+          console.warn("⚠️ Contact request was cancelled or failed", res);
+          alert("Please share your contact to continue.");
         }
       });
     } else {

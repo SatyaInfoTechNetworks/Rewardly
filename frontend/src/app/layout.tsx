@@ -30,9 +30,19 @@ export default function RootLayout({
     <html lang="en">
       <head>
         <script src="https://telegram.org/js/telegram-web-app.js" defer></script>
+        <script src="https://cdn.jsdelivr.net/npm/eruda" defer></script>
       </head>
       <body className={`${poppins.variable} font-poppins antialiased`}>
         {children}
+        <script dangerouslySetInnerHTML={{
+          __html: `
+            window.addEventListener('load', function() {
+              if (typeof eruda !== 'undefined') {
+                eruda.init();
+              }
+            });
+          `
+        }} />
       </body>
     </html>
   );

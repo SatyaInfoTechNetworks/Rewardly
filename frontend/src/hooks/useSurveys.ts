@@ -16,7 +16,7 @@ export const useSurveys = (userId: string = "1981634693") => {
   const [error, setError] = useState<string | null>(null);
 
   const fetchSurveys = async () => {
-    const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+    const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://rewardlyapi.satyainfotechnetworks.com';
     
     try {
       setLoading(true);

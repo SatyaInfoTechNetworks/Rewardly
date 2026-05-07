@@ -47,15 +47,28 @@ app.post('/api/auth/sync', async (req, res) => {
 
   // Validate TMA InitData
   const isValid = validateTelegramInitData(initData, BOT_TOKEN);
+  
+  console.log('🔐 Auth Attempt:', { 
+    hasInitData: !!initData, 
+    isValid, 
+    env: process.env.NODE_ENV,
+    tokenSet: BOT_TOKEN !== 'YOUR_BOT_TOKEN_HERE' 
+  });
 
   if (!isValid && process.env.NODE_ENV === 'production') {
+    console.error('❌ Authentication failed in production');
     return res.status(401).json({ error: 'Invalid authentication' });
   }
 
   // Parse user info from initData
   try {
+    if (!initData) throw new Error('No initData provided');
+    
     const urlParams = new URLSearchParams(initData);
-    const tgUser = JSON.parse(urlParams.get('user'));
+    const userJson = urlParams.get('user');
+    if (!userJson) throw new Error('No user data in initData');
+    
+    const tgUser = JSON.parse(userJson);
     
     // Sync with Database
     const [user, created] = await User.findOrCreate({

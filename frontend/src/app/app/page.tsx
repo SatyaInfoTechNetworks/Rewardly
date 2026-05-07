@@ -46,7 +46,7 @@ export default function AppDashboard() {
   const [user, setUser] = useState<any>(null);
   
   // Dynamic API URL
-  const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+  const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://rewardlyapi.satyainfotechnetworks.com';
 
   const { surveys, loading: surveysLoading, refetch: refreshSurveys } = useSurveys(user?.id?.toString());
 

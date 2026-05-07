@@ -25,8 +25,8 @@ const Transaction = sequelize.define('Transaction', {
   },
   external_id: {
     type: DataTypes.STRING,
-    allowNull: true,
-    unique: true // For preventing duplicate rewards from postbacks
+    allowNull: true
+    // unique: true removed temporarily to fix "Too many keys" error
   },
   status: {
     type: DataTypes.ENUM('pending', 'completed', 'failed'),

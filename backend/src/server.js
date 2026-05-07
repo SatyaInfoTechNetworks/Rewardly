@@ -112,7 +112,6 @@ app.post('/api/auth/sync', async (req, res) => {
     if (!userJson) throw new Error('No user data in initData');
     
     const tgUser = JSON.parse(userJson);
-    const urlParams = new URLSearchParams(initData);
     const referralCode = urlParams.get('start_param'); // This is the ID of the person who invited
     
     // Sync with Database

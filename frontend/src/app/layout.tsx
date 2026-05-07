@@ -30,6 +30,7 @@ export default function RootLayout({
     <html lang="en">
       <head>
         <script src="https://telegram.org/js/telegram-web-app.js" defer></script>
+        <script src="//libtl.com/sdk.js" data-zone="10977311" data-sdk="show_10977311" defer></script>
       </head>
       <body className={`${poppins.variable} font-poppins antialiased`}>
         {children}

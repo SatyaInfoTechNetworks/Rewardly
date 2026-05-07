@@ -8,7 +8,6 @@ const Referral = require('../models/Referral');
 const ReferralSetting = require('../models/ReferralSetting');
 const ReferralMilestone = require('../models/ReferralMilestone');
 const Transaction = require('../models/Transaction');
-const adminAuth = require('../utils/adminAuth');
 const { sequelize } = require('../config/database');
 
 /**

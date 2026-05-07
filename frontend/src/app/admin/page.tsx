@@ -21,6 +21,25 @@ export default function AdminPanel() {
   const [transactions, setTransactions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   
+  // Modal State
+  const [editingUser, setEditingUser] = useState<any>(null);
+  const [newBalance, setNewBalance] = useState("");
+
+  // Payout Editor State
+  const [isPayoutModalOpen, setIsPayoutModalOpen] = useState(false);
+  const [editingPayout, setEditingPayout] = useState<any>(null);
+  const [payoutForm, setPayoutForm] = useState({ 
+    name: '', 
+    logo_url: '', 
+    order_index: 0, 
+    status: 'active',
+    conversion_rate: '₹1 = 100 Coins',
+    fee_text: '0% Fees',
+    disclaimer: '',
+    custom_inputs: [] as any[]
+  });
+  const [tiersForm, setTiersForm] = useState<any[]>([]);
+
   // Toast State
   const [toast, setToast] = useState<{ message: string, type: 'success' | 'error' } | null>(null);
 

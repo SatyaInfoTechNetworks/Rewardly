@@ -36,11 +36,22 @@ export default function RootLayout({
           __html: `
             window.addEventListener('load', function() {
               if (typeof TelegramAdsController !== 'undefined') {
-                window.TelegramAdsController = new TelegramAdsController();
-                window.TelegramAdsController.initialize({
-                  pubId: "1010920",
-                  appId: "7351",
-                });
+                // Only initialize if we are inside Telegram and have a user
+                const tg = window.Telegram?.WebApp;
+                if (tg && tg.initDataUnsafe && tg.initDataUnsafe.user) {
+                  try {
+                    window.TelegramAdsController = new TelegramAdsController();
+                    window.TelegramAdsController.initialize({
+                      pubId: "1010920",
+                      appId: "7351",
+                    });
+                    console.log("✅ RichAds Initialized");
+                  } catch (e) {
+                    console.error("RichAds Init Error:", e);
+                  }
+                } else {
+                  console.log("ℹ️ RichAds skipped: Not in Telegram environment");
+                }
               }
             });
           `

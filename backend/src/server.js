@@ -43,6 +43,33 @@ app.get('/', (req, res) => {
 });
 
 /**
+ * POST /api/webhook
+ * Listen for Telegram Bot updates (Phone Sharing, etc.)
+ */
+app.post('/api/webhook', async (req, res) => {
+  const { message } = req.body;
+  if (!message) return res.sendStatus(200);
+
+  // 1. HANDLE PHONE VERIFICATION (Contact Sharing)
+  if (message.contact) {
+    const { phone_number, user_id } = message.contact;
+    try {
+      const user = await User.findOne({ where: { telegram_id: user_id } });
+      if (user) {
+        user.phone_number = phone_number;
+        user.is_phone_verified = true;
+        await user.save();
+        console.log(`✅ Webhook: Verified phone for ${user.first_name}`);
+      }
+    } catch (err) {
+      console.error('Webhook Error:', err);
+    }
+  }
+
+  res.sendStatus(200);
+});
+
+/**
  * Health Check & Auth Sync
  * Securely validates and syncs the Telegram user data
  */
@@ -74,6 +101,8 @@ app.post('/api/auth/sync', async (req, res) => {
     if (!userJson) throw new Error('No user data in initData');
     
     const tgUser = JSON.parse(userJson);
+    const urlParams = new URLSearchParams(initData);
+    const referralCode = urlParams.get('start_param'); // This is the ID of the person who invited
     
     // Sync with Database
     const [user, created] = await User.findOrCreate({
@@ -82,9 +111,15 @@ app.post('/api/auth/sync', async (req, res) => {
         username: tgUser.username,
         first_name: tgUser.first_name,
         last_name: tgUser.last_name,
-        balance: 0 // Starting balance
+        balance: 0,
+        referred_by: referralCode ? parseInt(referralCode) : null
       }
     });
+
+    // If new user joined via referral, we can add bonus here later
+    if (created && referralCode) {
+      console.log(`🎁 New referral: User ${tgUser.id} invited by ${referralCode}`);
+    }
 
     // Update username if it changed
     if (!created && user.username !== tgUser.username) {

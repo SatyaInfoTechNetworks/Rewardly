@@ -48,6 +48,7 @@ const User = sequelize.define('User', {
   phone_number: { type: DataTypes.STRING, allowNull: true },
   is_phone_verified: { type: DataTypes.BOOLEAN, defaultValue: false },
   is_channel_joined: { type: DataTypes.BOOLEAN, defaultValue: false },
+  referred_by: { type: DataTypes.BIGINT, allowNull: true },
   ip_address: { type: DataTypes.STRING, allowNull: true }
 }, {
   tableName: 'users',

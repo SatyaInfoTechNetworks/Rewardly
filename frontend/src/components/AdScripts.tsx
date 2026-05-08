@@ -1,6 +1,7 @@
 "use client";
 
 import Script from 'next/script';
+import { useEffect } from 'react';
 
 export default function AdScripts() {
   useEffect(() => {

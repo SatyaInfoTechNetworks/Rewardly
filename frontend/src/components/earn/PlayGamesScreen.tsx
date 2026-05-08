@@ -50,6 +50,13 @@ export const PlayGamesScreen: React.FC<PlayGamesScreenProps> = ({ user, onBack, 
       return;
     }
 
+    // Check if AdsGram is enabled
+    if (stats && stats.adsgramEnabled === false) {
+      console.log("AdsGram disabled, trying Monetag...");
+      handlePlayGame();
+      return;
+    }
+
     const adsgram = (window as any).AdsgramController;
 
     if (adsgram) {
@@ -63,18 +70,7 @@ export const PlayGamesScreen: React.FC<PlayGamesScreenProps> = ({ user, onBack, 
         }
       }).catch((err: any) => {
         console.error("AdsGram Error, attempting Monetag fallback:", err);
-        if ((window as any).show_10977311) {
-          (window as any).show_10977311().then(() => {
-            claimReward();
-          }).catch((monetagErr: any) => {
-            console.error("Monetag Fallback Error:", monetagErr);
-            setAdLoading(false);
-            alert("Ads could not be loaded. Please try again later.");
-          });
-        } else {
-          setAdLoading(false);
-          alert("Ad providers are currently unavailable.");
-        }
+        handlePlayGame();
       });
     } else {
       handlePlayGame();
@@ -88,6 +84,13 @@ export const PlayGamesScreen: React.FC<PlayGamesScreenProps> = ({ user, onBack, 
       return;
     }
 
+    // Check if Monetag is enabled
+    if (stats && stats.monetagEnabled === false) {
+      setAdLoading(false);
+      alert("Ad providers are currently under maintenance. Please try again later.");
+      return;
+    }
+
     if ((window as any).show_10977311) {
       setAdLoading(true);
       (window as any).show_10977311().then(() => {
@@ -97,6 +100,7 @@ export const PlayGamesScreen: React.FC<PlayGamesScreenProps> = ({ user, onBack, 
         alert("Ad failed to load.");
       });
     } else {
+      setAdLoading(false);
       alert("Ad provider not ready.");
     }
   };

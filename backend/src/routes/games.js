@@ -46,7 +46,9 @@ router.get('/stats', async (req, res) => {
       todayPlays: user.daily_games_played,
       remainingPlays: Math.max(0, settings.game_limit_per_day - user.daily_games_played),
       limit: settings.game_limit_per_day,
-      rewardPerGame: settings.game_reward_coins
+      rewardPerGame: settings.game_reward_coins,
+      adsgramEnabled: settings.adsgram_enabled,
+      monetagEnabled: settings.monetag_enabled
     });
   } catch (err) {
     res.status(500).json({ error: err.message });

@@ -1525,7 +1525,7 @@ export default function AdminPanel() {
  
                <div style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: '2rem', marginBottom: '2rem' }}>
                   <h4 style={{ fontWeight: 600, color: '#38bdf8', fontSize: '1.1rem', marginBottom: '1.5rem' }}>Ad Network Configuration</h4>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem', marginBottom: '2rem' }}>
                      <div className={styles.formGroup}>
                         <label className={styles.formLabel}>AdsGram Block ID</label>
                         <input 
@@ -1546,6 +1546,34 @@ export default function AdminPanel() {
                         />
                         <p style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '0.5rem' }}>Fallback ad network zone identifier.</p>
                      </div>
+                  </div>
+
+                  <h4 style={{ fontWeight: 600, color: '#f59e0b', fontSize: '1.1rem', marginBottom: '1.5rem' }}>Bypass / Kill Switch</h4>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1.25rem', background: 'rgba(255,255,255,0.02)', borderRadius: '16px', border: '1px solid var(--border-subtle)' }}>
+                      <div>
+                        <div style={{ fontWeight: 600, color: '#fff' }}>Enable AdsGram</div>
+                        <p style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '2px' }}>Disable to bypass AdsGram review</p>
+                      </div>
+                      <input 
+                        type="checkbox" 
+                        checked={appSettings?.adsgram_enabled ?? true} 
+                        onChange={(e) => setAppSettings({...appSettings, adsgram_enabled: e.target.checked})}
+                        style={{ width: '22px', height: '22px', cursor: 'pointer' }}
+                      />
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1.25rem', background: 'rgba(255,255,255,0.02)', borderRadius: '16px', border: '1px solid var(--border-subtle)' }}>
+                      <div>
+                        <div style={{ fontWeight: 600, color: '#fff' }}>Enable Monetag</div>
+                        <p style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '2px' }}>Disable to hide Monetag ads</p>
+                      </div>
+                      <input 
+                        type="checkbox" 
+                        checked={appSettings?.monetag_enabled ?? true} 
+                        onChange={(e) => setAppSettings({...appSettings, monetag_enabled: e.target.checked})}
+                        style={{ width: '22px', height: '22px', cursor: 'pointer' }}
+                      />
+                    </div>
                   </div>
                </div>
  

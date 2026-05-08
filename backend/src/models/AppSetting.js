@@ -22,6 +22,14 @@ const AppSetting = sequelize.define('AppSetting', {
   monetag_zone_id: {
     type: DataTypes.STRING,
     defaultValue: '10977311'
+  },
+  adsgram_enabled: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: true
+  },
+  monetag_enabled: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: true
   }
 }, {
   tableName: 'app_settings',

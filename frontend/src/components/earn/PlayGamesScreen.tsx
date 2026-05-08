@@ -73,10 +73,16 @@ export const PlayGamesScreen: React.FC<PlayGamesScreenProps> = ({ user, onBack, 
       return;
     }
 
-    if ((window as any).richAdsReady && (window as any).TelegramAdsController) {
+    const richAds = (window as any).richAdsInstance || (window as any).TelegramAdsController;
+    
+    if ((window as any).richAdsReady && richAds) {
       setAdLoading(true);
       try {
-        (window as any).TelegramAdsController.showAd();
+        if (typeof richAds.showAd === 'function') {
+          richAds.showAd();
+        } else {
+          throw new Error("showAd method not found");
+        }
         // RichAds doesn't have a direct promise, so we reward after a delay or based on user activity
         setTimeout(() => {
           claimReward();

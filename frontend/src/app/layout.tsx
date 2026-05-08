@@ -30,10 +30,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <head>
-        <AdScripts />
-      </head>
+      <head />
       <body className={`${poppins.variable} font-poppins antialiased`}>
+        <AdScripts />
         {children}
       </body>
     </html>

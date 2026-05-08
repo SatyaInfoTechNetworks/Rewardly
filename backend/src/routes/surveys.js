@@ -79,17 +79,25 @@ router.get('/all', async (req, res) => {
       .catch(err => ({ status: 'error', surveys: [] }));
 
     // 2. Fetch from Opinion Universe
+    const ouParams = {
+      key: OU_CONFIG.KEY,
+      pubid: OU_CONFIG.PUBID,
+      app_id: OU_CONFIG.APP_ID,
+      country: 'All', // Changed from IN to All to match working link
+      platform: 'All',
+      type: 'live_surveys'
+    };
+
     const ouPromise = axios.get(OU_CONFIG.BASE_URL, {
-      params: {
-        key: OU_CONFIG.KEY,
-        pubid: OU_CONFIG.PUBID,
-        app_id: OU_CONFIG.APP_ID,
-        country: 'IN', // As requested
-        platform: 'All',
-        type: 'live_surveys'
-      },
+      params: ouParams,
       timeout: 8000
-    }).catch(err => ({ data: { response: { offers: [] } } }));
+    }).then(res => {
+      console.log(`📡 OU Request URL: ${OU_CONFIG.BASE_URL}?${new URLSearchParams(ouParams).toString()}`);
+      return res;
+    }).catch(err => {
+      console.error('OU Fetch Error:', err.message);
+      return { data: { response: { offers: [] } } };
+    });
 
     const [cpxData, ouResponse] = await Promise.all([cpxPromise, ouPromise]);
 

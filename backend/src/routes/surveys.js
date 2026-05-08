@@ -85,9 +85,7 @@ router.get('/all', async (req, res) => {
       app_id: OU_CONFIG.APP_ID,
       country: 'IN', // Reverted back to IN per working link
       platform: 'All',
-      type: 'live_surveys',
-      sid: userId,
-      sid2: userId
+      type: 'live_surveys'
     };
 
     const ouPromise = axios.get(OU_CONFIG.BASE_URL, {
@@ -144,12 +142,29 @@ router.get('/all', async (req, res) => {
       });
     });
 
-    // Sort by reward (highest first) to "club" them naturally
-    unifiedSurveys.sort((a, b) => b.reward - a.reward);
+    // Sorting Logic: 
+    // 1. CPX Surveys First (maintained in their original order)
+    // 2. OU Surveys Second, sorted by Rating DESC and Time ASC
+    const cpxSurveys = unifiedSurveys.filter(s => s.source === 'cpx');
+    const ouSurveys = unifiedSurveys.filter(s => s.source === 'opinion_universe');
+
+    ouSurveys.sort((a, b) => {
+      // Sort by rating (desc)
+      const ratingA = parseInt(a.rating) || 0;
+      const ratingB = parseInt(b.rating) || 0;
+      if (ratingB !== ratingA) return ratingB - ratingA;
+      
+      // Then by time (asc)
+      const timeA = parseInt(a.time) || 0;
+      const timeB = parseInt(b.time) || 0;
+      return timeA - timeB;
+    });
+
+    const finalSurveys = [...cpxSurveys, ...ouSurveys];
 
     res.json({
       status: 'success',
-      surveys: unifiedSurveys
+      surveys: finalSurveys
     });
 
   } catch (error) {

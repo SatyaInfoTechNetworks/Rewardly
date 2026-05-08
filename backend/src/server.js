@@ -146,6 +146,7 @@ app.use('/api/admin', require('./routes/admin'));
 app.use('/api/payouts', require('./routes/payouts'));
 app.use('/api/referrals', require('./routes/referrals'));
 app.use('/api/contests', require('./routes/contests'));
+app.use('/api/rewards', require('./routes/rewards'));
 
 app.get('/', (req, res) => {
   res.json({ message: 'Rewardly Backend API is running' });

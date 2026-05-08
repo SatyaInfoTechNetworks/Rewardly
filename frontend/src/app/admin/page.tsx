@@ -5,7 +5,7 @@ import styles from "./admin.module.css";
 import { 
   Users, Coins, Activity, ShieldCheck, Search, 
   LayoutDashboard, History, Settings, LogOut, 
-  Edit3, Trash2, Ban, CheckCircle2, X, Gift, ArrowUpRight, Menu, Trophy
+  Edit3, Trash2, Ban, CheckCircle2, X, Gift, ArrowUpRight, Menu, Trophy, Calendar
 } from "lucide-react";
 
 export default function AdminPanel() {
@@ -26,6 +26,14 @@ export default function AdminPanel() {
   const [referralSettings, setReferralSettings] = useState<any>(null);
   const [referralMilestones, setReferralMilestones] = useState<any[]>([]);
   const [referralStats, setReferralStats] = useState<any>(null);
+  
+  // Daily Rewards State
+  const [dailyRewards, setDailyRewards] = useState<any[]>([]);
+
+  // Visit Tasks State
+  const [visitTasks, setVisitTasks] = useState<any[]>([]);
+  const [isVisitModalOpen, setIsVisitModalOpen] = useState(false);
+  const [visitForm, setVisitForm] = useState({ title: '', url: '', reward_amount: 20, timer_seconds: 10 });
   
   // Contest States
   const [contests, setContests] = useState<any[]>([]);
@@ -102,6 +110,15 @@ export default function AdminPanel() {
         if (refStatsRes.ok) setReferralStats(await refStatsRes.json());
         if (contestsRes.ok) setContests(await contestsRes.json());
         if (appSettingsRes.ok) setAppSettings(await appSettingsRes.json());
+        
+        // Fetch Daily Rewards
+        const rewardsRes = await fetch(`${API_URL}/api/admin/rewards`, options);
+        if (rewardsRes.ok) setDailyRewards(await rewardsRes.json());
+
+        // Fetch Visit Tasks
+        const visitRes = await fetch(`${API_URL}/api/admin/visit-tasks`, options);
+        if (visitRes.ok) setVisitTasks(await visitRes.json());
+        
         setIsAuthenticated(true);
         localStorage.setItem("admin_secret", authSecret);
       } else {
@@ -412,6 +429,8 @@ export default function AdminPanel() {
             { id: 'contests', icon: Trophy, label: 'Contest System' },
             { id: 'withdrawals', icon: ArrowUpRight, label: 'Withdrawals' },
             { id: 'transactions', icon: History, label: 'Audit Log' },
+            { id: 'daily_rewards', icon: Calendar, label: 'Check-in Rewards' },
+            { id: 'visit_tasks', icon: Globe, label: 'Visit Tasks' },
             { id: 'settings', icon: Settings, label: 'Settings' },
           ].map((item) => (
             <div 
@@ -1537,6 +1556,173 @@ export default function AdminPanel() {
                </div>
             </div>
           </section>
+        )}
+
+        {activeView === 'daily_rewards' && (
+          <section>
+            <div className={styles.sectionHeader}>
+              <h2 className={styles.sectionTitle}>Daily Check-in Rewards</h2>
+              <p className={styles.sectionDesc}>Configure rewards for the 7-day streak system</p>
+            </div>
+
+            <div className={styles.card} style={{ padding: '2rem', background: 'var(--bg-card)', border: '1px solid var(--border-subtle)', borderRadius: '1.5rem', maxWidth: '600px' }}>
+               <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                  {dailyRewards.map((reward, idx) => (
+                    <div key={reward.day} style={{ display: 'grid', gridTemplateColumns: '100px 1fr', alignItems: 'center', gap: '1rem', padding: '1rem', background: 'rgba(255,255,255,0.02)', borderRadius: '12px', border: '1px solid var(--border-subtle)' }}>
+                      <div style={{ fontWeight: 700, color: '#38bdf8' }}>Day {reward.day}</div>
+                      <div className={styles.formGroup} style={{ marginBottom: 0 }}>
+                        <input 
+                          type="number"
+                          className={styles.formInput}
+                          value={reward.reward_amount}
+                          onChange={(e) => {
+                            const newRewards = [...dailyRewards];
+                            newRewards[idx].reward_amount = parseInt(e.target.value);
+                            setDailyRewards(newRewards);
+                          }}
+                        />
+                      </div>
+                    </div>
+                  ))}
+               </div>
+
+               <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '2rem', borderTop: '1px solid var(--border-subtle)', paddingTop: '2rem' }}>
+                  <button 
+                    className={styles.btnPrimary} 
+                    onClick={async () => {
+                      try {
+                        const res = await fetch(`${API_URL}/api/admin/rewards`, {
+                          method: 'PUT',
+                          headers: { 'Content-Type': 'application/json', 'x-admin-secret': secret },
+                          credentials: 'include',
+                          body: JSON.stringify({ rewards: dailyRewards })
+                        });
+                        if (res.ok) {
+                          showToast("Check-in rewards updated");
+                        }
+                      } catch (err) {
+                        showToast("Failed to update rewards", "error");
+                      }
+                    }}
+                    style={{ padding: '1rem 3rem' }}
+                  >
+                    Update Reward Values
+                  </button>
+               </div>
+            </div>
+          </section>
+        )}
+
+        {activeView === 'visit_tasks' && (
+          <section>
+            <div className={styles.sectionHeader} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
+              <div>
+                <h2 className={styles.sectionTitle}>Visit & Earn Tasks</h2>
+                <p className={styles.sectionDesc}>Create external link tasks for users to earn coins</p>
+              </div>
+              <button className={styles.addBtn} onClick={() => setIsVisitModalOpen(true)}>
+                + Add Visit Task
+              </button>
+            </div>
+
+            <div className={styles.tableCard}>
+              <table className={styles.adminTable}>
+                <thead>
+                  <tr>
+                    <th>Task Title</th>
+                    <th>Target URL</th>
+                    <th>Reward</th>
+                    <th>Timer</th>
+                    <th style={{ textAlign: 'right' }}>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {visitTasks.map(task => (
+                    <tr key={task.id}>
+                      <td style={{ fontWeight: 600, color: '#fff' }}>{task.title}</td>
+                      <td style={{ fontSize: '0.8125rem', color: '#64748b', maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis' }}>{task.url}</td>
+                      <td style={{ color: '#4ade80', fontWeight: 700 }}>{task.reward_amount} Coins</td>
+                      <td>{task.timer_seconds}s</td>
+                      <td>
+                        <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                          <button 
+                            className={`${styles.actionBtn} ${styles.btnDanger}`}
+                            onClick={async () => {
+                              if (confirm("Delete this task?")) {
+                                try {
+                                  const res = await fetch(`${API_URL}/api/admin/visit-tasks/${task.id}`, {
+                                    method: 'DELETE',
+                                    headers: { 'x-admin-secret': secret },
+                                    credentials: 'include'
+                                  });
+                                  if (res.ok) {
+                                    showToast("Task deleted");
+                                    fetchAllData(secret);
+                                  }
+                                } catch (err) { showToast("Error deleting", "error"); }
+                              }
+                            }}
+                          >
+                            <Trash2 size={18} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </section>
+        )}
+
+        {/* Visit Task Modal */}
+        {isVisitModalOpen && (
+          <div className={styles.modalOverlay}>
+            <div className={styles.modalBox} style={{ maxWidth: '400px' }}>
+              <div className={styles.modalHeader}>
+                <h3>New Visit Task</h3>
+                <X className={styles.actionBtn} onClick={() => setIsVisitModalOpen(false)} />
+              </div>
+              <div className={styles.modalContent}>
+                <div className={styles.formGroup}>
+                  <label className={styles.formLabel}>Task Title</label>
+                  <input className={styles.formInput} value={visitForm.title} onChange={e => setVisitForm({...visitForm, title: e.target.value})} placeholder="e.g. Visit Our Website" />
+                </div>
+                <div className={styles.formGroup}>
+                  <label className={styles.formLabel}>URL</label>
+                  <input className={styles.formInput} value={visitForm.url} onChange={e => setVisitForm({...visitForm, url: e.target.value})} placeholder="https://..." />
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                  <div className={styles.formGroup}>
+                    <label className={styles.formLabel}>Reward (Coins)</label>
+                    <input type="number" className={styles.formInput} value={visitForm.reward_amount} onChange={e => setVisitForm({...visitForm, reward_amount: parseInt(e.target.value)})} />
+                  </div>
+                  <div className={styles.formGroup}>
+                    <label className={styles.formLabel}>Timer (Seconds)</label>
+                    <input type="number" className={styles.formInput} value={visitForm.timer_seconds} onChange={e => setVisitForm({...visitForm, timer_seconds: parseInt(e.target.value)})} />
+                  </div>
+                </div>
+              </div>
+              <div className={styles.modalActions}>
+                <button className={styles.btnSecondary} onClick={() => setIsVisitModalOpen(false)}>Cancel</button>
+                <button className={styles.btnPrimary} onClick={async () => {
+                  try {
+                    const res = await fetch(`${API_URL}/api/admin/visit-tasks`, {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json', 'x-admin-secret': secret },
+                      credentials: 'include',
+                      body: JSON.stringify(visitForm)
+                    });
+                    if (res.ok) {
+                      showToast("Task created");
+                      setIsVisitModalOpen(false);
+                      fetchAllData(secret);
+                    }
+                  } catch (err) { showToast("Error creating", "error"); }
+                }}>Create Task</button>
+              </div>
+            </div>
+          </div>
         )}
     </div>
   );

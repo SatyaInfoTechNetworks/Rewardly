@@ -5,7 +5,9 @@ import styles from "@/app/page.module.css";
 import { ReferralScreen } from "@/components/share/ReferralScreen";
 import { ContestScreen } from "@/components/contests/ContestScreen";
 import { PlayGamesScreen } from "@/components/earn/PlayGamesScreen";
-import { PlayCircle, Gamepad2, ChevronRight, Flame, Zap, Inbox, CalendarCheck, Globe, Video } from "lucide-react";
+import { DailyCheckInScreen } from "@/components/earn/DailyCheckInScreen";
+import { VisitAndEarnScreen } from "@/components/earn/VisitAndEarnScreen";
+import { PlayCircle, Gamepad2, ChevronRight, Flame, Zap, Inbox, CalendarCheck, Globe } from "lucide-react";
 
 // Components
 import { CoinBadge } from "@/components/ui/CoinBadge";
@@ -142,6 +144,26 @@ export default function AppDashboard() {
       );
     }
 
+    if (activeTab === "daily_checkin") {
+      return (
+        <DailyCheckInScreen 
+          user={user} 
+          onBack={() => setActiveTab("earn")} 
+          onReward={handleSyncUser} 
+        />
+      );
+    }
+
+    if (activeTab === "visit_earn") {
+      return (
+        <VisitAndEarnScreen 
+          user={user} 
+          onBack={() => setActiveTab("earn")} 
+          onReward={handleSyncUser} 
+        />
+      );
+    }
+
     if (activeTab === "surveys_all") {
       return (
         <SurveysScreen 
@@ -168,29 +190,23 @@ export default function AppDashboard() {
             
             {/* Quick Actions Row */}
             <section className={styles.quickActionsRow}>
-              <div className={styles.quickActionItem} onClick={() => alert("Daily Streak coming soon!")}>
+              <div className={styles.quickActionItem} onClick={() => setActiveTab("daily_checkin")}>
                 <div className={styles.quickActionIcon} style={{ color: '#f59e0b', background: '#fffbeb' }}>
-                  <CalendarCheck size={24} />
+                  <CalendarCheck size={26} />
                 </div>
-                <span className={styles.quickActionLabel}>Streak</span>
+                <span className={styles.quickActionLabel}>Check-in</span>
               </div>
-              <div className={styles.quickActionItem} onClick={() => alert("Visit & Earn coming soon!")}>
+              <div className={styles.quickActionItem} onClick={() => setActiveTab("visit_earn")}>
                 <div className={styles.quickActionIcon} style={{ color: '#3b82f6', background: '#eff6ff' }}>
-                  <Globe size={24} />
+                  <Globe size={26} />
                 </div>
                 <span className={styles.quickActionLabel}>Visit</span>
               </div>
               <div className={styles.quickActionItem} onClick={() => setActiveTab("play_games")}>
                 <div className={styles.quickActionIcon} style={{ color: '#6366f1', background: '#eef2ff' }}>
-                  <Gamepad2 size={24} />
+                  <Gamepad2 size={26} />
                 </div>
-                <span className={styles.quickActionLabel}>Play</span>
-              </div>
-              <div className={styles.quickActionItem} onClick={() => setActiveTab("play_games")}>
-                <div className={styles.quickActionIcon} style={{ color: '#10b981', background: '#f0fdf4' }}>
-                  <Video size={24} />
-                </div>
-                <span className={styles.quickActionLabel}>Watch</span>
+                <span className={styles.quickActionLabel}>Play Games</span>
               </div>
             </section>
 

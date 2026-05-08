@@ -503,4 +503,63 @@ router.delete('/contests/rewards/:id', adminAuth, async (req, res) => {
   }
 });
 
+// --- Check-in Rewards Management ---
+router.get('/rewards', adminAuth, async (req, res) => {
+  try {
+    const DailyReward = require('../models/DailyReward');
+    const rewards = await DailyReward.findAll({ order: [['day', 'ASC']] });
+    res.json(rewards);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.put('/rewards', adminAuth, async (req, res) => {
+  try {
+    const DailyReward = require('../models/DailyReward');
+    const { rewards } = req.body;
+    
+    for (const r of rewards) {
+      await DailyReward.update(
+        { reward_amount: r.reward_amount },
+        { where: { day: r.day } }
+      );
+    }
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// --- Visit Tasks Management ---
+router.get('/visit-tasks', adminAuth, async (req, res) => {
+  try {
+    const VisitTask = require('../models/VisitTask');
+    const tasks = await VisitTask.findAll({ order: [['created_at', 'DESC']] });
+    res.json(tasks);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.post('/visit-tasks', adminAuth, async (req, res) => {
+  try {
+    const VisitTask = require('../models/VisitTask');
+    const task = await VisitTask.create(req.body);
+    res.json(task);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.delete('/visit-tasks/:id', adminAuth, async (req, res) => {
+  try {
+    const VisitTask = require('../models/VisitTask');
+    await VisitTask.destroy({ where: { id: req.params.id } });
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 module.exports = router;

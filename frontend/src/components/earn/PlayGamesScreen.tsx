@@ -191,13 +191,38 @@ export const PlayGamesScreen: React.FC<PlayGamesScreenProps> = ({ user, onBack, 
             <h3 style={{ fontSize: '1.1rem', fontWeight: 800, color: '#1e293b', margin: 0 }}>Play Games to Earn</h3>
           </div>
 
-            {/* AdsGram Card */}
-            <div className="card" style={{ padding: '24px 20px', textAlign: 'center', background: 'white', border: '1px solid #e2e8f0', marginBottom: '16px' }}>
-              <div style={{ width: '60px', height: '60px', background: 'rgba(16, 185, 129, 0.1)', borderRadius: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
-                <Zap size={32} color="#10b981" />
+            <div className="card" style={{ 
+              padding: '32px 24px', 
+              textAlign: 'center', 
+              background: 'white', 
+              border: '1px solid #e2e8f0', 
+              borderRadius: '24px',
+              boxShadow: '0 4px 20px rgba(0,0,0,0.05)',
+              position: 'relative',
+              overflow: 'hidden'
+            }}>
+              {/* Premium Decoration */}
+              <div style={{ position: 'absolute', top: '-20px', right: '-20px', width: '100px', height: '100px', background: 'rgba(16, 185, 129, 0.05)', borderRadius: '50%' }} />
+              
+              <div style={{ 
+                width: '72px', 
+                height: '72px', 
+                background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(99, 102, 241, 0.1) 100%)', 
+                borderRadius: '24px', 
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: 'center', 
+                margin: '0 auto 20px',
+                border: '1px solid rgba(16, 185, 129, 0.2)'
+              }}>
+                <Zap size={36} color="#10b981" />
               </div>
-              <h4 style={{ fontSize: '1.1rem', fontWeight: 800, color: '#1e293b', marginBottom: '4px' }}>Premium Rewards</h4>
-              <p style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '20px' }}>Watch a premium video ad to earn rewards instantly.</p>
+              
+              <h4 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#1e293b', marginBottom: '8px' }}>Watch Ads & Earn</h4>
+              <p style={{ fontSize: '0.9rem', color: '#64748b', marginBottom: '28px', lineHeight: 1.6 }}>
+                Watch a short video ad to earn rewards instantly. <br/>
+                High quality premium ads available now.
+              </p>
               
               <button
                 onClick={handleAdsGram}
@@ -205,46 +230,42 @@ export const PlayGamesScreen: React.FC<PlayGamesScreenProps> = ({ user, onBack, 
                 className={styles.btnPrimary}
                 style={{ 
                   width: '100%',
-                  padding: '14px',
-                  background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                  padding: '16px',
+                  background: 'linear-gradient(135deg, #10b981 0%, #6366f1 100%)',
                   color: 'white',
-                  borderRadius: '16px',
-                  fontSize: '0.95rem',
-                  fontWeight: 700,
+                  borderRadius: '18px',
+                  fontSize: '1rem',
+                  fontWeight: 800,
                   opacity: (adLoading || (stats && stats.remainingPlays <= 0)) ? 0.6 : 1,
-                  border: 'none'
+                  border: 'none',
+                  boxShadow: '0 10px 20px rgba(16, 185, 129, 0.2)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '10px'
                 }}
               >
-                {adLoading ? 'Loading Ad...' : `Play & Earn ${stats?.rewardPerGame || 5} Coins`}
+                {adLoading ? (
+                  <>
+                    <div style={{ width: '20px', height: '20px', border: '3px solid rgba(255,255,255,0.3)', borderTopColor: 'white', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+                    <span>Loading Ad...</span>
+                  </>
+                ) : (
+                  <>
+                    <Video size={20} />
+                    <span>Watch & Earn {stats?.rewardPerGame || 5} Coins</span>
+                  </>
+                )}
               </button>
-            </div>
 
-            {/* Monetag Card */}
-            <div className="card" style={{ padding: '24px 20px', textAlign: 'center', background: 'white', border: '1px solid #e2e8f0' }}>
-              <div style={{ width: '60px', height: '60px', background: 'rgba(99, 102, 241, 0.1)', borderRadius: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
-                <Gamepad2 size={32} color="#6366f1" />
+              <div style={{ marginTop: '20px', display: 'flex', justifyContent: 'center', gap: '16px' }}>
+                <div style={{ fontSize: '0.75rem', color: '#94a3b8', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  <ShieldCheck size={14} color="#10b981" /> Verified Reward
+                </div>
+                <div style={{ fontSize: '0.75rem', color: '#94a3b8', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  <Zap size={14} color="#f59e0b" /> Instant Credit
+                </div>
               </div>
-              <h4 style={{ fontSize: '1.1rem', fontWeight: 800, color: '#1e293b', marginBottom: '4px' }}>Monetag Ads</h4>
-              <p style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '20px' }}>Watch a quick video and get rewarded instantly.</p>
-              
-              <button
-                onClick={handlePlayGame}
-                disabled={adLoading || (stats && stats.remainingPlays <= 0)}
-                className={styles.btnPrimary}
-                style={{ 
-                  width: '100%',
-                  padding: '14px',
-                  borderRadius: '16px',
-                  fontSize: '0.95rem',
-                  fontWeight: 700,
-                  opacity: (adLoading || (stats && stats.remainingPlays <= 0)) ? 0.6 : 1,
-                  background: 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)',
-                  color: 'white',
-                  border: 'none'
-                }}
-              >
-                {adLoading ? 'Loading Ad...' : `Play & Earn ${stats?.rewardPerGame || 5} Coins`}
-              </button>
             </div>
         </motion.div>
 

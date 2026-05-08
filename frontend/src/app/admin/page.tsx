@@ -1472,7 +1472,8 @@ export default function AdminPanel() {
             </div>
           </div>
         </div>
-        {activeView === 'settings' && (
+      )}
+      {activeView === 'settings' && (
           <section>
             <div className={styles.sectionHeader}>
               <h2 className={styles.sectionTitle}>Global Application Settings</h2>

@@ -3,7 +3,16 @@ const router = express.Router();
 const User = require('../models/User');
 const DailyReward = require('../models/DailyReward');
 const Transaction = require('../models/Transaction');
-const { validateInitData } = require('../utils/auth');
+const UserVisit = require('../models/UserVisit');
+const VisitTask = require('../models/VisitTask');
+const { validateTelegramInitData } = require('../utils/telegramAuth');
+
+const parseInitData = (initData) => {
+  const urlParams = new URLSearchParams(initData);
+  const userStr = urlParams.get('user');
+  if (!userStr) throw new Error('User data missing');
+  return JSON.parse(userStr);
+};
 
 /**
  * GET /api/rewards/check-in/status
@@ -11,7 +20,7 @@ const { validateInitData } = require('../utils/auth');
 router.get('/check-in/status', async (req, res) => {
   try {
     const initData = req.headers['x-telegram-init-data'];
-    const { user: tgUser } = validateInitData(initData);
+    const tgUser = parseInitData(initData);
     
     const user = await User.findByPk(tgUser.id);
     if (!user) return res.status(404).json({ error: 'User not found' });
@@ -54,7 +63,7 @@ router.get('/check-in/status', async (req, res) => {
 router.post('/check-in/claim', async (req, res) => {
   try {
     const { initData } = req.body;
-    const { user: tgUser } = validateInitData(initData);
+    const tgUser = parseInitData(initData);
     
     const user = await User.findByPk(tgUser.id);
     if (!user) return res.status(404).json({ error: 'User not found' });
@@ -109,18 +118,13 @@ router.post('/check-in/claim', async (req, res) => {
   }
 });
 
-const UserVisit = require('../models/UserVisit');
-const VisitTask = require('../models/VisitTask');
-
-// ... (existing check-in routes)
-
 /**
  * GET /api/rewards/visit/tasks
  */
 router.get('/visit/tasks', async (req, res) => {
   try {
     const initData = req.headers['x-telegram-init-data'];
-    const { user: tgUser } = validateInitData(initData);
+    const tgUser = parseInitData(initData);
     
     const tasks = await VisitTask.findAll({ where: { status: 'active' } });
     const completions = await UserVisit.findAll({ where: { user_id: tgUser.id } });
@@ -138,7 +142,7 @@ router.get('/visit/tasks', async (req, res) => {
 router.post('/visit/claim', async (req, res) => {
   try {
     const { initData, taskId } = req.body;
-    const { user: tgUser } = validateInitData(initData);
+    const tgUser = parseInitData(initData);
     
     const task = await VisitTask.findByPk(taskId);
     if (!task) return res.status(404).json({ error: 'Task not found' });

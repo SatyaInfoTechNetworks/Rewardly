@@ -882,37 +882,47 @@ export default function AdminPanel() {
         {activeView === 'transactions' && (
           <section>
             <div className={styles.sectionHeader}>
-              <h2 className={styles.sectionTitle}>Audit History</h2>
-              <p className={styles.sectionDesc}>Comprehensive log of all platform financial movements</p>
+              <h2 className={styles.sectionTitle}>System Audit Log</h2>
+              <p className={styles.sectionDesc}>View all coin distributions and user activities</p>
             </div>
 
             <div className={styles.tableCard}>
               <table className={styles.adminTable}>
                 <thead>
                   <tr>
+                    <th>Ref ID</th>
                     <th>User ID</th>
-                    <th>Interaction Type</th>
-                    <th>Value Change</th>
+                    <th>Type</th>
+                    <th>Amount</th>
+                    <th>Date & Time</th>
                     <th>Description</th>
-                    <th>Timestamp</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {transactions.map(tx => (
-                    <tr key={tx.id}>
-                      <td style={{ fontFamily: 'monospace', color: '#38bdf8' }}>{tx.telegram_id}</td>
+                  {transactions.map(txn => (
+                    <tr key={txn.id}>
+                      <td style={{ fontFamily: 'monospace', color: '#38bdf8', fontSize: '0.8125rem' }}>{txn.reference_id || `ID-${txn.id}`}</td>
+                      <td style={{ fontSize: '0.8125rem' }}>{txn.telegram_id}</td>
                       <td>
-                        <div style={{ textTransform: 'uppercase', fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.05em', color: '#94a3b8' }}>
-                          {tx.type}
-                        </div>
+                        <span style={{ 
+                          padding: '4px 8px', 
+                          borderRadius: '6px', 
+                          fontSize: '0.75rem', 
+                          fontWeight: 600,
+                          background: txn.type === 'withdrawal' ? 'rgba(248,113,113,0.1)' : 'rgba(74,222,128,0.1)',
+                          color: txn.type === 'withdrawal' ? '#f87171' : '#4ade80',
+                          textTransform: 'uppercase'
+                        }}>
+                          {txn.type}
+                        </span>
                       </td>
-                      <td>
-                        <div style={{ color: tx.amount > 0 ? '#4ade80' : '#f87171', fontWeight: 800, fontSize: '1rem' }}>
-                          {tx.amount > 0 ? '+' : ''}{tx.amount.toLocaleString()}
-                        </div>
+                      <td style={{ fontWeight: 700, color: txn.type === 'withdrawal' ? '#f87171' : '#4ade80' }}>
+                        {txn.type === 'withdrawal' ? '-' : '+'}{txn.amount}
                       </td>
-                      <td style={{ color: '#cbd5e1' }}>{tx.description}</td>
-                      <td style={{ color: '#64748b', fontSize: '0.8125rem' }}>{new Date(tx.created_at).toLocaleString()}</td>
+                      <td style={{ fontSize: '0.8125rem', color: '#64748b' }}>
+                        {txn.created_at ? new Date(txn.created_at).toLocaleString() : (txn.createdAt ? new Date(txn.createdAt).toLocaleString() : 'N/A')}
+                      </td>
+                      <td style={{ fontSize: '0.8125rem', color: '#94a3b8' }}>{txn.description}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -1753,57 +1763,7 @@ export default function AdminPanel() {
           </div>
         )}
 
-        {activeView === 'transactions' && (
-          <section>
-            <div className={styles.sectionHeader}>
-              <h2 className={styles.sectionTitle}>System Audit Log</h2>
-              <p className={styles.sectionDesc}>View all coin distributions and user activities</p>
-            </div>
 
-            <div className={styles.tableCard}>
-              <table className={styles.adminTable}>
-                <thead>
-                  <tr>
-                    <th>Ref ID</th>
-                    <th>User ID</th>
-                    <th>Type</th>
-                    <th>Amount</th>
-                    <th>Date & Time</th>
-                    <th>Description</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {transactions.map(txn => (
-                    <tr key={txn.id}>
-                      <td style={{ fontFamily: 'monospace', color: '#38bdf8', fontSize: '0.8125rem' }}>{txn.reference_id || `ID-${txn.id}`}</td>
-                      <td style={{ fontSize: '0.8125rem' }}>{txn.telegram_id}</td>
-                      <td>
-                        <span style={{ 
-                          padding: '4px 8px', 
-                          borderRadius: '6px', 
-                          fontSize: '0.75rem', 
-                          fontWeight: 600,
-                          background: txn.type === 'withdrawal' ? 'rgba(248,113,113,0.1)' : 'rgba(74,222,128,0.1)',
-                          color: txn.type === 'withdrawal' ? '#f87171' : '#4ade80',
-                          textTransform: 'uppercase'
-                        }}>
-                          {txn.type}
-                        </span>
-                      </td>
-                      <td style={{ fontWeight: 700, color: txn.type === 'withdrawal' ? '#f87171' : '#4ade80' }}>
-                        {txn.type === 'withdrawal' ? '-' : '+'}{txn.amount}
-                      </td>
-                      <td style={{ fontSize: '0.8125rem', color: '#64748b' }}>
-                        {new Date(txn.created_at).toLocaleString()}
-                      </td>
-                      <td style={{ fontSize: '0.8125rem', color: '#94a3b8' }}>{txn.description}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </section>
-        )}
     </div>
   );
 }

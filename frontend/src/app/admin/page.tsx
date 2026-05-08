@@ -119,10 +119,6 @@ export default function AdminPanel() {
         const visitRes = await fetch(`${API_URL}/api/admin/visit-tasks`, options);
         if (visitRes.ok) setVisitTasks(await visitRes.json());
         
-        // Fetch Transactions
-        const transRes = await fetch(`${API_URL}/api/admin/transactions`, options);
-        if (transRes.ok) setTransactions(await transRes.json());
-        
         setIsAuthenticated(true);
         localStorage.setItem("admin_secret", authSecret);
       } else {

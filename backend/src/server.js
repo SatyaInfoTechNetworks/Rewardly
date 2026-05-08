@@ -76,6 +76,11 @@ ContestEntry.belongsTo(Contest, { foreignKey: 'contest_id' });
 ContestEntry.belongsTo(User, { foreignKey: 'user_id' });
 User.hasMany(ContestEntry, { foreignKey: 'user_id' });
 
+// Start Server
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`✨ Server started on 0.0.0.0:${PORT}`);
+});
+
 // Test DB Connection & Sync Models
 testConnection().then(() => {
   sequelize.sync({ alter: false }).then(async () => {
@@ -443,6 +448,4 @@ app.use((err, req, res, next) => {
   res.status(500).json({ error: 'Internal Server Error', message: err.message });
 });
 
-app.listen(PORT, '0.0.0.0', () => {
-  console.log(`✨ Server started on 0.0.0.0:${PORT}`);
-});
+

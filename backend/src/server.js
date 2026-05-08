@@ -86,6 +86,15 @@ testConnection().then(() => {
   sequelize.sync({ alter: false }).then(async () => {
     console.log('✨ Database models synchronized.');
     
+    // Manual Migration for Transactions table (since alter:false is set)
+    try {
+      await sequelize.query("ALTER TABLE `transactions` ADD COLUMN IF NOT EXISTS `reference_id` VARCHAR(255) UNIQUE AFTER `telegram_id`;");
+      await sequelize.query("ALTER TABLE `transactions` MODIFY COLUMN `type` VARCHAR(255);");
+      console.log('✅ Transaction table migrations applied.');
+    } catch (migErr) {
+      console.log('Migration skip (likely already applied):', migErr.message);
+    }
+    
     // Auto-Seed Defaults
     try {
       // Seed Referral Settings

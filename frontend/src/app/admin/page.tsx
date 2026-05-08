@@ -1589,6 +1589,18 @@ export default function AdminPanel() {
                         style={{ width: '22px', height: '22px', cursor: 'pointer' }}
                       />
                     </div>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1.25rem', background: 'rgba(255,255,255,0.02)', borderRadius: '16px', border: '1px solid var(--border-subtle)' }}>
+                      <div>
+                        <div style={{ fontWeight: 600, color: '#fff' }}>User Verification</div>
+                        <p style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '2px' }}>Disable to bypass Onboarding (Review Mode)</p>
+                      </div>
+                      <input 
+                        type="checkbox" 
+                        checked={appSettings?.onboarding_verification_enabled ?? true} 
+                        onChange={(e) => setAppSettings({...appSettings, onboarding_verification_enabled: e.target.checked})}
+                        style={{ width: '22px', height: '22px', cursor: 'pointer' }}
+                      />
+                    </div>
                   </div>
                </div>
  

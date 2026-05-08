@@ -30,6 +30,7 @@ const TASKS: any[] = []; // Demo data removed
 export default function AppDashboard() {
   const [activeTab, setActiveTab] = useState("earn");
   const [user, setUser] = useState<any>(null);
+  const [appSettings, setAppSettings] = useState<any>({ onboardingVerificationEnabled: true });
   
   // Dynamic API URL
   const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://rewardlyapi.satyainfotechnetworks.com';
@@ -58,6 +59,9 @@ export default function AppDashboard() {
           const data = await response.json();
           if (data.success) {
             setUser(data.user);
+            if (data.settings) {
+              setAppSettings(data.settings);
+            }
           }
         }
       }
@@ -115,7 +119,9 @@ export default function AppDashboard() {
     }
   };
 
-  const showVerification = user && (!user.isPhoneVerified || !user.isChannelJoined);
+  const showVerification = user && 
+    appSettings.onboardingVerificationEnabled && 
+    (!user.isPhoneVerified || !user.isChannelJoined);
 
   const renderContent = () => {
     if (activeTab === "more") {

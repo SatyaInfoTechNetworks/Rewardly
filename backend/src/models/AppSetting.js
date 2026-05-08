@@ -30,6 +30,10 @@ const AppSetting = sequelize.define('AppSetting', {
   monetag_enabled: {
     type: DataTypes.BOOLEAN,
     defaultValue: true
+  },
+  onboarding_verification_enabled: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: true
   }
 }, {
   tableName: 'app_settings',

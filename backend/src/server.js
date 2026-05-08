@@ -338,6 +338,9 @@ app.post('/api/auth/sync', async (req, res) => {
       ip_address: clientIp
     });
 
+    // Get App Settings
+    const appSettings = await AppSetting.findByPk(1);
+
     return res.json({
       success: true,
       user: {
@@ -348,6 +351,9 @@ app.post('/api/auth/sync', async (req, res) => {
         pendingBalance: user.pending_balance,
         isPhoneVerified: user.is_phone_verified,
         isChannelJoined: user.is_channel_joined
+      },
+      settings: {
+        onboardingVerificationEnabled: appSettings?.onboarding_verification_enabled ?? true
       }
     });
   } catch (error) {
@@ -375,6 +381,20 @@ app.post('/api/user/verify-onboarding', async (req, res) => {
     
     const user = await User.findByPk(tgUser.id);
     if (!user) return res.status(404).json({ error: 'User not found' });
+
+    // 0. Check if verification is enabled globally
+    const appSettings = await AppSetting.findByPk(1);
+    if (appSettings && appSettings.onboarding_verification_enabled === false) {
+      user.is_phone_verified = true;
+      user.is_channel_joined = true;
+      await user.save();
+      return res.json({ 
+        success: true, 
+        isPhoneVerified: true,
+        isChannelJoined: true,
+        user
+      });
+    }
 
     // 1. Update Phone if provided or check if already exists
     if (phone_number) {

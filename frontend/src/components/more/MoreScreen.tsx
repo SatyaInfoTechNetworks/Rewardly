@@ -99,7 +99,15 @@ export const MoreScreen: React.FC<MoreScreenProps> = ({ user }) => {
           <ChevronRight size={18} className={styles.chevron} />
         </div>
 
-        <div className={styles.menuItem} onClick={() => window.open('mailto:support@satyainfotechnetworks.com')}>
+        <div className={styles.menuItem} onClick={() => window.open('https://telegram.dog/Devraj069', '_blank')}>
+          <div className={`${styles.menuIconContainer} ${styles.violet}`}>
+            <Handshake size={20} />
+          </div>
+          <span className={styles.menuLabel}>Advertise/Collaboration</span>
+          <ChevronRight size={18} className={styles.chevron} />
+        </div>
+
+        <div className={styles.menuItem} onClick={() => window.open('https://telegram.dog/Devraj069', '_blank')}>
           <div className={`${styles.menuIconContainer} ${styles.green}`}>
             <Mail size={20} />
           </div>

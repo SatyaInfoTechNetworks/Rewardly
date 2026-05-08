@@ -1,4 +1,5 @@
 const express = require('express');
+const crypto = require('crypto');
 const router = express.Router();
 const axios = require('axios');
 const User = require('../models/User');
@@ -58,9 +59,20 @@ router.get('/test', async (req, res) => {
  */
 router.get('/postback', async (req, res) => {
   try {
-    const { user_id, amount, status, offer_id, trans_id } = req.query;
+    const { user_id, amount, status, offer_id, trans_id, sig } = req.query;
     
-    console.log('[OpinionUniverse] Postback received:', { user_id, amount, status, offer_id, trans_id });
+    console.log('[OpinionUniverse] Postback received:', { user_id, amount, status, offer_id, trans_id, sig });
+
+    // 0. Signature Verification (Security)
+    const secret = process.env.OU_POSTBACK_SECRET;
+    if (secret && sig && trans_id) {
+      const calculatedHash = crypto.createHmac("sha256", secret).update(trans_id).digest("hex");
+      if (calculatedHash !== sig) {
+        console.error('[OpinionUniverse] Security Alert: Invalid postback signature!');
+        return res.send('0');
+      }
+      console.log('[OpinionUniverse] Signature verified successfully.');
+    }
 
     // Status 1 = Completed, Status 2 = Reversal
     if (status !== '1') {

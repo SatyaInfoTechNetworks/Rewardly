@@ -85,7 +85,9 @@ router.get('/all', async (req, res) => {
       app_id: OU_CONFIG.APP_ID,
       country: 'IN', // Reverted back to IN per working link
       platform: 'All',
-      type: 'live_surveys'
+      type: 'live_surveys',
+      sid: userId,
+      sid2: userId
     };
 
     const ouPromise = axios.get(OU_CONFIG.BASE_URL, {

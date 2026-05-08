@@ -68,7 +68,7 @@ export const PlayGamesScreen: React.FC<PlayGamesScreenProps> = ({ user, onBack, 
         console.error("AdsGram Error, attempting Monetag fallback:", err);
         // FALLBACK TO MONETAG
         if ((window as any).show_10977311) {
-          (window as any).show_10977311('pop').then(() => {
+          (window as any).show_10977311().then(() => {
             claimReward();
           }).catch((monetagErr: any) => {
             console.error("Monetag Fallback Error:", monetagErr);
@@ -99,7 +99,7 @@ export const PlayGamesScreen: React.FC<PlayGamesScreenProps> = ({ user, onBack, 
     // Trigger Monetag Rewarded Interstitial / Popup
     if ((window as any).monetagReady || (window as any).show_10977311) {
       setAdLoading(true);
-      (window as any).show_10977311('pop').then(() => {
+      (window as any).show_10977311().then(() => {
         // Ad completed successfully
         claimReward();
       }).catch((err: any) => {

@@ -106,6 +106,17 @@ testConnection().then(() => {
     } catch (migErr) {
       console.log('Migration Note (type):', migErr.message);
     }
+
+    try {
+      await sequelize.query("ALTER TABLE `app_settings` ADD `onboarding_verification_enabled` TINYINT(1) DEFAULT 1;");
+      console.log('✅ AppSetting onboarding_verification_enabled added.');
+    } catch (migErr) {
+      if (migErr.parent?.code === 'ER_DUP_FIELDNAME') {
+        console.log('✅ AppSetting onboarding_verification_enabled already exists.');
+      } else {
+        console.log('Migration Note (onboarding_verification_enabled):', migErr.message);
+      }
+    }
     
     // Auto-Seed Defaults
     try {

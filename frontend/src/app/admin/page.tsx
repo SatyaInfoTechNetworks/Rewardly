@@ -448,13 +448,18 @@ export default function AdminPanel() {
 
         <div 
           className={styles.navItem} 
-          style={{ marginTop: 'auto', color: '#f87171' }}
+          style={{ 
+            marginTop: 'auto', 
+            color: '#f87171',
+            background: 'rgba(248, 113, 113, 0.05)',
+            border: '1px solid rgba(248, 113, 113, 0.1)'
+          }}
           onClick={() => {
             localStorage.removeItem("admin_secret");
             setIsAuthenticated(false);
           }}
         >
-          <LogOut size={22} /> Logout
+          <LogOut size={22} /> Logout Session
         </div>
       </aside>
 
@@ -526,15 +531,15 @@ export default function AdminPanel() {
                         <td>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
                             {user.photo_url ? (
-                              <img src={user.photo_url} alt="Avatar" style={{ width: '42px', height: '42px', borderRadius: '12px', objectFit: 'cover', border: '1px solid var(--border-subtle)' }} />
+                              <img src={user.photo_url} alt="Avatar" style={{ width: '42px', height: '42px', borderRadius: '12px', objectFit: 'cover', border: '1px solid var(--border-subtle)', background: 'var(--bg-input)' }} />
                             ) : (
-                              <div style={{ width: '42px', height: '42px', borderRadius: '12px', background: 'linear-gradient(135deg, #38bdf8, #2563eb)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: '1rem' }}>
+                              <div style={{ width: '42px', height: '42px', borderRadius: '12px', background: 'linear-gradient(135deg, #38bdf8, #0ea5e9)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: '1rem', boxShadow: '0 4px 12px rgba(56, 189, 248, 0.2)' }}>
                                 {(user.first_name || 'U')[0]}
                               </div>
                             )}
                             <div>
-                              <div style={{ fontWeight: 600, color: '#fff' }}>{user.first_name} {user.last_name}</div>
-                              <div style={{ fontSize: '0.8125rem', color: '#38bdf8', fontWeight: 500 }}>@{user.username || 'no_username'}</div>
+                              <div style={{ fontWeight: 600, color: '#fff', fontSize: '0.9375rem' }}>{user.first_name} {user.last_name}</div>
+                              <div style={{ fontSize: '0.8125rem', color: '#38bdf8', fontWeight: 600, letterSpacing: '0.01em' }}>@{user.username || 'no_username'}</div>
                             </div>
                           </div>
                         </td>

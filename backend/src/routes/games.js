@@ -5,6 +5,7 @@ const Transaction = require('../models/Transaction');
 const { validateTelegramInitData } = require('../utils/telegramAuth');
 const { trackContestActivity } = require('../utils/contestTracker');
 const AppSetting = require('../models/AppSetting');
+const { generateTransactionId } = require('../utils/transactions');
 
 const getSettings = async () => {
   let settings = await AppSetting.findByPk(1);
@@ -97,6 +98,7 @@ router.post('/reward', async (req, res) => {
     // Log Transaction
     await Transaction.create({
       telegram_id: user.telegram_id,
+      reference_id: generateTransactionId('GAME'),
       type: 'game',
       amount: rewardAmount,
       description: 'Reward for Play & Earn ad',

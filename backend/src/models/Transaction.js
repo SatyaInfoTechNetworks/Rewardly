@@ -11,12 +11,17 @@ const Transaction = sequelize.define('Transaction', {
     type: DataTypes.BIGINT,
     allowNull: false
   },
+  reference_id: {
+    type: DataTypes.STRING,
+    allowNull: true,
+    unique: true
+  },
   amount: {
     type: DataTypes.INTEGER,
     allowNull: false
   },
   type: {
-    type: DataTypes.ENUM('survey', 'task', 'daily_streak', 'spin', 'withdrawal', 'game'),
+    type: DataTypes.STRING, // Changed to STRING for flexibility
     allowNull: false
   },
   description: {
@@ -26,7 +31,6 @@ const Transaction = sequelize.define('Transaction', {
   external_id: {
     type: DataTypes.STRING,
     allowNull: true
-    // unique: true removed temporarily to fix "Too many keys" error
   },
   status: {
     type: DataTypes.ENUM('pending', 'completed', 'failed'),

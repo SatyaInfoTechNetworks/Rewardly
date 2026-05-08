@@ -34,6 +34,9 @@ export default function AdminPanel() {
   const [visitTasks, setVisitTasks] = useState<any[]>([]);
   const [isVisitModalOpen, setIsVisitModalOpen] = useState(false);
   const [visitForm, setVisitForm] = useState({ title: '', url: '', reward_amount: 20, timer_seconds: 10 });
+
+  // Transactions State
+  const [transactions, setTransactions] = useState<any[]>([]);
   
   // Contest States
   const [contests, setContests] = useState<any[]>([]);
@@ -118,6 +121,10 @@ export default function AdminPanel() {
         // Fetch Visit Tasks
         const visitRes = await fetch(`${API_URL}/api/admin/visit-tasks`, options);
         if (visitRes.ok) setVisitTasks(await visitRes.json());
+        
+        // Fetch Transactions
+        const transRes = await fetch(`${API_URL}/api/admin/transactions`, options);
+        if (transRes.ok) setTransactions(await transRes.json());
         
         setIsAuthenticated(true);
         localStorage.setItem("admin_secret", authSecret);
@@ -1751,6 +1758,58 @@ export default function AdminPanel() {
               </div>
             </div>
           </div>
+        )}
+
+        {activeView === 'transactions' && (
+          <section>
+            <div className={styles.sectionHeader}>
+              <h2 className={styles.sectionTitle}>System Audit Log</h2>
+              <p className={styles.sectionDesc}>View all coin distributions and user activities</p>
+            </div>
+
+            <div className={styles.tableCard}>
+              <table className={styles.adminTable}>
+                <thead>
+                  <tr>
+                    <th>Ref ID</th>
+                    <th>User ID</th>
+                    <th>Type</th>
+                    <th>Amount</th>
+                    <th>Date & Time</th>
+                    <th>Description</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {transactions.map(txn => (
+                    <tr key={txn.id}>
+                      <td style={{ fontFamily: 'monospace', color: '#38bdf8', fontSize: '0.8125rem' }}>{txn.reference_id || `ID-${txn.id}`}</td>
+                      <td style={{ fontSize: '0.8125rem' }}>{txn.telegram_id}</td>
+                      <td>
+                        <span style={{ 
+                          padding: '4px 8px', 
+                          borderRadius: '6px', 
+                          fontSize: '0.75rem', 
+                          fontWeight: 600,
+                          background: txn.type === 'withdrawal' ? 'rgba(248,113,113,0.1)' : 'rgba(74,222,128,0.1)',
+                          color: txn.type === 'withdrawal' ? '#f87171' : '#4ade80',
+                          textTransform: 'uppercase'
+                        }}>
+                          {txn.type}
+                        </span>
+                      </td>
+                      <td style={{ fontWeight: 700, color: txn.type === 'withdrawal' ? '#f87171' : '#4ade80' }}>
+                        {txn.type === 'withdrawal' ? '-' : '+'}{txn.amount}
+                      </td>
+                      <td style={{ fontSize: '0.8125rem', color: '#64748b' }}>
+                        {new Date(txn.created_at).toLocaleString()}
+                      </td>
+                      <td style={{ fontSize: '0.8125rem', color: '#94a3b8' }}>{txn.description}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </section>
         )}
     </div>
   );

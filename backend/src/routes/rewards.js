@@ -6,6 +6,7 @@ const Transaction = require('../models/Transaction');
 const UserVisit = require('../models/UserVisit');
 const VisitTask = require('../models/VisitTask');
 const { validateTelegramInitData } = require('../utils/telegramAuth');
+const { generateTransactionId } = require('../utils/transactions');
 
 const parseInitData = (initData) => {
   const urlParams = new URLSearchParams(initData);
@@ -42,9 +43,15 @@ router.get('/check-in/status', async (req, res) => {
       rewards = await DailyReward.bulkCreate(defaults);
     }
 
-    const today = new Date().toISOString().split('T')[0];
-    const lastCheckIn = user.last_check_in ? user.last_check_in.toISOString().split('T')[0] : null;
-    const canClaim = lastCheckIn !== today;
+    const now = new Date();
+    const todayUTC = now.getUTCFullYear() + '-' + (now.getUTCMonth() + 1) + '-' + now.getUTCDate();
+    
+    let canClaim = true;
+    if (user.last_check_in) {
+      const last = new Date(user.last_check_in);
+      const lastUTC = last.getUTCFullYear() + '-' + (last.getUTCMonth() + 1) + '-' + last.getUTCDate();
+      canClaim = lastUTC !== todayUTC;
+    }
 
     res.json({
       streak: user.streak || 0,
@@ -69,21 +76,27 @@ router.post('/check-in/claim', async (req, res) => {
     if (!user) return res.status(404).json({ error: 'User not found' });
 
     const now = new Date();
-    const todayStr = now.toISOString().split('T')[0];
-    const lastCheckInStr = user.last_check_in ? user.last_check_in.toISOString().split('T')[0] : null;
-
-    if (lastCheckInStr === todayStr) {
-      return res.status(400).json({ error: 'Already claimed today' });
+    const todayUTC = now.getUTCFullYear() + '-' + (now.getUTCMonth() + 1) + '-' + now.getUTCDate();
+    
+    if (user.last_check_in) {
+      const last = new Date(user.last_check_in);
+      const lastUTC = last.getUTCFullYear() + '-' + (last.getUTCMonth() + 1) + '-' + last.getUTCDate();
+      if (lastUTC === todayUTC) {
+        return res.status(400).json({ error: 'Already claimed today' });
+      }
     }
 
     // Check if streak should continue
     let newStreak = 1;
     if (user.last_check_in) {
       const yesterday = new Date(now);
-      yesterday.setDate(yesterday.getDate() - 1);
-      const yesterdayStr = yesterday.toISOString().split('T')[0];
+      yesterday.setUTCDate(yesterday.getUTCDate() - 1);
+      const yesterdayUTC = yesterday.getUTCFullYear() + '-' + (yesterday.getUTCMonth() + 1) + '-' + yesterday.getUTCDate();
       
-      if (lastCheckInStr === yesterdayStr) {
+      const last = new Date(user.last_check_in);
+      const lastUTC = last.getUTCFullYear() + '-' + (last.getUTCMonth() + 1) + '-' + last.getUTCDate();
+
+      if (lastUTC === yesterdayUTC) {
         newStreak = (user.streak % 7) + 1;
       }
     }
@@ -98,9 +111,10 @@ router.post('/check-in/claim', async (req, res) => {
     user.last_check_in = now;
     await user.save();
 
-    // Create Transaction
+    // Create Transaction with proper ID
     await Transaction.create({
       telegram_id: user.telegram_id,
+      reference_id: generateTransactionId('CHKIN'),
       amount,
       type: 'check_in',
       description: `Daily Check-in Day ${newStreak}`,
@@ -159,6 +173,7 @@ router.post('/visit/claim', async (req, res) => {
 
     await Transaction.create({
       telegram_id: tgUser.id,
+      reference_id: generateTransactionId('VISIT'),
       amount: task.reward_amount,
       type: 'visit',
       description: `Visit & Earn: ${task.title}`,

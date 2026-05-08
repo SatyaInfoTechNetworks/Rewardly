@@ -129,14 +129,17 @@ export const VisitAndEarnScreen: React.FC<VisitAndEarnScreenProps> = ({ user, on
           </p>
         </div>
 
-        {tasks.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '40px 0', color: '#64748b' }}>
-            <p>No visit tasks available right now.</p>
+        {tasks.filter(t => !completedIds.includes(t.id)).length === 0 ? (
+          <div style={{ textAlign: 'center', padding: '60px 20px', color: '#64748b' }}>
+            <div style={{ width: '64px', height: '64px', background: '#f1f5f9', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+              <CheckCircle2 size={32} color="#94a3b8" />
+            </div>
+            <h3 style={{ fontSize: '18px', fontWeight: 700, color: '#1e293b', marginBottom: '8px' }}>All Done!</h3>
+            <p style={{ fontSize: '14px' }}>You have completed all available visit tasks. Check back later for more!</p>
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            {tasks.map((task) => {
-              const isCompleted = completedIds.includes(task.id);
+            {tasks.filter(t => !completedIds.includes(t.id)).map((task) => {
               const isCurrent = visitingTask?.id === task.id;
 
               return (
@@ -152,20 +155,19 @@ export const VisitAndEarnScreen: React.FC<VisitAndEarnScreenProps> = ({ user, on
                     gap: '14px',
                     boxShadow: '0 4px 15px rgba(0,0,0,0.03)',
                     border: isCurrent ? '2px solid #3b82f6' : '1px solid #f1f5f9',
-                    opacity: isCompleted ? 0.6 : 1
                   }}
                 >
                   <div style={{ 
                     width: '48px', 
                     height: '48px', 
-                    background: isCompleted ? '#F0FDF4' : '#EFF6FF', 
+                    background: '#EFF6FF', 
                     borderRadius: '14px',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    color: isCompleted ? '#10b981' : '#3b82f6'
+                    color: '#3b82f6'
                   }}>
-                    {isCompleted ? <CheckCircle2 size={24} /> : <Globe size={24} />}
+                    <Globe size={24} />
                   </div>
 
                   <div style={{ flex: 1 }}>
@@ -181,12 +183,12 @@ export const VisitAndEarnScreen: React.FC<VisitAndEarnScreenProps> = ({ user, on
 
                   <button 
                     onClick={() => handleVisit(task)}
-                    disabled={isCompleted || !!visitingTask}
+                    disabled={!!visitingTask}
                     style={{
                       padding: '10px 16px',
                       borderRadius: '12px',
-                      background: isCompleted ? '#f1f5f9' : (isCurrent ? '#3b82f6' : '#1e293b'),
-                      color: isCompleted ? '#94a3b8' : 'white',
+                      background: isCurrent ? '#3b82f6' : '#1e293b',
+                      color: 'white',
                       border: 'none',
                       fontWeight: 700,
                       fontSize: '13px',
@@ -201,7 +203,7 @@ export const VisitAndEarnScreen: React.FC<VisitAndEarnScreenProps> = ({ user, on
                         {timeLeft}s
                       </span>
                     ) : (
-                      isCompleted ? 'Completed' : 'Visit'
+                      'Visit'
                     )}
                   </button>
                 </motion.div>

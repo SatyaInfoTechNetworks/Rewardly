@@ -562,4 +562,20 @@ router.delete('/visit-tasks/:id', adminAuth, async (req, res) => {
   }
 });
 
+/**
+ * GET /api/admin/transactions
+ * Fetch all system transactions
+ */
+router.get('/transactions', adminAuth, async (req, res) => {
+  try {
+    const transactions = await Transaction.findAll({
+      order: [['created_at', 'DESC']],
+      limit: 500 // Limit for performance
+    });
+    res.json(transactions);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 module.exports = router;

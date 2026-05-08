@@ -125,6 +125,8 @@ testConnection().then(() => {
     } catch (e) {
       console.log('Seed skip:', e.message);
     }
+  }).catch(err => {
+    console.error('❌ Database Sync Error:', err);
   });
 });
 

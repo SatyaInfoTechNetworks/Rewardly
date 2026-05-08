@@ -34,9 +34,6 @@ export default function AdminPanel() {
   const [visitTasks, setVisitTasks] = useState<any[]>([]);
   const [isVisitModalOpen, setIsVisitModalOpen] = useState(false);
   const [visitForm, setVisitForm] = useState({ title: '', url: '', reward_amount: 20, timer_seconds: 10 });
-
-  // Transactions State
-  const [transactions, setTransactions] = useState<any[]>([]);
   
   // Contest States
   const [contests, setContests] = useState<any[]>([]);

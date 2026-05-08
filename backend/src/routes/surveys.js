@@ -133,7 +133,7 @@ router.get('/all', async (req, res) => {
       unifiedSurveys.push({
         id: `ou-${o.offer_id}`,
         title: `Survey ${o.offer_id}`, // As requested
-        time: `${o.loi || 10} mins`,
+        time: `${Math.round(parseFloat(o.loi || 10))} mins`,
         rating: (o.ir || 95).toString(),
         reward: Math.floor(parseFloat(o.amount)), // amount is coins
         href: finalLink,

@@ -435,6 +435,12 @@ app.post('/api/user/update-ids', async (req, res) => {
   }
 });
 
+// Global Error Handler
+app.use((err, req, res, next) => {
+  console.error('[Global Error]', err.stack);
+  res.status(500).json({ error: 'Internal Server Error', message: err.message });
+});
+
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`✨ Server started on 0.0.0.0:${PORT}`);
 });

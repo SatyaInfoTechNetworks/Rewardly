@@ -12,7 +12,6 @@ const CONFIG = {
 
 /**
  * GET /api/opinion-universe/test
- * Proxy route to test the API connection
  */
 router.get('/test', async (req, res) => {
   try {
@@ -27,17 +26,25 @@ router.get('/test', async (req, res) => {
       type: 'live_surveys'
     };
 
-    console.log('Fetching Opinion Universe Offers:', params);
+    console.log('[OpinionUniverse] Fetching offers with params:', params);
 
-    const response = await axios.get(CONFIG.BASE_URL, { params });
+    const response = await axios.get(CONFIG.BASE_URL, { 
+      params,
+      timeout: 10000 // 10s timeout
+    });
     
-    // The response structure from docs: { data: { response: { offers: [...] } } }
+    console.log('[OpinionUniverse] Success! Found', response.data?.data?.response?.offers?.length || 0, 'offers');
     res.json(response.data);
   } catch (err) {
-    console.error('Opinion Universe Error:', err.response?.data || err.message);
+    console.error('[OpinionUniverse] Error fetching offers:', err.message);
+    if (err.response) {
+      console.error('[OpinionUniverse] API Response Error:', err.response.data);
+    }
+    
     res.status(err.response?.status || 500).json({ 
       error: 'Failed to fetch offers', 
-      details: err.response?.data || err.message 
+      message: err.message,
+      details: err.response?.data
     });
   }
 });

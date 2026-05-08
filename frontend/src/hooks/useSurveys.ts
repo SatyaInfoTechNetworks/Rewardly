@@ -8,6 +8,8 @@ export interface Survey {
   reward: string;
   href: string;
   category?: string;
+  image?: string;
+  source?: string;
 }
 
 export const useSurveys = (userId: string | undefined) => {
@@ -27,7 +29,7 @@ export const useSurveys = (userId: string | undefined) => {
       setLoading(true);
       setError(null);
       
-      const response = await fetch(`${API_URL}/api/surveys/cpx?userId=${userId}`, {
+      const response = await fetch(`${API_URL}/api/surveys/all?userId=${userId}`, {
         credentials: 'include'
       });
       const data = await response.json();
@@ -35,13 +37,13 @@ export const useSurveys = (userId: string | undefined) => {
       if (data.status === "success" && data.surveys && data.surveys.length > 0) {
         const mappedSurveys = data.surveys.map((s: any) => ({
           id: s.id,
-          title: s.category ? `${s.category} Survey` : "Market Research",
-          time: `${s.loi} mins`,
-          // Use exact value of statistics_rating_count for ratings as requested
-          rating: s.statistics_rating_count.toString(),
-          reward: Math.floor(parseFloat(s.payout)).toLocaleString(),
-          href: s.href_new,
-          category: s.category
+          title: s.title,
+          time: s.time,
+          rating: s.rating,
+          reward: s.reward.toLocaleString(),
+          href: s.href,
+          image: s.image,
+          source: s.source
         }));
         setSurveys(mappedSurveys);
       } else {

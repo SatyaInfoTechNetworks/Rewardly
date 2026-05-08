@@ -9,6 +9,7 @@ interface SurveyCardProps {
   rating: string;
   reward: string | number;
   href?: string;
+  image?: string;
   isLoading?: boolean;
 }
 
@@ -18,6 +19,7 @@ export const SurveyCard: React.FC<SurveyCardProps> = ({
   rating, 
   reward, 
   href,
+  image,
   isLoading = false
 }) => {
   if (isLoading) {
@@ -42,7 +44,11 @@ export const SurveyCard: React.FC<SurveyCardProps> = ({
   return (
     <div className={`${styles.surveyCard} card`} onClick={handleClick} style={{ cursor: href ? 'pointer' : 'default' }}>
       <div className={styles.surveyIconContainer}>
-        <ClipboardList size={22} color="#5B5FFB" />
+        {image ? (
+          <img src={image} alt="" style={{ width: '100%', height: '100%', borderRadius: '8px', objectFit: 'cover' }} />
+        ) : (
+          <ClipboardList size={22} color="#5B5FFB" />
+        )}
       </div>
       <div className={styles.surveyInfo}>
         <h3>{title}</h3>

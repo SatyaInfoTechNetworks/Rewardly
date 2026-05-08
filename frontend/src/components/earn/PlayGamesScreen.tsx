@@ -61,6 +61,13 @@ export const PlayGamesScreen: React.FC<PlayGamesScreenProps> = ({ user, onBack, 
   };
 
   const startAdFlow = () => {
+    // 0. Respect Admin Panel Settings
+    if (stats && stats.adsgramEnabled === false && stats.monetagEnabled === false) {
+      setModalState('none');
+      alert("Ads are currently disabled by Admin. Please check back later!");
+      return;
+    }
+
     // 1. Show Ad
     const adsgram = (window as any).AdsgramController;
     
@@ -157,20 +164,60 @@ export const PlayGamesScreen: React.FC<PlayGamesScreenProps> = ({ user, onBack, 
           <h3 style={{ fontSize: '20px', fontWeight: 800 }}>Play Games To Earn</h3>
         </div>
 
-        {/* Games Grid */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+        {/* Video Tasks Section */}
+        <div style={{ marginBottom: '24px' }}>
+          <div className="card" style={{ padding: '20px', background: 'white', border: '1px solid #e2e8f0', borderRadius: '20px' }}>
+            <div style={{ display: 'flex', gap: '16px', alignItems: 'center', marginBottom: '16px' }}>
+              <div style={{ width: '48px', height: '48px', background: '#F0FDF4', borderRadius: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Zap size={24} color="#10b981" />
+              </div>
+              <div style={{ flex: 1 }}>
+                <h4 style={{ fontSize: '0.95rem', fontWeight: 700, color: '#1e293b', margin: '0 0 2px 0' }}>Watch Ads</h4>
+                <p style={{ fontSize: '0.8rem', color: '#64748b', margin: 0 }}>Watch a short video to earn coins instantly</p>
+              </div>
+              <div style={{ textAlign: 'right' }}>
+                <div style={{ fontSize: '0.9rem', fontWeight: 800, color: '#10b981' }}>+{stats?.rewardPerGame || 5}</div>
+                <div style={{ fontSize: '10px', color: '#94a3b8' }}>Coins</div>
+              </div>
+            </div>
+            <button 
+              onClick={() => {
+                setSelectedGame({ name: 'Video Task' });
+                setModalState('instruction');
+              }}
+              disabled={loading || (stats && stats.remainingPlays <= 0)}
+              style={{ 
+                width: '100%', 
+                padding: '12px', 
+                background: '#4F46E5', 
+                color: 'white', 
+                border: 'none', 
+                borderRadius: '12px', 
+                fontWeight: 700,
+                opacity: (loading || (stats && stats.remainingPlays <= 0)) ? 0.6 : 1
+              }}
+            >
+              Start Watching
+            </button>
+          </div>
+        </div>
+
+        {/* Games Grid - Commented out/Coming Soon as requested */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', opacity: 0.7 }}>
           {GAMES.map((game) => (
             <div 
               key={game.id} 
               className="card" 
-              onClick={() => handleGameClick(game)}
-              style={{ padding: '16px', textAlign: 'center', background: 'white', position: 'relative' }}
+              style={{ padding: '16px', textAlign: 'center', background: 'white', position: 'relative', cursor: 'not-allowed' }}
             >
+              {/* Coming Soon Overlay */}
+              <div style={{ position: 'absolute', top: '8px', right: '8px', background: '#4F46E5', color: 'white', fontSize: '8px', fontWeight: 900, padding: '2px 6px', borderRadius: '4px' }}>SOON</div>
+              
               <div style={{ fontSize: '40px', marginBottom: '12px' }}>{game.icon}</div>
               <div style={{ fontWeight: 700, fontSize: '14px', marginBottom: '12px' }}>{game.name}</div>
-              <div style={{ background: '#FFFBEB', borderRadius: '20px', padding: '6px 0', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', border: '1px solid #FEF3C7' }}>
-                <div style={{ width: '16px', height: '16px', background: '#F59E0B', borderRadius: '50%' }} />
-                <span style={{ fontWeight: 700, fontSize: '12px', color: '#B45309' }}>{game.reward} Coins</span>
+              <div style={{ background: '#f1f5f9', borderRadius: '20px', padding: '6px 0', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', border: '1px solid #e2e8f0' }}>
+                <div style={{ width: '16px', height: '16px', background: '#94a3b8', borderRadius: '50%' }} />
+                <span style={{ fontWeight: 700, fontSize: '12px', color: '#64748b' }}>{game.reward} Coins</span>
               </div>
             </div>
           ))}

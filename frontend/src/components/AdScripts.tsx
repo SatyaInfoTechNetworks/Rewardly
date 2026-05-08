@@ -6,6 +6,12 @@ export default function AdScripts() {
   return (
     <>
       <Script src="https://telegram.org/js/telegram-web-app.js" strategy="beforeInteractive" />
+      <Script src="https://sad.adsgram.ai/js/sad.min.js" strategy="afterInteractive" onLoad={() => {
+        if ((window as any).Adsgram) {
+          (window as any).AdsgramController = (window as any).Adsgram.init({ blockId: "4376" }); // Using a default/placeholder blockId, user should verify
+          console.log("✅ AdsGram Ready");
+        }
+      }} />
       <Script 
         src="//libtl.com/sdk.js" 
         data-zone="10977311" 

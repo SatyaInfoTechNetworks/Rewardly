@@ -111,4 +111,52 @@ router.get('/monetag', async (req, res) => {
   }
 });
 
+/**
+ * AdsGram Postback
+ * Credits coins for AdsGram rewarded ads via S2S
+ */
+router.get('/adsgram', async (req, res) => {
+  const { user_id } = req.query;
+
+  console.log(`📥 AdsGram Postback: User=${user_id}`);
+
+  if (!user_id) return res.status(400).send('Missing user_id');
+
+  const t = await sequelize.transaction();
+
+  try {
+    const user = await User.findByPk(user_id);
+    if (!user) {
+      console.error(`❌ AdsGram User ${user_id} not found`);
+      return res.status(404).send('User not found');
+    }
+
+    const rewardAmount = 5; 
+    
+    // Update Balance
+    await user.update({ balance: user.balance + rewardAmount }, { transaction: t });
+
+    // Record Transaction
+    await Transaction.create({
+      telegram_id: user_id,
+      amount: rewardAmount,
+      type: 'game',
+      description: 'AdsGram S2S Reward',
+      status: 'completed'
+    }, { transaction: t });
+
+    await t.commit();
+
+    const { trackContestActivity } = require('../utils/contestTracker');
+    await trackContestActivity(user_id, 'earning', rewardAmount);
+
+    console.log(`✅ AdsGram Reward: User ${user_id} credited with ${rewardAmount} coins.`);
+    return res.send('OK');
+  } catch (error) {
+    if (t) await t.rollback();
+    console.error('❌ AdsGram Postback Error:', error);
+    return res.status(500).send('Internal Error');
+  }
+});
+
 module.exports = router;

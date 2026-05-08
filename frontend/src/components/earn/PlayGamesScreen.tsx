@@ -42,6 +42,51 @@ export const PlayGamesScreen: React.FC<PlayGamesScreenProps> = ({ user, onBack, 
     }
   };
 
+  const handleAdsGram = () => {
+    if (adLoading) return;
+    
+    // Check if limit reached
+    if (stats && stats.remainingPlays <= 0) {
+      alert("Daily limit reached! Please come back tomorrow.");
+      return;
+    }
+
+    const adsgram = (window as any).AdsgramController;
+
+    if (adsgram) {
+      setAdLoading(true);
+      adsgram.show().then((result: any) => {
+        if (result.done) {
+          // Ad completed successfully
+          claimReward();
+        } else {
+          // Ad was closed early
+          setAdLoading(false);
+          alert("Ad was closed early. No reward earned.");
+        }
+      }).catch((err: any) => {
+        console.error("AdsGram Error, attempting Monetag fallback:", err);
+        // FALLBACK TO MONETAG
+        if ((window as any).show_10977311) {
+          (window as any).show_10977311('pop').then(() => {
+            claimReward();
+          }).catch((monetagErr: any) => {
+            console.error("Monetag Fallback Error:", monetagErr);
+            setAdLoading(false);
+            alert("Ads could not be loaded. Please try again later.");
+          });
+        } else {
+          setAdLoading(false);
+          alert("Ad providers are currently unavailable. Please wait.");
+        }
+      });
+    } else {
+      // Fallback if AdsGram is not initialized at all
+      console.log("AdsGram not initialized, trying Monetag...");
+      handlePlayGame();
+    }
+  };
+
   const handlePlayGame = () => {
     if (adLoading) return;
     
@@ -63,7 +108,7 @@ export const PlayGamesScreen: React.FC<PlayGamesScreenProps> = ({ user, onBack, 
         alert("Ad failed to load or was closed early.");
       });
     } else {
-      alert("Ad provider (Monetag) not ready yet. Please wait a moment.");
+      alert("Ad provider not ready yet. Please wait a moment.");
     }
   };
 
@@ -145,6 +190,34 @@ export const PlayGamesScreen: React.FC<PlayGamesScreenProps> = ({ user, onBack, 
             </div>
             <h3 style={{ fontSize: '1.1rem', fontWeight: 800, color: '#1e293b', margin: 0 }}>Play Games to Earn</h3>
           </div>
+
+            {/* AdsGram Card */}
+            <div className="card" style={{ padding: '24px 20px', textAlign: 'center', background: 'white', border: '1px solid #e2e8f0', marginBottom: '16px' }}>
+              <div style={{ width: '60px', height: '60px', background: 'rgba(16, 185, 129, 0.1)', borderRadius: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+                <Zap size={32} color="#10b981" />
+              </div>
+              <h4 style={{ fontSize: '1.1rem', fontWeight: 800, color: '#1e293b', marginBottom: '4px' }}>Premium Rewards</h4>
+              <p style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '20px' }}>Watch a premium video ad to earn rewards instantly.</p>
+              
+              <button
+                onClick={handleAdsGram}
+                disabled={adLoading || (stats && stats.remainingPlays <= 0)}
+                className={styles.btnPrimary}
+                style={{ 
+                  width: '100%',
+                  padding: '14px',
+                  background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                  color: 'white',
+                  borderRadius: '16px',
+                  fontSize: '0.95rem',
+                  fontWeight: 700,
+                  opacity: (adLoading || (stats && stats.remainingPlays <= 0)) ? 0.6 : 1,
+                  border: 'none'
+                }}
+              >
+                {adLoading ? 'Loading Ad...' : `Play & Earn 5 Coins`}
+              </button>
+            </div>
 
             {/* Monetag Card */}
             <div className="card" style={{ padding: '24px 20px', textAlign: 'center', background: 'white', border: '1px solid #e2e8f0' }}>

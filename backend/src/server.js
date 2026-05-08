@@ -78,7 +78,7 @@ User.hasMany(ContestEntry, { foreignKey: 'user_id' });
 
 // Test DB Connection & Sync Models
 testConnection().then(() => {
-  sequelize.sync({ alter: true }).then(async () => {
+  sequelize.sync({ alter: false }).then(async () => {
     console.log('✨ Database models synchronized.');
     
     // Auto-Seed Defaults

@@ -75,8 +75,40 @@ router.get('/postback', async (req, res) => {
     }
 
     // Status 1 = Completed, Status 2 = Reversal
+    if (status === '2') {
+       console.log('[OpinionUniverse] Reversal received:', trans_id);
+       
+       const reward = Math.floor(parseFloat(amount));
+       
+       // Deduct from user balance
+       user.balance = Math.max(0, parseInt(user.balance) - reward);
+       await user.save();
+
+       // Update existing transaction if found
+       const existing = await Transaction.findOne({ where: { reference_id: trans_id } });
+       if (existing) {
+          await existing.update({ 
+            status: 'reversed', 
+            description: `${existing.description} (REVERSED)` 
+          });
+       } else {
+          // Create a reversal transaction if original wasn't found
+          await Transaction.create({
+            telegram_id: user.telegram_id,
+            reference_id: `REV-${trans_id || Date.now()}`,
+            amount: -reward,
+            type: 'survey',
+            description: `Opinion Universe Reversal #${offer_id || 'N/A'}`,
+            status: 'completed'
+          });
+       }
+
+       console.log(`❌ [OpinionUniverse] Reversal: Deducted ${reward} coins from user ${user_id}`);
+       return res.send('1');
+    }
+
     if (status !== '1') {
-       console.log('[OpinionUniverse] Postback ignored or reversal (status):', status);
+       console.log('[OpinionUniverse] Postback ignored (status):', status);
        return res.send('1'); // Return 1 to acknowledge
     }
 

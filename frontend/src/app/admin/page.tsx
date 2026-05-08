@@ -5,7 +5,7 @@ import styles from "./admin.module.css";
 import { 
   Users, Coins, Activity, ShieldCheck, Search, 
   LayoutDashboard, History, Settings, LogOut, 
-  Edit3, Trash2, Ban, CheckCircle2, X, Gift, ArrowUpRight, Menu, Trophy, Calendar
+  Edit3, Trash2, Ban, CheckCircle2, X, Gift, ArrowUpRight, Menu, Trophy, Calendar, Globe
 } from "lucide-react";
 
 export default function AdminPanel() {

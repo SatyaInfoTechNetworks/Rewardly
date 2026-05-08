@@ -89,8 +89,9 @@ testConnection().then(() => {
     // Manual Migration for Transactions table (since alter:false is set)
     try {
       // Standard MySQL syntax (catch will handle "column already exists" error)
-      await sequelize.query("ALTER TABLE `transactions` ADD `reference_id` VARCHAR(255) UNIQUE AFTER `telegram_id`;");
-      console.log('✅ Transaction reference_id added.');
+      // Removing UNIQUE to avoid "Too many keys" limit
+      await sequelize.query("ALTER TABLE `transactions` ADD `reference_id` VARCHAR(255) AFTER `telegram_id`;");
+      console.log('✅ Transaction reference_id added (no index).');
     } catch (migErr) {
       if (migErr.parent?.code === 'ER_DUP_FIELDNAME') {
         console.log('✅ Transaction reference_id already exists.');

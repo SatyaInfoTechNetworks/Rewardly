@@ -18,18 +18,18 @@ router.get('/', async (req, res) => {
     const contests = await Contest.findAll({
       where: { status: ['active', 'upcoming'] },
       include: [
-        { model: ContestReward, as: 'rewards' },
-        { model: ContestEntry, attributes: [] }
+        { model: ContestReward, as: 'rewards' }
       ],
-      attributes: {
-        include: [
-          [sequelize.fn('COUNT', sequelize.col('ContestEntries.id')), 'entriesCount']
-        ]
-      },
-      group: ['Contest.id', 'rewards.id'],
       order: [['start_time', 'ASC']]
     });
-    res.json(contests);
+
+    // Add entry counts manually for now to avoid group by issues across different DB dialects
+    const contestsWithCounts = await Promise.all(contests.map(async (c) => {
+      const count = await ContestEntry.count({ where: { contest_id: c.id } });
+      return { ...c.toJSON(), entriesCount: count };
+    }));
+
+    res.json(contestsWithCounts);
   } catch (err) {
     console.error("Fetch Contests Error:", err);
     res.status(500).json({ error: err.message });

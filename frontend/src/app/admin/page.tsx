@@ -19,6 +19,7 @@ export default function AdminPanel() {
   const [payoutMethods, setPayoutMethods] = useState<any[]>([]);
   const [withdrawals, setWithdrawals] = useState<any[]>([]);
   const [transactions, setTransactions] = useState<any[]>([]);
+  const [appSettings, setAppSettings] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   
   // Referral States
@@ -77,7 +78,7 @@ export default function AdminPanel() {
     try {
       const headers = { 'x-admin-secret': authSecret };
       const options = { headers, credentials: 'include' as RequestCredentials };
-      const [statsRes, usersRes, payoutsRes, withdrawalsRes, transRes, refSettingsRes, refMilestonesRes, refStatsRes, contestsRes] = await Promise.all([
+      const [statsRes, usersRes, payoutsRes, withdrawalsRes, transRes, refSettingsRes, refMilestonesRes, refStatsRes, contestsRes, appSettingsRes] = await Promise.all([
         fetch(`${API_URL}/api/admin/stats`, options),
         fetch(`${API_URL}/api/admin/users`, options),
         fetch(`${API_URL}/api/admin/payout-methods`, options),
@@ -86,9 +87,10 @@ export default function AdminPanel() {
         fetch(`${API_URL}/api/admin/referral/settings`, options),
         fetch(`${API_URL}/api/admin/referral/milestones`, options),
         fetch(`${API_URL}/api/admin/referral/stats`, options),
-        fetch(`${API_URL}/api/admin/contests`, options)
+        fetch(`${API_URL}/api/admin/contests`, options),
+        fetch(`${API_URL}/api/admin/settings`, options)
       ]);
-
+ 
       if (statsRes.ok && usersRes.ok && payoutsRes.ok && withdrawalsRes.ok && transRes.ok) {
         setStats(await statsRes.json());
         setUsers(await usersRes.json());
@@ -99,6 +101,7 @@ export default function AdminPanel() {
         if (refMilestonesRes.ok) setReferralMilestones(await refMilestonesRes.json());
         if (refStatsRes.ok) setReferralStats(await refStatsRes.json());
         if (contestsRes.ok) setContests(await contestsRes.json());
+        if (appSettingsRes.ok) setAppSettings(await appSettingsRes.json());
         setIsAuthenticated(true);
         localStorage.setItem("admin_secret", authSecret);
       } else {
@@ -213,6 +216,23 @@ export default function AdminPanel() {
       }
     } catch (error) {
       showToast("Network error occurred", "error");
+    }
+  };
+ 
+  const handleUpdateAppSettings = async () => {
+    try {
+      const res = await fetch(`${API_URL}/api/admin/settings`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'x-admin-secret': secret },
+        credentials: 'include',
+        body: JSON.stringify(appSettings)
+      });
+      if (res.ok) {
+        showToast("Global settings updated");
+        fetchAllData(secret);
+      }
+    } catch (error) {
+      showToast("Failed to update settings", "error");
     }
   };
 
@@ -392,6 +412,7 @@ export default function AdminPanel() {
             { id: 'contests', icon: Trophy, label: 'Contest System' },
             { id: 'withdrawals', icon: ArrowUpRight, label: 'Withdrawals' },
             { id: 'transactions', icon: History, label: 'Audit Log' },
+            { id: 'settings', icon: Settings, label: 'Settings' },
           ].map((item) => (
             <div 
               key={item.id}
@@ -404,7 +425,6 @@ export default function AdminPanel() {
               <item.icon size={22} /> {item.label}
             </div>
           ))}
-          <div className={styles.navItem}><Settings size={22} /> Settings</div>
         </nav>
 
         <div 
@@ -1452,7 +1472,71 @@ export default function AdminPanel() {
             </div>
           </div>
         </div>
-      )}
+        {activeView === 'settings' && (
+          <section>
+            <div className={styles.sectionHeader}>
+              <h2 className={styles.sectionTitle}>Global Application Settings</h2>
+              <p className={styles.sectionDesc}>Configure game rewards, ad networks, and platform-wide parameters</p>
+            </div>
+ 
+            <div className={styles.card} style={{ padding: '2rem', background: 'var(--bg-card)', border: '1px solid var(--border-subtle)', borderRadius: '1.5rem' }}>
+               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem', marginBottom: '2rem' }}>
+                  <div className={styles.formGroup}>
+                     <label className={styles.formLabel}>Game Reward Amount (Coins)</label>
+                     <input 
+                        type="number"
+                        className={styles.formInput}
+                        value={appSettings?.game_reward_coins || 0}
+                        onChange={(e) => setAppSettings({...appSettings, game_reward_coins: parseInt(e.target.value)})}
+                     />
+                     <p style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '0.5rem' }}>Coins awarded to user for each completed ad/game.</p>
+                  </div>
+                  <div className={styles.formGroup}>
+                     <label className={styles.formLabel}>Daily Play Limit (Per User)</label>
+                     <input 
+                        type="number"
+                        className={styles.formInput}
+                        value={appSettings?.game_limit_per_day || 0}
+                        onChange={(e) => setAppSettings({...appSettings, game_limit_per_day: parseInt(e.target.value)})}
+                     />
+                     <p style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '0.5rem' }}>Maximum number of reward-eligible ads a user can watch per day.</p>
+                  </div>
+               </div>
+ 
+               <div style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: '2rem', marginBottom: '2rem' }}>
+                  <h4 style={{ fontWeight: 600, color: '#38bdf8', fontSize: '1.1rem', marginBottom: '1.5rem' }}>Ad Network Configuration</h4>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem' }}>
+                     <div className={styles.formGroup}>
+                        <label className={styles.formLabel}>AdsGram Block ID</label>
+                        <input 
+                           className={styles.formInput}
+                           placeholder="e.g. 4376"
+                           value={appSettings?.adsgram_block_id || ''}
+                           onChange={(e) => setAppSettings({...appSettings, adsgram_block_id: e.target.value})}
+                        />
+                        <p style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '0.5rem' }}>Primary ad network block identifier.</p>
+                     </div>
+                     <div className={styles.formGroup}>
+                        <label className={styles.formLabel}>Monetag Zone ID</label>
+                        <input 
+                           className={styles.formInput}
+                           placeholder="e.g. 10977311"
+                           value={appSettings?.monetag_zone_id || ''}
+                           onChange={(e) => setAppSettings({...appSettings, monetag_zone_id: e.target.value})}
+                        />
+                        <p style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '0.5rem' }}>Fallback ad network zone identifier.</p>
+                     </div>
+                  </div>
+               </div>
+ 
+               <div style={{ display: 'flex', justifyContent: 'flex-end', borderTop: '1px solid var(--border-subtle)', paddingTop: '2rem' }}>
+                  <button className={styles.btnPrimary} onClick={handleUpdateAppSettings} style={{ padding: '1rem 3rem' }}>
+                     Save Global Changes
+                  </button>
+               </div>
+            </div>
+          </section>
+        )}
     </div>
   );
 }

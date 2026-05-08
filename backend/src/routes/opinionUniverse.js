@@ -1,6 +1,9 @@
 const express = require('express');
 const router = express.Router();
 const axios = require('axios');
+const User = require('../models/User');
+const Transaction = require('../models/Transaction');
+const { generateTransactionId } = require('../utils/transactions');
 
 // Opinion Universe Credentials
 const CONFIG = {
@@ -46,6 +49,66 @@ router.get('/test', async (req, res) => {
       message: err.message,
       details: err.response?.data
     });
+  }
+});
+
+/**
+ * GET /api/opinion-universe/postback
+ * Expected URL: /api/opinion-universe/postback?user_id={SID}&amount={PAYOUT}&status={STATUS}&offer_id={OFFERID}&trans_id={TransactionID}
+ */
+router.get('/postback', async (req, res) => {
+  try {
+    const { user_id, amount, status, offer_id, trans_id } = req.query;
+    
+    console.log('[OpinionUniverse] Postback received:', { user_id, amount, status, offer_id, trans_id });
+
+    // Status 1 = Completed, Status 2 = Reversal
+    if (status !== '1') {
+       console.log('[OpinionUniverse] Postback ignored or reversal (status):', status);
+       return res.send('1'); // Return 1 to acknowledge
+    }
+
+    if (!user_id || !amount) {
+      console.error('[OpinionUniverse] Missing user_id or amount');
+      return res.send('0');
+    }
+
+    const user = await User.findByPk(user_id);
+    if (!user) {
+      console.error('[OpinionUniverse] User not found:', user_id);
+      return res.send('0');
+    }
+
+    const reward = Math.floor(parseFloat(amount));
+    
+    // 1. Check for duplicate transaction
+    const existing = await Transaction.findOne({ where: { reference_id: trans_id } });
+    if (existing && trans_id) {
+       console.log('[OpinionUniverse] Duplicate postback detected:', trans_id);
+       return res.send('1');
+    }
+
+    // 2. Update user balance
+    user.balance = parseInt(user.balance) + reward;
+    await user.save();
+
+    // 3. Create Transaction record
+    await Transaction.create({
+      telegram_id: user.telegram_id,
+      reference_id: trans_id || generateTransactionId('OU'),
+      amount: reward,
+      type: 'survey',
+      description: `Opinion Universe Survey #${offer_id || 'N/A'}`,
+      status: 'completed'
+    });
+
+    console.log(`✅ [OpinionUniverse] Success: User ${user_id} awarded ${reward} coins`);
+    
+    // Opinion Universe expects a response body of '1'
+    res.send('1');
+  } catch (err) {
+    console.error('[OpinionUniverse] Postback Critical Error:', err.message);
+    res.status(200).send('0'); // Return 0 on error so they retry
   }
 });
 

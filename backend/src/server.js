@@ -117,7 +117,7 @@ testConnection().then(() => {
         defaults: { 
           game_reward_coins: 5, 
           game_limit_per_day: 20,
-          adsgram_block_id: '4376',
+          adsgram_block_id: '29726',
           monetag_zone_id: '10977311'
         } 
       });

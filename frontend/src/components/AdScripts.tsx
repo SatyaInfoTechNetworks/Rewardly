@@ -11,8 +11,8 @@ export default function AdScripts() {
         const settings = await res.json();
         
         if ((window as any).Adsgram) {
-          (window as any).AdsgramController = (window as any).Adsgram.init({ blockId: settings.adsgram_block_id || "4376" });
-          console.log("✅ AdsGram Ready with ID:", settings.adsgram_block_id);
+          (window as any).AdsgramController = (window as any).Adsgram.init({ blockId: settings.adsgram_block_id || "29726" });
+          console.log("✅ AdsGram Ready with ID:", settings.adsgram_block_id || "29726");
         }
       } catch (err) {
         console.error("Failed to load ad settings:", err);

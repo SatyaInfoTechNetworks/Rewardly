@@ -331,28 +331,12 @@ app.post('/api/auth/sync', async (req, res) => {
       });
     }
 
-    // Update profile info & Streak tracking
-    const today = new Date().toISOString().split('T')[0];
-    const lastCheckIn = user.last_check_in ? new Date(user.last_check_in).toISOString().split('T')[0] : null;
-
-    if (lastCheckIn !== today) {
-      await user.update({ 
-        last_check_in: new Date(),
-        username: tgUser.username,
-        photo_url: tgUser.photo_url,
-        ip_address: clientIp
-      });
-
-      // Track Streak Contest
-      const { trackContestActivity } = require('./utils/contestTracker');
-      await trackContestActivity(tgUser.id, 'streak', 1);
-    } else if (!created) {
-      await user.update({ 
-        username: tgUser.username,
-        photo_url: tgUser.photo_url,
-        ip_address: clientIp
-      });
-    }
+    // Update profile info
+    await user.update({ 
+      username: tgUser.username,
+      photo_url: tgUser.photo_url,
+      ip_address: clientIp
+    });
 
     return res.json({
       success: true,

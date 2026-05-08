@@ -1219,3 +1219,64 @@
   font-weight: 700;
 }
 
+/* Search Bar Styles */
+.searchBarWrapper {
+  padding: 12px 16px;
+  background: white;
+  position: sticky;
+  top: 64px; /* Below subPageHeader */
+  z-index: 99;
+}
+
+.searchInner {
+  display: flex;
+  align-items: center;
+  background: #f1f5f9;
+  border-radius: 12px;
+  padding: 0 12px;
+  height: 44px;
+  gap: 10px;
+  border: 1px solid #e2e8f0;
+}
+
+.searchIcon {
+  color: #94a3b8;
+}
+
+.searchInput {
+  flex: 1;
+  background: none;
+  border: none;
+  outline: none;
+  font-size: 14px;
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+.searchInput::placeholder {
+  color: #94a3b8;
+}
+
+.clearSearch {
+  background: #cbd5e1;
+  border: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  cursor: pointer;
+}
+
+.emptyStateCenter {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  text-align: center;
+  color: #94a3b8;
+  font-size: 14px;
+}

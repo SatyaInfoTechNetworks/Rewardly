@@ -80,8 +80,8 @@ router.get('/postback', async (req, res) => {
        
        const reward = Math.floor(parseFloat(amount));
        
-       // Deduct from user balance
-       user.balance = Math.max(0, parseInt(user.balance) - reward);
+       // Deduct from user balance (allow negative as requested)
+       user.balance = parseInt(user.balance) - reward;
        await user.save();
 
        // Update existing transaction if found

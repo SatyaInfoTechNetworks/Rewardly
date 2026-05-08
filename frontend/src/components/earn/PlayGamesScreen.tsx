@@ -67,36 +67,6 @@ export const PlayGamesScreen: React.FC<PlayGamesScreenProps> = ({ user, onBack, 
     }
   };
 
-  const handleRichAds = () => {
-    if (stats && stats.remainingPlays <= 0) {
-      alert("Daily limit reached! Please come back tomorrow.");
-      return;
-    }
-
-    const richAds = (window as any).richAdsInstance || (window as any).TelegramAdsController;
-    
-    if ((window as any).richAdsReady && richAds) {
-      setAdLoading(true);
-      try {
-        if (typeof richAds.showAd === 'function') {
-          richAds.showAd();
-        } else {
-          throw new Error("showAd method not found");
-        }
-        // RichAds doesn't have a direct promise, so we reward after a delay or based on user activity
-        setTimeout(() => {
-          claimReward();
-        }, 5000); 
-      } catch (e) {
-        console.error("RichAds show error:", e);
-        setAdLoading(false);
-        alert("Could not start RichAds.");
-      }
-    } else {
-      alert("RichAds provider not ready yet. Please wait a moment.");
-    }
-  };
-
   const claimReward = async () => {
     try {
       const tg = (window as any).Telegram?.WebApp;
@@ -201,34 +171,6 @@ export const PlayGamesScreen: React.FC<PlayGamesScreenProps> = ({ user, onBack, 
                 }}
               >
                 {adLoading ? 'Loading Ad...' : `Play & Earn 5 Coins`}
-              </button>
-            </div>
-
-            {/* RichAds Card */}
-            <div className="card" style={{ padding: '24px 20px', textAlign: 'center', background: 'white', border: '1px solid #e2e8f0' }}>
-              <div style={{ width: '60px', height: '60px', background: 'rgba(16, 185, 129, 0.1)', borderRadius: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
-                <Zap size={32} color="#10b981" />
-              </div>
-              <h4 style={{ fontSize: '1.1rem', fontWeight: 800, color: '#1e293b', marginBottom: '4px' }}>RichAds Games</h4>
-              <p style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '20px' }}>Play interactive playable ads to earn more coins.</p>
-              
-              <button
-                onClick={handleRichAds}
-                disabled={adLoading || (stats && stats.remainingPlays <= 0)}
-                className={styles.btnPrimary}
-                style={{ 
-                  width: '100%',
-                  padding: '14px',
-                  background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-                  color: 'white',
-                  borderRadius: '16px',
-                  fontSize: '0.95rem',
-                  fontWeight: 700,
-                  opacity: (adLoading || (stats && stats.remainingPlays <= 0)) ? 0.6 : 1,
-                  border: 'none'
-                }}
-              >
-                {adLoading ? 'Loading Game...' : `Play & Earn 5 Coins`}
               </button>
             </div>
         </motion.div>

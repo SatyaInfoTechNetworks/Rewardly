@@ -1,6 +1,6 @@
 "use client";
 import React, { useState, useEffect } from 'react';
-import { ChevronLeft, Zap, Coins, Info, Play, CheckCircle2, Clock } from 'lucide-react';
+import { ChevronLeft, Zap, Coins, Info, Play, CheckCircle2, Clock, Gamepad2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import styles from '@/app/page.module.css';
 

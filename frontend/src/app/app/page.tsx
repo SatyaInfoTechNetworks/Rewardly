@@ -5,7 +5,7 @@ import styles from "@/app/page.module.css";
 import { ReferralScreen } from "@/components/share/ReferralScreen";
 import { ContestScreen } from "@/components/contests/ContestScreen";
 import { PlayGamesScreen } from "@/components/earn/PlayGamesScreen";
-import { PlayCircle, Gamepad2, ChevronRight, Flame, Zap, Inbox } from "lucide-react";
+import { PlayCircle, Gamepad2, ChevronRight, Flame, Zap, Inbox, CalendarCheck, Globe, Video } from "lucide-react";
 
 // Components
 import { CoinBadge } from "@/components/ui/CoinBadge";
@@ -165,6 +165,35 @@ export default function AppDashboard() {
           )}
 
           <div style={{ filter: showVerification ? 'blur(4px) grayscale(100%)' : 'none', pointerEvents: showVerification ? 'none' : 'auto' }}>
+            
+            {/* Quick Actions Row */}
+            <section className={styles.quickActionsRow}>
+              <div className={styles.quickActionItem} onClick={() => alert("Daily Streak coming soon!")}>
+                <div className={styles.quickActionIcon} style={{ color: '#f59e0b', background: '#fffbeb' }}>
+                  <CalendarCheck size={24} />
+                </div>
+                <span className={styles.quickActionLabel}>Streak</span>
+              </div>
+              <div className={styles.quickActionItem} onClick={() => alert("Visit & Earn coming soon!")}>
+                <div className={styles.quickActionIcon} style={{ color: '#3b82f6', background: '#eff6ff' }}>
+                  <Globe size={24} />
+                </div>
+                <span className={styles.quickActionLabel}>Visit</span>
+              </div>
+              <div className={styles.quickActionItem} onClick={() => setActiveTab("play_games")}>
+                <div className={styles.quickActionIcon} style={{ color: '#6366f1', background: '#eef2ff' }}>
+                  <Gamepad2 size={24} />
+                </div>
+                <span className={styles.quickActionLabel}>Play</span>
+              </div>
+              <div className={styles.quickActionItem} onClick={() => setActiveTab("play_games")}>
+                <div className={styles.quickActionIcon} style={{ color: '#10b981', background: '#f0fdf4' }}>
+                  <Video size={24} />
+                </div>
+                <span className={styles.quickActionLabel}>Watch</span>
+              </div>
+            </section>
+
             {/* Hot Surveys Section */}
             <section className={styles.surveysSection}>
               <SectionHeader 
@@ -189,35 +218,6 @@ export default function AppDashboard() {
                     <p>No surveys available at the moment</p>
                   </div>
                 )}
-              </div>
-            </section>
-
-            {/* Play & Earn Section */}
-            <section className={styles.surveysSection} style={{ paddingTop: 0 }}>
-              <SectionHeader title="Play & Earn" icon={PlayCircle} />
-              <div 
-                className="card" 
-                style={{ 
-                  background: 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)',
-                  padding: '20px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '16px',
-                  color: 'white',
-                  cursor: 'pointer',
-                  border: 'none',
-                  boxShadow: '0 10px 15px -3px rgba(99, 102, 241, 0.3)'
-                }}
-                onClick={() => setActiveTab("play_games")}
-              >
-                <div style={{ width: '48px', height: '48px', background: 'rgba(255,255,255,0.2)', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <Gamepad2 size={24} color="white" />
-                </div>
-                <div style={{ flex: 1 }}>
-                  <h3 style={{ color: 'white', fontSize: '1.125rem', marginBottom: '2px', fontWeight: 800 }}>Games & Fun</h3>
-                  <p style={{ color: 'rgba(255,255,255,0.8)', fontSize: '0.75rem', lineHeight: 1.3 }}>Play games and earn coins for every minute played</p>
-                </div>
-                <ChevronRight size={20} color="white" />
               </div>
             </section>
 

@@ -1,9 +1,8 @@
 "use client";
 import React, { useState, useEffect } from 'react';
-import { Gamepad2, ChevronLeft, Wallet, PlayCircle, Trophy, Zap, Video, ShieldCheck } from 'lucide-react';
+import { Gamepad2, ChevronLeft, Wallet, PlayCircle, Trophy, Zap, Video, ShieldCheck, Twitter, Youtube, MessageSquare } from 'lucide-react';
 import { motion } from 'framer-motion';
 import styles from '@/app/page.module.css';
-import { CoinBadge } from '@/components/ui/CoinBadge';
 
 interface PlayGamesScreenProps {
   user: any;
@@ -57,16 +56,13 @@ export const PlayGamesScreen: React.FC<PlayGamesScreenProps> = ({ user, onBack, 
       setAdLoading(true);
       adsgram.show().then((result: any) => {
         if (result.done) {
-          // Ad completed successfully
           claimReward();
         } else {
-          // Ad was closed early
           setAdLoading(false);
           alert("Ad was closed early. No reward earned.");
         }
       }).catch((err: any) => {
         console.error("AdsGram Error, attempting Monetag fallback:", err);
-        // FALLBACK TO MONETAG
         if ((window as any).show_10977311) {
           (window as any).show_10977311().then(() => {
             claimReward();
@@ -77,38 +73,31 @@ export const PlayGamesScreen: React.FC<PlayGamesScreenProps> = ({ user, onBack, 
           });
         } else {
           setAdLoading(false);
-          alert("Ad providers are currently unavailable. Please wait.");
+          alert("Ad providers are currently unavailable.");
         }
       });
     } else {
-      // Fallback if AdsGram is not initialized at all
-      console.log("AdsGram not initialized, trying Monetag...");
       handlePlayGame();
     }
   };
 
   const handlePlayGame = () => {
     if (adLoading) return;
-    
-    // Check if limit reached
     if (stats && stats.remainingPlays <= 0) {
-      alert("Daily limit reached! Please come back tomorrow.");
+      alert("Daily limit reached!");
       return;
     }
 
-    // Trigger Monetag Rewarded Interstitial / Popup
-    if ((window as any).monetagReady || (window as any).show_10977311) {
+    if ((window as any).show_10977311) {
       setAdLoading(true);
       (window as any).show_10977311().then(() => {
-        // Ad completed successfully
         claimReward();
       }).catch((err: any) => {
-        console.error("Ad error:", err);
         setAdLoading(false);
-        alert("Ad failed to load or was closed early.");
+        alert("Ad failed to load.");
       });
     } else {
-      alert("Ad provider not ready yet. Please wait a moment.");
+      alert("Ad provider not ready.");
     }
   };
 
@@ -133,181 +122,154 @@ export const PlayGamesScreen: React.FC<PlayGamesScreenProps> = ({ user, onBack, 
           remainingPlays: data.remainingPlays
         });
         alert(`🎉 You earned ${data.reward} coins!`);
-        onReward(); // Sync global balance
-      } else {
-        const err = await res.json();
-        alert(err.error || "Failed to claim reward");
+        onReward();
       }
     } catch (err) {
       console.error(err);
-      alert("Connection error while claiming reward");
     } finally {
       setAdLoading(false);
     }
   };
 
+  const handleSocialAction = (url: string) => {
+    const tg = (window as any).Telegram?.WebApp;
+    if (tg) {
+      tg.openTelegramLink(url);
+    } else {
+      window.open(url, '_blank');
+    }
+    // Logic for verifying social tasks would go here
+  };
+
   return (
-    <div className={styles.subPageContainer} style={{ background: '#F5F7FF', minHeight: '100vh' }}>
+    <div className={styles.subPageContainer} style={{ background: '#F8FAFC', minHeight: '100vh' }}>
       <header className={styles.subPageHeader}>
         <button onClick={onBack} className={styles.backBtn}>
           <ChevronLeft size={24} />
         </button>
         <div className={styles.subPageTitleGroup}>
-          <Gamepad2 size={24} className={styles.iconIndigo} style={{ color: '#6366f1' }} />
-          <h2>Play & Earn</h2>
+          <Zap size={24} className={styles.iconIndigo} style={{ color: '#6366f1' }} />
+          <h2>Mini Tasks & Games</h2>
         </div>
         <div style={{ width: '40px' }} />
       </header>
 
-      <div className={styles.verticalScrollList} style={{ padding: '20px' }}>
-        {/* Stats Row */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px', marginBottom: '24px' }}>
-          <div className="card" style={{ padding: '12px', textAlign: 'center', background: 'white' }}>
-            <div style={{ fontSize: '10px', color: '#64748b', fontWeight: 600, marginBottom: '4px', textTransform: 'uppercase' }}>Balance</div>
-            <div style={{ fontSize: '14px', fontWeight: 800, color: '#1e293b' }}>{stats?.balance || user?.balance || 0}</div>
+      <div className={styles.verticalScrollList} style={{ padding: '16px' }}>
+        {/* Stats Summary */}
+        <div className="card" style={{ padding: '20px', background: 'white', borderRadius: '20px', marginBottom: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div>
+            <div style={{ fontSize: '12px', color: '#64748b', fontWeight: 600, textTransform: 'uppercase' }}>Daily Tasks Left</div>
+            <div style={{ fontSize: '24px', fontWeight: 800, color: '#1e293b' }}>{stats?.remainingPlays || 0}</div>
           </div>
-          <div className="card" style={{ padding: '12px', textAlign: 'center', background: 'white' }}>
-            <div style={{ fontSize: '10px', color: '#64748b', fontWeight: 600, marginBottom: '4px', textTransform: 'uppercase' }}>Today</div>
-            <div style={{ fontSize: '14px', fontWeight: 800, color: '#1e293b' }}>{stats?.todayPlays || 0}</div>
-          </div>
-          <div className="card" style={{ padding: '12px', textAlign: 'center', background: 'white' }}>
-            <div style={{ fontSize: '10px', color: '#64748b', fontWeight: 600, marginBottom: '4px', textTransform: 'uppercase' }}>Left</div>
-            <div style={{ fontSize: '14px', fontWeight: 800, color: '#1e293b' }}>{stats?.remainingPlays || 0}</div>
+          <div style={{ width: '1px', height: '40px', background: '#e2e8f0' }} />
+          <div style={{ textAlign: 'right' }}>
+            <div style={{ fontSize: '12px', color: '#64748b', fontWeight: 600, textTransform: 'uppercase' }}>Earnings Today</div>
+            <div style={{ fontSize: '24px', fontWeight: 800, color: '#10b981' }}>{stats?.todayPlays * (stats?.rewardPerGame || 5) || 0}</div>
           </div>
         </div>
 
-        {/* Games Section */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.4 }}
-          className="section"
-          style={{ padding: '0 20px 100px' }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px' }}>
-            <div style={{ width: '32px', height: '32px', background: 'rgba(99, 102, 241, 0.1)', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <Gamepad2 size={18} color="#6366f1" />
+        {/* Video Tasks Section */}
+        <div style={{ marginBottom: '24px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
+            <Video size={18} color="#6366f1" />
+            <h3 style={{ fontSize: '1rem', fontWeight: 700, color: '#1e293b', margin: 0 }}>Video Tasks</h3>
+          </div>
+          
+          <div className="card" style={{ padding: '20px', background: 'white', border: '1px solid #e2e8f0', borderRadius: '20px' }}>
+            <div style={{ display: 'flex', gap: '16px', alignItems: 'center', marginBottom: '16px' }}>
+              <div style={{ width: '48px', height: '48px', background: '#F0FDF4', borderRadius: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Zap size={24} color="#10b981" />
+              </div>
+              <div style={{ flex: 1 }}>
+                <h4 style={{ fontSize: '0.95rem', fontWeight: 700, color: '#1e293b', margin: '0 0 2px 0' }}>Watch Premium Ads</h4>
+                <p style={{ fontSize: '0.8rem', color: '#64748b', margin: 0 }}>Watch a short video to earn coins instantly</p>
+              </div>
+              <div style={{ textAlign: 'right' }}>
+                <div style={{ fontSize: '0.9rem', fontWeight: 800, color: '#10b981' }}>+{stats?.rewardPerGame || 5}</div>
+                <div style={{ fontSize: '10px', color: '#94a3b8' }}>Coins</div>
+              </div>
             </div>
-            <h3 style={{ fontSize: '1.1rem', fontWeight: 800, color: '#1e293b', margin: 0 }}>Play Games to Earn</h3>
+            <button 
+              onClick={handleAdsGram}
+              disabled={adLoading || (stats && stats.remainingPlays <= 0)}
+              style={{ 
+                width: '100%', 
+                padding: '12px', 
+                background: '#6366f1', 
+                color: 'white', 
+                border: 'none', 
+                borderRadius: '12px', 
+                fontWeight: 700,
+                opacity: (adLoading || (stats && stats.remainingPlays <= 0)) ? 0.6 : 1
+              }}
+            >
+              {adLoading ? "Preparing Video..." : "Start Watching"}
+            </button>
+          </div>
+        </div>
+
+        {/* Social Tasks Section */}
+        <div style={{ marginBottom: '24px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
+            <Users size={18} color="#6366f1" />
+            <h3 style={{ fontSize: '1rem', fontWeight: 700, color: '#1e293b', margin: 0 }}>Social Tasks</h3>
           </div>
 
-            <div className="card" style={{ 
-              padding: '32px 24px', 
-              textAlign: 'center', 
-              background: 'white', 
-              border: '1px solid #e2e8f0', 
-              borderRadius: '24px',
-              boxShadow: '0 4px 20px rgba(0,0,0,0.05)',
-              position: 'relative',
-              overflow: 'hidden'
-            }}>
-              {/* Premium Decoration */}
-              <div style={{ position: 'absolute', top: '-20px', right: '-20px', width: '100px', height: '100px', background: 'rgba(16, 185, 129, 0.05)', borderRadius: '50%' }} />
-              
-              <div style={{ 
-                width: '72px', 
-                height: '72px', 
-                background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(99, 102, 241, 0.1) 100%)', 
-                borderRadius: '24px', 
-                display: 'flex', 
-                alignItems: 'center', 
-                justifyContent: 'center', 
-                margin: '0 auto 20px',
-                border: '1px solid rgba(16, 185, 129, 0.2)'
-              }}>
-                <Zap size={36} color="#10b981" />
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <div className="card" style={{ padding: '16px', background: 'white', border: '1px solid #e2e8f0', borderRadius: '16px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <div style={{ width: '40px', height: '40px', background: '#EFF6FF', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Twitter size={20} color="#3b82f6" />
               </div>
-              
-              <h4 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#1e293b', marginBottom: '8px' }}>Watch Ads & Earn</h4>
-              <p style={{ fontSize: '0.9rem', color: '#64748b', marginBottom: '28px', lineHeight: 1.6 }}>
-                Watch a short video ad to earn rewards instantly. <br/>
-                High quality premium ads available now.
-              </p>
-              
-              <button
-                onClick={handleAdsGram}
-                disabled={adLoading || (stats && stats.remainingPlays <= 0)}
-                className={styles.btnPrimary}
-                style={{ 
-                  width: '100%',
-                  padding: '16px',
-                  background: 'linear-gradient(135deg, #10b981 0%, #6366f1 100%)',
-                  color: 'white',
-                  borderRadius: '18px',
-                  fontSize: '1rem',
-                  fontWeight: 800,
-                  opacity: (adLoading || (stats && stats.remainingPlays <= 0)) ? 0.6 : 1,
-                  border: 'none',
-                  boxShadow: '0 10px 20px rgba(16, 185, 129, 0.2)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '10px'
-                }}
+              <div style={{ flex: 1 }}>
+                <h4 style={{ fontSize: '0.9rem', fontWeight: 700, margin: 0 }}>Follow our Twitter</h4>
+                <p style={{ fontSize: '0.75rem', color: '#64748b', margin: 0 }}>Stay updated for bonuses</p>
+              </div>
+              <button 
+                onClick={() => handleSocialAction("https://twitter.com/rewardly")}
+                style={{ padding: '8px 16px', background: '#f1f5f9', border: 'none', borderRadius: '8px', fontSize: '0.8rem', fontWeight: 600 }}
               >
-                {adLoading ? (
-                  <>
-                    <div style={{ width: '20px', height: '20px', border: '3px solid rgba(255,255,255,0.3)', borderTopColor: 'white', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
-                    <span>Loading Ad...</span>
-                  </>
-                ) : (
-                  <>
-                    <Video size={20} />
-                    <span>Watch & Earn {stats?.rewardPerGame || 5} Coins</span>
-                  </>
-                )}
+                Go
               </button>
-
-              <div style={{ marginTop: '20px', display: 'flex', justifyContent: 'center', gap: '16px' }}>
-                <div style={{ fontSize: '0.75rem', color: '#94a3b8', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                  <ShieldCheck size={14} color="#10b981" /> Verified Reward
-                </div>
-                <div style={{ fontSize: '0.75rem', color: '#94a3b8', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                  <Zap size={14} color="#f59e0b" /> Instant Credit
-                </div>
-              </div>
             </div>
-        </motion.div>
 
-        {/* Info Card */}
-        <div style={{ background: '#EEF2FF', padding: '16px', borderRadius: '16px', display: 'flex', gap: '12px', alignItems: 'flex-start', marginTop: '24px' }}>
-          <Zap size={20} color="#6366f1" style={{ flexShrink: 0 }} />
-          <p style={{ fontSize: '0.75rem', color: '#4338CA', margin: 0, lineHeight: 1.5, fontWeight: 500 }}>
-            Rewards are added instantly after ad completion. For the best experience, ensure you have a stable internet connection.
-          </p>
+            <div className="card" style={{ padding: '16px', background: 'white', border: '1px solid #e2e8f0', borderRadius: '16px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <div style={{ width: '40px', height: '40px', background: '#FEF2F2', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Youtube size={20} color="#ef4444" />
+              </div>
+              <div style={{ flex: 1 }}>
+                <h4 style={{ fontSize: '0.9rem', fontWeight: 700, margin: 0 }}>Subscribe Channel</h4>
+                <p style={{ fontSize: '0.75rem', color: '#64748b', margin: 0 }}>Watch tutorial videos</p>
+              </div>
+              <button 
+                onClick={() => handleSocialAction("https://youtube.com/@rewardly")}
+                style={{ padding: '8px 16px', background: '#f1f5f9', border: 'none', borderRadius: '8px', fontSize: '0.8rem', fontWeight: 600 }}
+              >
+                Go
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Gaming Section Placeholder */}
+        <div style={{ marginBottom: '24px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
+            <Gamepad2 size={18} color="#6366f1" />
+            <h3 style={{ fontSize: '1rem', fontWeight: 700, color: '#1e293b', margin: 0 }}>Mini Games</h3>
+          </div>
+          <div style={{ padding: '32px', textAlign: 'center', background: '#F1F5F9', borderRadius: '20px', border: '2px dashed #CBD5E1' }}>
+            <Gamepad2 size={32} color="#94A3B8" style={{ marginBottom: '12px' }} />
+            <p style={{ fontSize: '0.85rem', color: '#64748b', margin: 0, fontWeight: 500 }}>Games are being verified for rewards.<br/>Coming very soon!</p>
+          </div>
         </div>
       </div>
+
       {adLoading && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          background: 'rgba(0,0,0,0.7)',
-          backdropFilter: 'blur(4px)',
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 10000,
-          color: 'white'
-        }}>
-          <div style={{ 
-            width: '40px', 
-            height: '40px', 
-            border: '4px solid rgba(255,255,255,0.3)', 
-            borderTop: '4px solid white', 
-            borderRadius: '50%',
-            animation: 'spin 1s linear infinite',
-            marginBottom: '16px'
-          }} />
-          <div style={{ fontWeight: 600 }}>Preparing Ads...</div>
-          <style dangerouslySetInnerHTML={{ __html: `
-            @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-          ` }} />
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', zIndex: 10000, color: 'white' }}>
+          <div style={{ width: '40px', height: '40px', border: '4px solid rgba(255,255,255,0.3)', borderTop: '4px solid white', borderRadius: '50%', animation: 'spin 1s linear infinite', marginBottom: '16px' }} />
+          <div style={{ fontWeight: 600 }}>Preparing Ad Task...</div>
         </div>
       )}
     </div>
   );
 };
+

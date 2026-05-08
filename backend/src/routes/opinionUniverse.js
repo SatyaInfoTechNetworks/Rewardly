@@ -98,7 +98,7 @@ router.get('/postback', async (req, res) => {
             reference_id: `REV-${trans_id || Date.now()}`,
             amount: -reward,
             type: 'survey',
-            description: `Opinion Universe Reversal #${offer_id || 'N/A'}`,
+            description: `Opinion Universe Reversal: ${offer_id || 'N/A'}`,
             status: 'completed'
           });
        }
@@ -142,7 +142,7 @@ router.get('/postback', async (req, res) => {
       reference_id: trans_id || generateTransactionId('OU'),
       amount: reward,
       type: 'survey',
-      description: `Opinion Universe Survey #${offer_id || 'N/A'}`,
+      description: `Opinion Universe Offer: ${offer_id || 'N/A'}`,
       status: 'completed'
     });
 

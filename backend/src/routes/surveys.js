@@ -105,7 +105,7 @@ router.get('/all', async (req, res) => {
     const [cpxData, ouResponse] = await Promise.all([cpxPromise, ouPromise]);
 
     const unifiedSurveys = [];
-    console.log(`🔍 Surveys Fetch: CPX=${cpxData?.surveys?.length || 0}, OU=${ouResponse?.data?.response?.offers?.length || 0}`);
+    console.log(`🔍 Surveys Fetch: CPX=${cpxData?.surveys?.length || 0}, OU=${ouResponse?.data?.data?.response?.offers?.length || 0}`);
 
     // Map CPX Surveys
     if (cpxData.status === 'success' && cpxData.surveys) {
@@ -123,7 +123,7 @@ router.get('/all', async (req, res) => {
     }
 
     // Map Opinion Universe Surveys
-    const ouOffers = ouResponse.data?.response?.offers || [];
+    const ouOffers = ouResponse.data?.data?.response?.offers || [];
     ouOffers.forEach(o => {
       // Replace Tracking Placeholders
       let finalLink = o.offer_url_easy || '';

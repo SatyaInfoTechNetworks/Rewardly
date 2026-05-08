@@ -83,14 +83,17 @@ router.get('/all', async (req, res) => {
       key: OU_CONFIG.KEY,
       pubid: OU_CONFIG.PUBID,
       app_id: OU_CONFIG.APP_ID,
-      country: 'All', // Changed from IN to All to match working link
+      country: 'IN', // Reverted back to IN per working link
       platform: 'All',
       type: 'live_surveys'
     };
 
     const ouPromise = axios.get(OU_CONFIG.BASE_URL, {
       params: ouParams,
-      timeout: 8000
+      timeout: 8000,
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+      }
     }).then(res => {
       console.log(`📡 OU Request URL: ${OU_CONFIG.BASE_URL}?${new URLSearchParams(ouParams).toString()}`);
       return res;

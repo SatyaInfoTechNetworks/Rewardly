@@ -1,7 +1,7 @@
 "use client";
 import React, { useState, useEffect } from 'react';
-import { Gamepad2, ChevronLeft, Wallet, PlayCircle, Trophy, Zap, Video, ShieldCheck, Share2, MessageSquare, Users } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { ChevronLeft, Zap, Coins, Info, Play, CheckCircle2, Clock } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import styles from '@/app/page.module.css';
 
 interface PlayGamesScreenProps {
@@ -10,10 +10,20 @@ interface PlayGamesScreenProps {
   onReward: () => void;
 }
 
+const GAMES = [
+  { id: 'knife', name: 'Knife Dash', reward: 5, icon: '🗡️' },
+  { id: 'space', name: 'Space Invader', reward: 5, icon: '🚀' },
+  { id: 'climb', name: 'Hill Climb', reward: 5, icon: '🚗' },
+  { id: 'fusion', name: 'Fusion Block', reward: 5, icon: '🧩' },
+  { id: 'fruit', name: 'Fruit Ninja', reward: 5, icon: '🍉' },
+  { id: 'tower', name: 'High Tower', reward: 5, icon: '🏰' },
+];
+
 export const PlayGamesScreen: React.FC<PlayGamesScreenProps> = ({ user, onBack, onReward }) => {
   const [stats, setStats] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [adLoading, setAdLoading] = useState(false);
+  const [modalState, setModalState] = useState<'none' | 'instruction' | 'validating' | 'success'>('none');
+  const [selectedGame, setSelectedGame] = useState<any>(null);
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://rewardlyapi.satyainfotechnetworks.com';
 
@@ -41,67 +51,43 @@ export const PlayGamesScreen: React.FC<PlayGamesScreenProps> = ({ user, onBack, 
     }
   };
 
-  const handleAdsGram = () => {
-    if (adLoading) return;
-    
-    // Check if limit reached
+  const handleGameClick = (game: any) => {
     if (stats && stats.remainingPlays <= 0) {
       alert("Daily limit reached! Please come back tomorrow.");
       return;
     }
+    setSelectedGame(game);
+    setModalState('instruction');
+  };
 
-    // Check if AdsGram is enabled
-    if (stats && stats.adsgramEnabled === false) {
-      console.log("AdsGram disabled, trying Monetag...");
-      handlePlayGame();
-      return;
-    }
-
+  const startAdFlow = () => {
+    // 1. Show Ad
     const adsgram = (window as any).AdsgramController;
-
+    
     if (adsgram) {
-      setAdLoading(true);
       adsgram.show().then((result: any) => {
         if (result.done) {
-          claimReward();
+          // 2. Show Validating
+          setModalState('validating');
+          setTimeout(() => {
+            // 3. Show Success & Claim
+            claimReward();
+          }, 2000);
         } else {
-          setAdLoading(false);
+          setModalState('none');
           alert("Ad was closed early. No reward earned.");
         }
       }).catch((err: any) => {
-        console.error("AdsGram Error, attempting Monetag fallback:", err);
-        handlePlayGame();
+        console.error("Ad failed:", err);
+        setModalState('none');
+        alert("Failed to load ad.");
       });
     } else {
-      handlePlayGame();
-    }
-  };
-
-  const handlePlayGame = () => {
-    if (adLoading) return;
-    if (stats && stats.remainingPlays <= 0) {
-      alert("Daily limit reached!");
-      return;
-    }
-
-    // Check if Monetag is enabled
-    if (stats && stats.monetagEnabled === false) {
-      setAdLoading(false);
-      alert("Ad providers are currently under maintenance. Please try again later.");
-      return;
-    }
-
-    if ((window as any).show_10977311) {
-      setAdLoading(true);
-      (window as any).show_10977311().then(() => {
+      // Fallback for non-telegram browser testing
+      setModalState('validating');
+      setTimeout(() => {
         claimReward();
-      }).catch((err: any) => {
-        setAdLoading(false);
-        alert("Ad failed to load.");
-      });
-    } else {
-      setAdLoading(false);
-      alert("Ad provider not ready.");
+      }, 2000);
     }
   };
 
@@ -125,155 +111,149 @@ export const PlayGamesScreen: React.FC<PlayGamesScreenProps> = ({ user, onBack, 
           todayPlays: data.todayPlays,
           remainingPlays: data.remainingPlays
         });
-        alert(`🎉 You earned ${data.reward} coins!`);
+        setModalState('success');
         onReward();
       }
     } catch (err) {
       console.error(err);
-    } finally {
-      setAdLoading(false);
+      setModalState('none');
     }
-  };
-
-  const handleSocialAction = (url: string) => {
-    const tg = (window as any).Telegram?.WebApp;
-    if (tg) {
-      tg.openTelegramLink(url);
-    } else {
-      window.open(url, '_blank');
-    }
-    // Logic for verifying social tasks would go here
   };
 
   return (
-    <div className={styles.subPageContainer} style={{ background: '#F8FAFC', minHeight: '100vh' }}>
-      <header className={styles.subPageHeader}>
+    <div className={styles.subPageContainer} style={{ background: '#F0F4FF', minHeight: '100vh', paddingBottom: '40px' }}>
+      <header className={styles.subPageHeader} style={{ background: '#F0F4FF', border: 'none' }}>
         <button onClick={onBack} className={styles.backBtn}>
           <ChevronLeft size={24} />
         </button>
         <div className={styles.subPageTitleGroup}>
-          <Zap size={24} className={styles.iconIndigo} style={{ color: '#6366f1' }} />
-          <h2>Mini Tasks & Games</h2>
+          <h2 style={{ fontSize: '18px' }}>Play2Reward</h2>
         </div>
         <div style={{ width: '40px' }} />
       </header>
 
-      <div className={styles.verticalScrollList} style={{ padding: '16px' }}>
-        {/* Stats Summary */}
-        <div className="card" style={{ padding: '20px', background: 'white', borderRadius: '20px', marginBottom: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div>
-            <div style={{ fontSize: '12px', color: '#64748b', fontWeight: 600, textTransform: 'uppercase' }}>Daily Tasks Left</div>
-            <div style={{ fontSize: '24px', fontWeight: 800, color: '#1e293b' }}>{stats?.remainingPlays || 0}</div>
+      <div style={{ padding: '0 16px' }}>
+        {/* Top Stats Cards */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px', marginBottom: '24px' }}>
+          <div className="card" style={{ padding: '12px', textAlign: 'center', background: 'white' }}>
+            <div style={{ fontSize: '10px', fontWeight: 700, color: '#64748b', marginBottom: '8px' }}>YOUR BALANCE</div>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
+               <div style={{ width: '20px', height: '20px', background: '#F59E0B', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: '12px' }}>💰</div>
+               <span style={{ fontWeight: 800 }}>{user?.balance || 0}</span>
+            </div>
           </div>
-          <div style={{ width: '1px', height: '40px', background: '#e2e8f0' }} />
-          <div style={{ textAlign: 'right' }}>
-            <div style={{ fontSize: '12px', color: '#64748b', fontWeight: 600, textTransform: 'uppercase' }}>Earnings Today</div>
-            <div style={{ fontSize: '24px', fontWeight: 800, color: '#10b981' }}>{stats?.todayPlays * (stats?.rewardPerGame || 5) || 0}</div>
+          <div className="card" style={{ padding: '12px', textAlign: 'center', background: 'white' }}>
+            <div style={{ fontSize: '10px', fontWeight: 700, color: '#64748b', marginBottom: '8px' }}>PLAYS TODAY</div>
+            <div style={{ fontWeight: 800, color: '#6366f1' }}>{stats?.todayPlays || 0}</div>
+          </div>
+          <div className="card" style={{ padding: '12px', textAlign: 'center', background: 'white' }}>
+            <div style={{ fontSize: '10px', fontWeight: 700, color: '#64748b', marginBottom: '8px' }}>REMAINING</div>
+            <div style={{ fontWeight: 800, color: '#10b981' }}>{stats?.remainingPlays || 0}</div>
           </div>
         </div>
 
-        {/* Video Tasks Section */}
-        <div style={{ marginBottom: '24px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
-            <Video size={18} color="#6366f1" />
-            <h3 style={{ fontSize: '1rem', fontWeight: 700, color: '#1e293b', margin: 0 }}>Video Tasks</h3>
-          </div>
-          
-          <div className="card" style={{ padding: '20px', background: 'white', border: '1px solid #e2e8f0', borderRadius: '20px' }}>
-            <div style={{ display: 'flex', gap: '16px', alignItems: 'center', marginBottom: '16px' }}>
-              <div style={{ width: '48px', height: '48px', background: '#F0FDF4', borderRadius: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <Zap size={24} color="#10b981" />
-              </div>
-              <div style={{ flex: 1 }}>
-                <h4 style={{ fontSize: '0.95rem', fontWeight: 700, color: '#1e293b', margin: '0 0 2px 0' }}>Watch Premium Ads</h4>
-                <p style={{ fontSize: '0.8rem', color: '#64748b', margin: 0 }}>Watch a short video to earn coins instantly</p>
-              </div>
-              <div style={{ textAlign: 'right' }}>
-                <div style={{ fontSize: '0.9rem', fontWeight: 800, color: '#10b981' }}>+{stats?.rewardPerGame || 5}</div>
-                <div style={{ fontSize: '10px', color: '#94a3b8' }}>Coins</div>
-              </div>
-            </div>
-            <button 
-              onClick={handleAdsGram}
-              disabled={adLoading || (stats && stats.remainingPlays <= 0)}
-              style={{ 
-                width: '100%', 
-                padding: '12px', 
-                background: '#6366f1', 
-                color: 'white', 
-                border: 'none', 
-                borderRadius: '12px', 
-                fontWeight: 700,
-                opacity: (adLoading || (stats && stats.remainingPlays <= 0)) ? 0.6 : 1
-              }}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', marginBottom: '20px' }}>
+          <Gamepad2 size={24} />
+          <h3 style={{ fontSize: '20px', fontWeight: 800 }}>Play Games To Earn</h3>
+        </div>
+
+        {/* Games Grid */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+          {GAMES.map((game) => (
+            <div 
+              key={game.id} 
+              className="card" 
+              onClick={() => handleGameClick(game)}
+              style={{ padding: '16px', textAlign: 'center', background: 'white', position: 'relative' }}
             >
-              {adLoading ? "Preparing Video..." : "Start Watching"}
-            </button>
-          </div>
-        </div>
-
-        {/* Social Tasks Section */}
-        <div style={{ marginBottom: '24px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
-            <Users size={18} color="#6366f1" />
-            <h3 style={{ fontSize: '1rem', fontWeight: 700, color: '#1e293b', margin: 0 }}>Social Tasks</h3>
-          </div>
-
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            <div className="card" style={{ padding: '16px', background: 'white', border: '1px solid #e2e8f0', borderRadius: '16px', display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <div style={{ width: '40px', height: '40px', background: '#EFF6FF', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <Share2 size={20} color="#3b82f6" />
+              <div style={{ fontSize: '40px', marginBottom: '12px' }}>{game.icon}</div>
+              <div style={{ fontWeight: 700, fontSize: '14px', marginBottom: '12px' }}>{game.name}</div>
+              <div style={{ background: '#FFFBEB', borderRadius: '20px', padding: '6px 0', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', border: '1px solid #FEF3C7' }}>
+                <div style={{ width: '16px', height: '16px', background: '#F59E0B', borderRadius: '50%' }} />
+                <span style={{ fontWeight: 700, fontSize: '12px', color: '#B45309' }}>{game.reward} Coins</span>
               </div>
-              <div style={{ flex: 1 }}>
-                <h4 style={{ fontSize: '0.9rem', fontWeight: 700, margin: 0 }}>Follow our Twitter</h4>
-                <p style={{ fontSize: '0.75rem', color: '#64748b', margin: 0 }}>Stay updated for bonuses</p>
-              </div>
-              <button 
-                onClick={() => handleSocialAction("https://twitter.com/rewardly")}
-                style={{ padding: '8px 16px', background: '#f1f5f9', border: 'none', borderRadius: '8px', fontSize: '0.8rem', fontWeight: 600 }}
-              >
-                Go
-              </button>
             </div>
-
-            <div className="card" style={{ padding: '16px', background: 'white', border: '1px solid #e2e8f0', borderRadius: '16px', display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <div style={{ width: '40px', height: '40px', background: '#FEF2F2', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <PlayCircle size={20} color="#ef4444" />
-              </div>
-              <div style={{ flex: 1 }}>
-                <h4 style={{ fontSize: '0.9rem', fontWeight: 700, margin: 0 }}>Subscribe Channel</h4>
-                <p style={{ fontSize: '0.75rem', color: '#64748b', margin: 0 }}>Watch tutorial videos</p>
-              </div>
-              <button 
-                onClick={() => handleSocialAction("https://youtube.com/@rewardly")}
-                style={{ padding: '8px 16px', background: '#f1f5f9', border: 'none', borderRadius: '8px', fontSize: '0.8rem', fontWeight: 600 }}
-              >
-                Go
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* Gaming Section Placeholder */}
-        <div style={{ marginBottom: '24px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
-            <Gamepad2 size={18} color="#6366f1" />
-            <h3 style={{ fontSize: '1rem', fontWeight: 700, color: '#1e293b', margin: 0 }}>Mini Games</h3>
-          </div>
-          <div style={{ padding: '32px', textAlign: 'center', background: '#F1F5F9', borderRadius: '20px', border: '2px dashed #CBD5E1' }}>
-            <Gamepad2 size={32} color="#94A3B8" style={{ marginBottom: '12px' }} />
-            <p style={{ fontSize: '0.85rem', color: '#64748b', margin: 0, fontWeight: 500 }}>Games are being verified for rewards.<br/>Coming very soon!</p>
-          </div>
+          ))}
         </div>
       </div>
 
-      {adLoading && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', zIndex: 10000, color: 'white' }}>
-          <div style={{ width: '40px', height: '40px', border: '4px solid rgba(255,255,255,0.3)', borderTop: '4px solid white', borderRadius: '50%', animation: 'spin 1s linear infinite', marginBottom: '16px' }} />
-          <div style={{ fontWeight: 600 }}>Preparing Ad Task...</div>
-        </div>
-      )}
+      {/* Modals */}
+      <AnimatePresence>
+        {modalState !== 'none' && (
+          <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="card" 
+              style={{ background: 'white', width: '100%', maxWidth: '340px', padding: '24px', textAlign: 'center' }}
+            >
+              {modalState === 'instruction' && (
+                <>
+                  <div style={{ fontSize: '40px', marginBottom: '16px' }}>🎬</div>
+                  <h3 style={{ fontWeight: 800, fontSize: '18px', marginBottom: '16px' }}>Watch Ad to Play {selectedGame?.name}</h3>
+                  <div style={{ background: '#FFFBEB', padding: '16px', borderRadius: '12px', textAlign: 'left', marginBottom: '20px', border: '1px solid #FEF3C7' }}>
+                    <div style={{ display: 'flex', gap: '8px', marginBottom: '12px' }}>
+                       <Info size={16} style={{ color: '#D97706', flexShrink: 0 }} />
+                       <span style={{ fontSize: '12px', fontWeight: 600 }}>Instructions:</span>
+                    </div>
+                    <ul style={{ margin: 0, paddingLeft: '16px', fontSize: '12px', color: '#78350F', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      <li>Watch the ad completely to unlock the game</li>
+                      <li>⚠️ You must play the game for at least 30 seconds. Exiting early will cancel your reward.</li>
+                    </ul>
+                  </div>
+                  <div style={{ fontSize: '11px', color: '#94a3b8', marginBottom: '16px' }}>⚡ Ad duration: ~15-30 seconds</div>
+                  <button 
+                    onClick={startAdFlow}
+                    style={{ width: '100%', padding: '14px', background: '#4F46E5', color: 'white', border: 'none', borderRadius: '12px', fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
+                  >
+                    🎬 Watch Ad & Play
+                  </button>
+                </>
+              )}
+
+              {modalState === 'validating' && (
+                <>
+                  <div style={{ width: '60px', height: '60px', border: '4px solid #f3f4f6', borderTop: '4px solid #4F46E5', borderRadius: '50%', margin: '0 auto 20px', animation: 'spin 1s linear infinite' }} />
+                  <h3 style={{ fontWeight: 800, fontSize: '20px', marginBottom: '8px' }}>Validating...</h3>
+                  <p style={{ fontSize: '13px', color: '#64748b' }}>Please wait while we verify your task.</p>
+                </>
+              )}
+
+              {modalState === 'success' && (
+                <>
+                  <h3 style={{ fontWeight: 800, fontSize: '20px', marginBottom: '16px' }}>Ad Watched 🎉</h3>
+                  <div style={{ background: '#FFFBEB', padding: '16px', borderRadius: '12px', textAlign: 'center', marginBottom: '20px', border: '1px solid #FEF3C7' }}>
+                    <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', alignItems: 'center' }}>
+                       <Info size={16} style={{ color: '#D97706' }} />
+                       <span style={{ fontSize: '13px', fontWeight: 700, color: '#92400E' }}>Do not close the game window for 30 seconds.</span>
+                    </div>
+                  </div>
+                  <button 
+                    onClick={() => {
+                      setModalState('none');
+                      // Here you would normally launch the game URL
+                      alert("Opening game: " + selectedGame?.name);
+                    }}
+                    style={{ width: '100%', padding: '14px', background: '#4F46E5', color: 'white', border: 'none', borderRadius: '12px', fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
+                  >
+                    ▶️ Play Game Now
+                  </button>
+                </>
+              )}
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      <style jsx>{`
+        @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+      `}</style>
     </div>
   );
 };
+
 

@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const { Op } = require('sequelize');
 const User = require('../models/User');
 const DailyReward = require('../models/DailyReward');
 const Transaction = require('../models/Transaction');
@@ -44,14 +45,20 @@ router.get('/check-in/status', async (req, res) => {
     }
 
     const now = new Date();
-    const todayUTC = now.getUTCFullYear() + '-' + (now.getUTCMonth() + 1) + '-' + now.getUTCDate();
-    
-    let canClaim = true;
-    if (user.last_check_in) {
-      const last = new Date(user.last_check_in);
-      const lastUTC = last.getUTCFullYear() + '-' + (last.getUTCMonth() + 1) + '-' + last.getUTCDate();
-      canClaim = lastUTC !== todayUTC;
-    }
+    const startOfToday = new Date(now);
+    startOfToday.setUTCHours(0, 0, 0, 0);
+    const endOfToday = new Date(now);
+    endOfToday.setUTCHours(23, 59, 59, 999);
+
+    const todayTransaction = await Transaction.findOne({
+      where: {
+        telegram_id: user.telegram_id,
+        type: 'check_in',
+        created_at: { [Op.between]: [startOfToday, endOfToday] }
+      }
+    });
+
+    let canClaim = !todayTransaction;
 
     res.json({
       streak: user.streak || 0,
@@ -76,14 +83,21 @@ router.post('/check-in/claim', async (req, res) => {
     if (!user) return res.status(404).json({ error: 'User not found' });
 
     const now = new Date();
-    const todayUTC = now.getUTCFullYear() + '-' + (now.getUTCMonth() + 1) + '-' + now.getUTCDate();
-    
-    if (user.last_check_in) {
-      const last = new Date(user.last_check_in);
-      const lastUTC = last.getUTCFullYear() + '-' + (last.getUTCMonth() + 1) + '-' + last.getUTCDate();
-      if (lastUTC === todayUTC) {
-        return res.status(400).json({ error: 'Already claimed today' });
+    const startOfToday = new Date(now);
+    startOfToday.setUTCHours(0, 0, 0, 0);
+    const endOfToday = new Date(now);
+    endOfToday.setUTCHours(23, 59, 59, 999);
+
+    const todayTransaction = await Transaction.findOne({
+      where: {
+        telegram_id: user.telegram_id,
+        type: 'check_in',
+        created_at: { [Op.between]: [startOfToday, endOfToday] }
       }
+    });
+
+    if (todayTransaction) {
+      return res.status(400).json({ error: 'Already claimed today' });
     }
 
     // Check if streak should continue

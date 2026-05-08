@@ -11,6 +11,7 @@ const Transaction = require('../models/Transaction');
 const Contest = require('../models/Contest');
 const ContestReward = require('../models/ContestReward');
 const ContestEntry = require('../models/ContestEntry');
+const AppSetting = require('../models/AppSetting');
 const { sequelize } = require('../config/database');
 
 /**
@@ -410,6 +411,29 @@ router.get('/referral/stats', adminAuth, async (req, res) => {
       pendingInvites,
       conversionRate: totalInvites > 0 ? ((rewardedInvites / totalInvites) * 100).toFixed(1) : 0
     });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// --- Global App Settings ---
+
+router.get('/settings', adminAuth, async (req, res) => {
+  try {
+    let settings = await AppSetting.findByPk(1);
+    if (!settings) {
+      settings = await AppSetting.create({ id: 1 });
+    }
+    res.json(settings);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.put('/settings', adminAuth, async (req, res) => {
+  try {
+    await AppSetting.update(req.body, { where: { id: 1 } });
+    res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

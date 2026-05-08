@@ -14,6 +14,7 @@ const ReferralMilestone = require('./models/ReferralMilestone');
 const Contest = require('./models/Contest');
 const ContestReward = require('./models/ContestReward');
 const ContestEntry = require('./models/ContestEntry');
+const AppSetting = require('./models/AppSetting');
 const axios = require('axios');
 
 const app = express();
@@ -110,10 +111,31 @@ testConnection().then(() => {
       await PayoutTier.findOrCreate({ where: { payout_method_id: upi.id, coins_required: 5000 }, defaults: { amount_text: '₹50' } });
       await PayoutTier.findOrCreate({ where: { payout_method_id: upi.id, coins_required: 10000 }, defaults: { amount_text: '₹100' } });
 
+      // Seed App Settings
+      await AppSetting.findOrCreate({ 
+        where: { id: 1 }, 
+        defaults: { 
+          game_reward_coins: 5, 
+          game_limit_per_day: 20,
+          adsgram_block_id: '4376',
+          monetag_zone_id: '10977311'
+        } 
+      });
+
     } catch (e) {
       console.log('Seed skip:', e.message);
     }
   });
+});
+
+// Public Settings Route
+app.get('/api/settings', async (req, res) => {
+  try {
+    const settings = await AppSetting.findByPk(1);
+    res.json(settings || { game_reward_coins: 5, game_limit_per_day: 20 });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 // Routes

@@ -4,9 +4,13 @@ const User = require('../models/User');
 const Transaction = require('../models/Transaction');
 const { validateTelegramInitData } = require('../utils/telegramAuth');
 const { trackContestActivity } = require('../utils/contestTracker');
+const AppSetting = require('../models/AppSetting');
 
-const GAME_LIMIT_PER_DAY = 20;
-const GAME_REWARD_COINS = 5;
+const getSettings = async () => {
+  let settings = await AppSetting.findByPk(1);
+  if (!settings) settings = await AppSetting.create({ id: 1 });
+  return settings;
+};
 
 /**
  * GET /api/games/stats
@@ -21,6 +25,7 @@ router.get('/stats', async (req, res) => {
   }
 
   try {
+    const settings = await getSettings();
     const urlParams = new URLSearchParams(initData);
     const tgUser = JSON.parse(urlParams.get('user'));
     
@@ -39,8 +44,9 @@ router.get('/stats', async (req, res) => {
     res.json({
       balance: user.balance,
       todayPlays: user.daily_games_played,
-      remainingPlays: Math.max(0, GAME_LIMIT_PER_DAY - user.daily_games_played),
-      limit: GAME_LIMIT_PER_DAY
+      remainingPlays: Math.max(0, settings.game_limit_per_day - user.daily_games_played),
+      limit: settings.game_limit_per_day,
+      rewardPerGame: settings.game_reward_coins
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -60,6 +66,7 @@ router.post('/reward', async (req, res) => {
   }
 
   try {
+    const settings = await getSettings();
     const urlParams = new URLSearchParams(initData);
     const tgUser = JSON.parse(urlParams.get('user'));
     
@@ -75,13 +82,13 @@ router.post('/reward', async (req, res) => {
     }
 
     // Check Limit
-    if (user.daily_games_played >= GAME_LIMIT_PER_DAY) {
+    if (user.daily_games_played >= settings.game_limit_per_day) {
       return res.status(400).json({ error: 'Daily play limit reached. Come back tomorrow!' });
     }
 
     // Update User
-    const oldBalance = user.balance;
-    user.balance += GAME_REWARD_COINS;
+    const rewardAmount = settings.game_reward_coins;
+    user.balance += rewardAmount;
     user.daily_games_played += 1;
     await user.save();
 
@@ -89,20 +96,20 @@ router.post('/reward', async (req, res) => {
     await Transaction.create({
       telegram_id: user.telegram_id,
       type: 'game',
-      amount: GAME_REWARD_COINS,
+      amount: rewardAmount,
       description: 'Reward for Play & Earn ad',
       status: 'completed'
     });
 
     // Update Contest Activity (Earning Contest)
-    await trackContestActivity(user.telegram_id, 'earning', GAME_REWARD_COINS);
+    await trackContestActivity(user.telegram_id, 'earning', rewardAmount);
 
     res.json({
       success: true,
-      reward: GAME_REWARD_COINS,
+      reward: rewardAmount,
       newBalance: user.balance,
       todayPlays: user.daily_games_played,
-      remainingPlays: Math.max(0, GAME_LIMIT_PER_DAY - user.daily_games_played)
+      remainingPlays: Math.max(0, settings.game_limit_per_day - user.daily_games_played)
     });
   } catch (err) {
     res.status(500).json({ error: err.message });

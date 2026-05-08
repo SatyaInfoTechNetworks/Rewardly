@@ -215,7 +215,7 @@ export const PlayGamesScreen: React.FC<PlayGamesScreenProps> = ({ user, onBack, 
                   border: 'none'
                 }}
               >
-                {adLoading ? 'Loading Ad...' : `Play & Earn 5 Coins`}
+                {adLoading ? 'Loading Ad...' : `Play & Earn ${stats?.rewardPerGame || 5} Coins`}
               </button>
             </div>
 
@@ -243,7 +243,7 @@ export const PlayGamesScreen: React.FC<PlayGamesScreenProps> = ({ user, onBack, 
                   border: 'none'
                 }}
               >
-                {adLoading ? 'Loading Ad...' : `Play & Earn 5 Coins`}
+                {adLoading ? 'Loading Ad...' : `Play & Earn ${stats?.rewardPerGame || 5} Coins`}
               </button>
             </div>
         </motion.div>

@@ -3,6 +3,13 @@ const router = express.Router();
 const User = require('../models/User');
 const Transaction = require('../models/Transaction');
 const { sequelize } = require('../config/database');
+const AppSetting = require('../models/AppSetting');
+
+const getSettings = async () => {
+  let settings = await AppSetting.findByPk(1);
+  if (!settings) settings = await AppSetting.create({ id: 1 });
+  return settings;
+};
 
 /**
  * CPX Research Postback
@@ -77,22 +84,22 @@ router.get('/monetag', async (req, res) => {
   const t = await sequelize.transaction();
 
   try {
+    const settings = await getSettings();
     const existing = await Transaction.findOne({ where: { external_id: trans_id } });
     if (existing) return res.send('OK');
 
     const user = await User.findByPk(user_id);
     if (!user) return res.status(404).send('User not found');
 
-    // Reward calculation: for now fixed 5 coins or based on price?
-    // Let's use a default or logic based on event type
-    const rewardAmount = 5; 
+    // Reward calculation: using dynamic settings
+    const rewardAmount = settings.game_reward_coins; 
     
     await user.update({ balance: user.balance + rewardAmount }, { transaction: t });
 
     await Transaction.create({
-      user_id: user_id,
+      telegram_id: user_id,
       amount: rewardAmount,
-      type: 'ad',
+      type: 'game',
       description: `Monetag Ad Reward (${event})`,
       external_id: trans_id,
       status: 'completed'
@@ -125,13 +132,14 @@ router.get('/adsgram', async (req, res) => {
   const t = await sequelize.transaction();
 
   try {
+    const settings = await getSettings();
     const user = await User.findByPk(user_id);
     if (!user) {
       console.error(`❌ AdsGram User ${user_id} not found`);
       return res.status(404).send('User not found');
     }
 
-    const rewardAmount = 5; 
+    const rewardAmount = settings.game_reward_coins; 
     
     // Update Balance
     await user.update({ balance: user.balance + rewardAmount }, { transaction: t });

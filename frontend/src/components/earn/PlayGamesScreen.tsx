@@ -1,6 +1,6 @@
 "use client";
 import React, { useState, useEffect } from 'react';
-import { Gamepad2, ChevronLeft, Wallet, PlayCircle, Trophy, Zap, Video, ShieldCheck, Twitter, Youtube, MessageSquare } from 'lucide-react';
+import { Gamepad2, ChevronLeft, Wallet, PlayCircle, Trophy, Zap, Video, ShieldCheck, Share2, MessageSquare, Users } from 'lucide-react';
 import { motion } from 'framer-motion';
 import styles from '@/app/page.module.css';
 
@@ -218,7 +218,7 @@ export const PlayGamesScreen: React.FC<PlayGamesScreenProps> = ({ user, onBack, 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
             <div className="card" style={{ padding: '16px', background: 'white', border: '1px solid #e2e8f0', borderRadius: '16px', display: 'flex', alignItems: 'center', gap: '12px' }}>
               <div style={{ width: '40px', height: '40px', background: '#EFF6FF', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <Twitter size={20} color="#3b82f6" />
+                <Share2 size={20} color="#3b82f6" />
               </div>
               <div style={{ flex: 1 }}>
                 <h4 style={{ fontSize: '0.9rem', fontWeight: 700, margin: 0 }}>Follow our Twitter</h4>
@@ -234,7 +234,7 @@ export const PlayGamesScreen: React.FC<PlayGamesScreenProps> = ({ user, onBack, 
 
             <div className="card" style={{ padding: '16px', background: 'white', border: '1px solid #e2e8f0', borderRadius: '16px', display: 'flex', alignItems: 'center', gap: '12px' }}>
               <div style={{ width: '40px', height: '40px', background: '#FEF2F2', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <Youtube size={20} color="#ef4444" />
+                <PlayCircle size={20} color="#ef4444" />
               </div>
               <div style={{ flex: 1 }}>
                 <h4 style={{ fontSize: '0.9rem', fontWeight: 700, margin: 0 }}>Subscribe Channel</h4>

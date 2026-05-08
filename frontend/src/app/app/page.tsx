@@ -249,7 +249,7 @@ export default function AppDashboard() {
               <div className={styles.taskVerticalList}>
                 <TaskCard 
                   title="Opinion Universe"
-                  desc="Complete surveys and earn big rewards instantly!"
+                  desc="Complete Tasks and earn Coins"
                   reward="50K+"
                   time="5-20 min"
                   tag="POPULAR"

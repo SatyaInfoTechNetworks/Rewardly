@@ -88,11 +88,22 @@ testConnection().then(() => {
     
     // Manual Migration for Transactions table (since alter:false is set)
     try {
-      await sequelize.query("ALTER TABLE `transactions` ADD COLUMN IF NOT EXISTS `reference_id` VARCHAR(255) UNIQUE AFTER `telegram_id`;");
-      await sequelize.query("ALTER TABLE `transactions` MODIFY COLUMN `type` VARCHAR(255);");
-      console.log('✅ Transaction table migrations applied.');
+      // Standard MySQL syntax (catch will handle "column already exists" error)
+      await sequelize.query("ALTER TABLE `transactions` ADD `reference_id` VARCHAR(255) UNIQUE AFTER `telegram_id`;");
+      console.log('✅ Transaction reference_id added.');
     } catch (migErr) {
-      console.log('Migration skip (likely already applied):', migErr.message);
+      if (migErr.parent?.code === 'ER_DUP_FIELDNAME') {
+        console.log('✅ Transaction reference_id already exists.');
+      } else {
+        console.log('Migration Note (reference_id):', migErr.message);
+      }
+    }
+
+    try {
+      await sequelize.query("ALTER TABLE `transactions` MODIFY `type` VARCHAR(255);");
+      console.log('✅ Transaction type column modified.');
+    } catch (migErr) {
+      console.log('Migration Note (type):', migErr.message);
     }
     
     // Auto-Seed Defaults

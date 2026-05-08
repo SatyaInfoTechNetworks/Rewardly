@@ -10,6 +10,7 @@ interface TaskCardProps {
   tag: string;
   urgency: string;
   icon: string;
+  href?: string;
 }
 
 export const TaskCard: React.FC<TaskCardProps> = ({ 
@@ -19,10 +20,15 @@ export const TaskCard: React.FC<TaskCardProps> = ({
   time, 
   tag, 
   urgency, 
-  icon 
+  icon,
+  href
 }) => {
+  const handleClick = () => {
+    if (href) window.open(href, '_blank');
+  };
+
   return (
-    <div className={`${styles.highRewardCard} card`}>
+    <div className={`${styles.highRewardCard} card`} onClick={handleClick} style={{ cursor: href ? 'pointer' : 'default' }}>
       <div className={styles.taskCardTop}>
         <div className={styles.taskLogo}>{icon}</div>
         <div className={styles.taskHeaderMain}>

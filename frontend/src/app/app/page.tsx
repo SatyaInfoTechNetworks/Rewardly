@@ -247,6 +247,16 @@ export default function AppDashboard() {
               />
               
               <div className={styles.taskVerticalList}>
+                <TaskCard 
+                  title="Opinion Universe"
+                  desc="Complete surveys and earn big rewards instantly!"
+                  reward="50K+"
+                  time="5-20 min"
+                  tag="POPULAR"
+                  urgency="High Paying"
+                  icon="🎯"
+                  href={`https://opinionuniverse.com/offerwall?pubId=1863&SID=${user?.id}&appId=ID_eb1f5bea3e8caadcfcf6ccb5d35a1d1d`}
+                />
                 {TASKS.map((task) => (
                   <TaskCard key={task.id} {...task} />
                 ))}

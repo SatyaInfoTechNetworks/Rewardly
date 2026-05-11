@@ -138,7 +138,7 @@ export default function AppDashboard() {
   };
 
   const showVerification = user && 
-    appSettings.onboardingVerificationEnabled && 
+    appSettings.onboarding_verification_enabled && 
     (!user.isPhoneVerified || !user.isChannelJoined);
 
   const renderContent = () => {

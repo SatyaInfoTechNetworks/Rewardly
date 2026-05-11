@@ -426,8 +426,10 @@ app.post('/api/auth/sync', async (req, res) => {
         isPhoneVerified: user.is_phone_verified,
         isChannelJoined: user.is_channel_joined
       },
-      settings: {
-        onboardingVerificationEnabled: appSettings?.onboarding_verification_enabled ?? true
+      settings: appSettings || {
+        onboarding_verification_enabled: true,
+        pubscale_enabled: true,
+        opinion_universe_enabled: true
       }
     });
   } catch (error) {

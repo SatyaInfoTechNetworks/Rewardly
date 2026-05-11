@@ -436,7 +436,9 @@ app.post('/api/auth/sync', async (req, res) => {
         balance: user.balance,
         pendingBalance: user.pending_balance,
         isPhoneVerified: user.is_phone_verified,
-        isChannelJoined: user.is_channel_joined
+        isChannelJoined: user.is_channel_joined,
+        google_aid: user.google_aid,
+        ios_idfa: user.ios_idfa
       },
       settings: appSettings || {
         onboarding_verification_enabled: true,

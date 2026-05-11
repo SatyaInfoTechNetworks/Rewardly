@@ -30,7 +30,7 @@ interface ContestScreenProps {
   onPlay?: (contest: Contest) => void;
 }
 
-export function ContestScreen({ user }: ContestScreenProps) {
+export function ContestScreen({ user, onPlay }: ContestScreenProps) {
   const [contests, setContests] = useState<Contest[]>([]);
   const [selectedContest, setSelectedContest] = useState<any>(null);
   const [loading, setLoading] = useState(true);

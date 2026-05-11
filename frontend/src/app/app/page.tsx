@@ -58,7 +58,7 @@ export default function AppDashboard() {
     onboarding_verification_enabled: true,
     pubscale_enabled: true,
     opinion_universe_enabled: true,
-    pubscale_app_id: '26048184',
+    pubscale_app_id: '78594689',
     opinion_universe_url: 'https://opinionuniverse.com/offerwall?pubId=1863'
   });
   
@@ -302,45 +302,47 @@ export default function AppDashboard() {
 
 
             {/* Hot Reward Tasks Section */}
-            <section className={styles.tasksSection}>
-              <SectionHeader 
-                title="Hot Reward Tasks" 
-                icon={Zap} 
-                badgeText="HOT" 
-              />
-              
-              <div className={styles.taskVerticalList}>
-                {appSettings.pubscale_enabled && (
-                  <TaskCard 
-                    title="PubScale Offerwall"
-                    desc="Complete High-Value offers and earn 10K+ Coins"
-                    reward="10K+"
-                    time="10-30 min"
-                    tag="HOT"
-                    urgency="Very High Paying"
-                    icon="/pubscale.jpg"
-                    href={`https://wow.pubscale.com?app_id=${appSettings.pubscale_app_id || '26048184'}&user_id=${user?.telegram_id}`}
-                  />
-                )}
-
-                {appSettings.opinion_universe_enabled && (
-                  <TaskCard 
-                    title="Opinion Universe"
-                    desc="Complete Tasks and earn Coins"
-                    reward="50K+"
-                    time="5-20 min"
-                    tag="POPULAR"
-                    urgency="High Paying"
-                    icon="/opinionuniverse.png"
-                    href={appSettings.opinion_universe_url || `https://opinionuniverse.com/offerwall?pubId=1863&SID=${user?.telegram_id}`}
-                  />
-                )}
+            {user && (
+              <section className={styles.tasksSection}>
+                <SectionHeader 
+                  title="Hot Reward Tasks" 
+                  icon={Zap} 
+                  badgeText="HOT" 
+                />
                 
-                {TASKS.map((task) => (
-                  <TaskCard key={task.id} {...task} />
-                ))}
-              </div>
-            </section>
+                <div className={styles.taskVerticalList}>
+                  {appSettings.pubscale_enabled && (
+                    <TaskCard 
+                      title="PubScale Offerwall"
+                      desc="Complete High-Value offers and earn 10K+ Coins"
+                      reward="10K+"
+                      time="10-30 min"
+                      tag="HOT"
+                      urgency="Very High Paying"
+                      icon="https://cdn6.aptoide.com/imgs/5/d/0/5d0505b0f14d3b84179e8c3395b0c95a_icon.png"
+                      href={`https://wow.pubscale.com?app_id=${appSettings.pubscale_app_id || '78594689'}&user_id=${user.telegram_id}${user.google_aid ? `&ga_id=${user.google_aid}` : ''}${user.ios_idfa ? `&idfa=${user.ios_idfa}` : ''}`}
+                    />
+                  )}
+
+                  {appSettings.opinion_universe_enabled && (
+                    <TaskCard 
+                      title="Opinion Universe"
+                      desc="Complete Tasks and earn Coins"
+                      reward="50K+"
+                      time="5-20 min"
+                      tag="POPULAR"
+                      urgency="High Paying"
+                      icon="https://www.opinionuniverse.com/favicon.ico"
+                      href={`${appSettings.opinion_universe_url || 'https://opinionuniverse.com/offerwall?pubId=1863'}&SID=${user.telegram_id}`}
+                    />
+                  )}
+                  
+                  {TASKS.map((task) => (
+                    <TaskCard key={task.id} {...task} />
+                  ))}
+                </div>
+              </section>
+            )}
           </div>
         </main>
       );

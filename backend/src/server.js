@@ -148,7 +148,7 @@ testConnection().then(() => {
 
       // 4. App Settings Table
       "ALTER TABLE `app_settings` ADD `onboarding_verification_enabled` TINYINT(1) DEFAULT 1;",
-      "ALTER TABLE `app_settings` ADD `pubscale_app_id` VARCHAR(255) DEFAULT '26048184';",
+      "ALTER TABLE `app_settings` ADD `pubscale_app_id` VARCHAR(255) DEFAULT '78594689';",
       "ALTER TABLE `app_settings` ADD `pubscale_enabled` TINYINT(1) DEFAULT 1;",
       "ALTER TABLE `app_settings` ADD `opinion_universe_url` TEXT;",
       "ALTER TABLE `app_settings` ADD `opinion_universe_enabled` TINYINT(1) DEFAULT 1;"
@@ -168,7 +168,7 @@ testConnection().then(() => {
     try {
       await sequelize.query("UPDATE `app_settings` SET `pubscale_enabled` = 1 WHERE `pubscale_enabled` IS NULL;");
       await sequelize.query("UPDATE `app_settings` SET `opinion_universe_enabled` = 1 WHERE `opinion_universe_enabled` IS NULL;");
-      await sequelize.query("UPDATE `app_settings` SET `pubscale_app_id` = '26048184' WHERE `pubscale_app_id` IS NULL;");
+      await sequelize.query("UPDATE `app_settings` SET `pubscale_app_id` = '78594689' WHERE `pubscale_app_id` IS NULL OR `pubscale_app_id` = '26048184';");
       await sequelize.query("UPDATE `app_settings` SET `opinion_universe_url` = 'https://opinionuniverse.com/offerwall?pubId=1863' WHERE `opinion_universe_url` IS NULL;");
     } catch (err) {
       console.log('ℹ️ Migration Note (Defaults):', err.message);
@@ -188,7 +188,7 @@ testConnection().then(() => {
           adsgram_enabled: true,
           monetag_enabled: true,
           onboarding_verification_enabled: true,
-          pubscale_app_id: '26048184',
+          pubscale_app_id: '78594689',
           pubscale_enabled: true,
           opinion_universe_url: 'https://opinionuniverse.com/offerwall?pubId=1863',
           opinion_universe_enabled: true

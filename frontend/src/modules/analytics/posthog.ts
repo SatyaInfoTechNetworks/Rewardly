@@ -1,7 +1,7 @@
 import posthog from 'posthog-js';
 
-const POSTHOG_TOKEN = 'phc_rvwkbVGsHbDYh562fjLEgTVKfJG2zYRfuvbyrZyFyDtN';
-const POSTHOG_HOST = 'https://us.i.posthog.com';
+const POSTHOG_TOKEN = process.env.NEXT_PUBLIC_POSTHOG_PROJECT_TOKEN || 'phc_rvwkbVGsHbDYhS62fJLeGTVKfJG2zYRfuVbyrZyFyDtN';
+const POSTHOG_HOST = process.env.NEXT_PUBLIC_POSTHOG_HOST || 'https://us.i.posthog.com';
 
 export const initPostHog = () => {
   if (typeof window !== 'undefined') {

@@ -1,7 +1,14 @@
 require('dotenv').config();
+process.on('uncaughtException', (err) => {
+  console.error('🔥 UNCAUGHT EXCEPTION:', err);
+});
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('🔥 UNHANDLED REJECTION:', reason);
+});
 const express = require('express');
 const cors = require('cors');
 const bodyParser = require('body-parser');
+const { PostHog } = require('posthog-node');
 const { validateTelegramInitData } = require('./utils/telegramAuth');
 const { sequelize, testConnection } = require('./config/database');
 const User = require('./models/User');
@@ -22,6 +29,12 @@ const axios = require('axios');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
+
+// 0. PostHog Backend Analytics
+const posthog = new PostHog(
+  process.env.POSTHOG_PROJECT_TOKEN || 'phc_rvwkbVGsHbDYhS62fJLeGTVKfJG2zYRfuVbyrZyFyDtN',
+  { host: process.env.POSTHOG_HOST || 'https://us.i.posthog.com' }
+);
 
 // Trust proxy for Dokploy/Nginx to get real IP
 app.set('trust proxy', true);

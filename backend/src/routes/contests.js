@@ -67,7 +67,6 @@ router.get('/:slug', async (req, res) => {
       userEntry = await ContestEntry.findOne({
         where: { contest_id: contest.id, user_id: tgUser.id }
       });
-      });
     }
 
     res.json({

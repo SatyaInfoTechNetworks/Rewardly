@@ -138,6 +138,14 @@ testConnection().then(() => {
     }
 
     try {
+      await sequelize.query("ALTER TABLE `contests` ADD `tracking_type` ENUM('earnings', 'referrals', 'game_score') DEFAULT 'earnings';");
+      await sequelize.query("ALTER TABLE `contests` ADD `game_id` INTEGER;");
+      console.log('✅ Contest tracking_type and game_id columns added.');
+    } catch (migErr) {
+      if (migErr.parent?.code !== 'ER_DUP_FIELDNAME') console.log('Migration Note (Contests):', migErr.message);
+    }
+
+    try {
       await sequelize.query("ALTER TABLE `app_settings` ADD `pubscale_app_id` VARCHAR(255) DEFAULT '26048184';");
       await sequelize.query("ALTER TABLE `app_settings` ADD `pubscale_enabled` TINYINT(1) DEFAULT 1;");
       await sequelize.query("ALTER TABLE `app_settings` ADD `opinion_universe_url` TEXT;");

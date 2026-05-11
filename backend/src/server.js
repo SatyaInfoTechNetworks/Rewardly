@@ -161,6 +161,9 @@ testConnection().then(() => {
         const isDuplicate = err.parent?.code === 'ER_DUP_FIELDNAME' || 
                            err.message.includes('Duplicate column name');
         if (!isDuplicate) console.log(`ℹ️ Migration Note: ${err.message}`);
+      }
+    }
+
     // 5. Ensure existing settings have defaults (one-time fix for existing rows)
     try {
       await sequelize.query("UPDATE `app_settings` SET `pubscale_enabled` = 1 WHERE `pubscale_enabled` IS NULL;");

@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import styles from "./ContestScreen.module.css";
 import { Trophy, Clock, ChevronLeft, ChevronRight, Award, TrendingUp, Info, Users, Zap } from "lucide-react";
+import { analytics } from "@/modules/analytics/tracker";
 
 interface Contest {
   id: number;
@@ -72,6 +73,14 @@ export function ContestScreen({ user, onPlay }: ContestScreenProps) {
       if (res.ok) {
         const data = await res.json();
         setSelectedContest(data);
+        
+        // Track View
+        analytics.track(analytics.events.CONTEST.VIEWED, {
+          contest_id: data.id,
+          contest_name: data.name,
+          tracking_type: data.tracking_type,
+          access_type: data.access_type
+        });
       }
     } catch (err) {
       console.error(err);
@@ -98,6 +107,13 @@ export function ContestScreen({ user, onPlay }: ContestScreenProps) {
       const data = await res.json();
       if (res.ok) {
         alert("🎉 Successfully joined the contest!");
+        
+        // Track Join
+        analytics.track(analytics.events.CONTEST.JOINED, {
+          contest_id: contestId,
+          entry_fee: selectedContest?.contest?.entry_fee
+        });
+
         fetchContestDetail(selectedContest.contest.slug);
       } else {
         alert(`❌ ${data.error || 'Failed to join'}`);

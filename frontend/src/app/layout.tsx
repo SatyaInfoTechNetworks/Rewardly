@@ -22,6 +22,7 @@ export const viewport: Viewport = {
 };
 
 import AdScripts from '@/components/AdScripts';
+import { PostHogProvider } from '@/components/PostHogProvider';
 
 export default function RootLayout({
   children,
@@ -32,8 +33,10 @@ export default function RootLayout({
     <html lang="en">
       <head />
       <body className={`${poppins.variable} font-poppins antialiased`}>
-        <AdScripts />
-        {children}
+        <PostHogProvider>
+          <AdScripts />
+          {children}
+        </PostHogProvider>
       </body>
     </html>
   );

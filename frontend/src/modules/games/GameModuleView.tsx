@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { FlappyGame } from './flappy/FlappyGame';
 import { ChevronLeft, Trophy, Clock } from 'lucide-react';
+import { analytics } from '@/modules/analytics/tracker';
 import styles from './GameModuleView.module.css';
 
 interface GameModuleViewProps {
@@ -44,6 +45,14 @@ export function GameModuleView({ user, contest, gameSlug, onBack, onScoreSubmitt
       if (res.ok) {
         const data = await res.json();
         setSession(data);
+        
+        // Track Game Start
+        analytics.track(analytics.events.GAME.STARTED, {
+          game_slug: gameSlug,
+          contest_id: contest?.id,
+          session_id: data.id
+        });
+
         // We could fetch game config here if needed
         setGameConfig({
             gravity: 0.25,
@@ -78,6 +87,14 @@ export function GameModuleView({ user, contest, gameSlug, onBack, onScoreSubmitt
           metadata: { device: 'web_tg' } 
         }),
         credentials: 'include'
+      });
+
+      // Track Score Submission
+      analytics.track(analytics.events.GAME.SCORE_SUBMITTED, {
+        game_slug: gameSlug,
+        score,
+        contest_id: contest?.id,
+        session_id: session.id
       });
 
       if (onScoreSubmitted) onScoreSubmitted();

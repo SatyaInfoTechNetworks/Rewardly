@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { GameCanvas } from '../shared/GameCanvas';
 import { InputManager } from '../engine/InputManager';
+import { analytics } from '@/modules/analytics/tracker';
 import styles from './FlappyGame.module.css';
 
 interface FlappyGameProps {
@@ -182,6 +183,10 @@ export function FlappyGame({ onGameOver, config }: FlappyGameProps) {
 
   const endGame = () => {
     setGameState('gameover');
+    analytics.track(analytics.events.GAME.CRASHED, {
+      game_slug: 'flappy-bird',
+      score: currentScore.current
+    });
     onGameOver(currentScore.current);
   };
 

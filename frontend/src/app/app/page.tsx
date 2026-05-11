@@ -8,6 +8,7 @@ import { PlayGamesScreen } from "@/components/earn/PlayGamesScreen";
 import { DailyCheckInScreen } from "@/components/earn/DailyCheckInScreen";
 import { VisitAndEarnScreen } from "@/components/earn/VisitAndEarnScreen";
 import { GameModuleView } from "@/modules/games/GameModuleView";
+import { analytics } from "@/modules/analytics/tracker";
 import { PlayCircle, Gamepad2, ChevronRight, Flame, Zap, Inbox, CalendarCheck, Globe } from "lucide-react";
 
 // Components
@@ -61,6 +62,16 @@ export default function AppDashboard() {
           const data = await response.json();
           if (data.success) {
             setUser(data.user);
+            
+            // PostHog Identification
+            analytics.identify(data.user.telegram_id.toString(), {
+              name: data.user.first_name,
+              username: data.user.username,
+              balance: data.user.balance,
+              is_verified: data.user.is_phone_verified
+            });
+            analytics.track(analytics.events.AUTH.LOGIN, { method: 'telegram' });
+
             if (data.settings) {
               setAppSettings(data.settings);
             }
@@ -88,7 +99,12 @@ export default function AppDashboard() {
     }
   }, [activeTab]);
 
-  // 3. Handle Onboarding Verification
+  // 3. Track Screen Views
+  useEffect(() => {
+    analytics.screen(activeTab);
+  }, [activeTab]);
+
+  // 4. Handle Onboarding Verification
   const handleOnboardingVerify = async (phoneNumber?: string) => {
     try {
       const tg = (window as any).Telegram?.WebApp;

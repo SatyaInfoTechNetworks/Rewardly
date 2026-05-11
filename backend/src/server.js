@@ -211,15 +211,12 @@ testConnection().then(() => {
       console.log('Seed Note:', seedErr.message);
     }
 
-      // Seed Referral Milestones
+      // 6. Referral Milestones
       await ReferralMilestone.findOrCreate({ where: { required_referrals: 10 }, defaults: { reward_coins: 1000, icon: 'Gift' } });
       await ReferralMilestone.findOrCreate({ where: { required_referrals: 50 }, defaults: { reward_coins: 7000, icon: 'Zap' } });
       await ReferralMilestone.findOrCreate({ where: { required_referrals: 100 }, defaults: { reward_coins: 15000, icon: 'Trophy' } });
 
-      await User.findOrCreate({ where: { telegram_id: 111111 }, defaults: { first_name: 'Satya (Test)', balance: 5000, is_phone_verified: true } });
-      await User.findOrCreate({ where: { telegram_id: 222222 }, defaults: { first_name: 'Rahul (Test)', balance: 2450, is_channel_joined: true } });
-      
-      // Auto-Seed Payout Methods
+      // 7. Payout Methods
       const [upi] = await PayoutMethod.findOrCreate({ 
         where: { name: 'UPI' }, 
         defaults: { logo_url: 'https://upload.wikimedia.org/wikipedia/commons/e/e1/UPI-Logo-vector.svg', order_index: 1 } 
@@ -227,23 +224,8 @@ testConnection().then(() => {
       await PayoutTier.findOrCreate({ where: { payout_method_id: upi.id, coins_required: 5000 }, defaults: { amount_text: '₹50' } });
       await PayoutTier.findOrCreate({ where: { payout_method_id: upi.id, coins_required: 10000 }, defaults: { amount_text: '₹100' } });
 
-      // Seed App Settings
-      await AppSetting.findOrCreate({ 
-        where: { id: 1 }, 
-        defaults: { 
-          game_reward_coins: 5, 
-          game_limit_per_day: 20,
-          adsgram_block_id: '29726',
-          monetag_zone_id: '10977311',
-          pubscale_app_id: '26048184',
-          pubscale_enabled: true,
-          opinion_universe_url: 'https://opinionuniverse.com/offerwall?pubId=1863',
-          opinion_universe_enabled: true
-        } 
-      });
-
     } catch (e) {
-      console.log('Seed skip:', e.message);
+      console.log('ℹ️ Seed Note:', e.message);
     }
 
     // --- CONTEST AUTOMATION ---

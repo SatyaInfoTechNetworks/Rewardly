@@ -34,6 +34,22 @@ const AppSetting = sequelize.define('AppSetting', {
   onboarding_verification_enabled: {
     type: DataTypes.BOOLEAN,
     defaultValue: true
+  },
+  pubscale_app_id: {
+    type: DataTypes.STRING,
+    defaultValue: '26048184'
+  },
+  pubscale_enabled: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: true
+  },
+  opinion_universe_url: {
+    type: DataTypes.TEXT,
+    defaultValue: 'https://opinionuniverse.com/offerwall?pubId=1863'
+  },
+  opinion_universe_enabled: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: true
   }
 }, {
   tableName: 'app_settings',

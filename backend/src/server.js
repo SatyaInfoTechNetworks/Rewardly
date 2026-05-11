@@ -27,32 +27,26 @@ const PORT = process.env.PORT || 5000;
 app.set('trust proxy', true);
 
 // 1. CORS Configuration - MUST BE FIRST
-app.use(cors({
-  origin: function(origin, callback) {
-    // Allow requests with no origin (like mobile apps or curl)
-    if (!origin) return callback(null, true);
-    
-    const allowedDomains = [
-      'satyainfotechnetworks.com',
-      'telegram.org'
-    ];
-    
-    const isAllowed = allowedDomains.some(domain => 
-      origin === `https://${domain}` || origin.endsWith(`.${domain}`)
-    );
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
+  const allowedDomains = ['satyainfotechnetworks.com', 'telegram.org'];
+  
+  const isAllowed = !origin || allowedDomains.some(domain => 
+    origin === `https://${domain}` || origin.endsWith(`.${domain}`)
+  );
 
-    if (isAllowed || process.env.NODE_ENV !== 'production') {
-      callback(null, true);
-    } else {
-      console.log('🚫 CORS Blocked for:', origin);
-      callback(new Error('Not allowed by CORS'));
-    }
-  },
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'x-admin-secret', 'x-telegram-init-data'],
-  exposedHeaders: ['set-cookie']
-}));
+  if (isAllowed || process.env.NODE_ENV !== 'production') {
+    res.setHeader('Access-Control-Allow-Origin', origin || '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, x-admin-secret, x-telegram-init-data');
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+  }
+
+  if (req.method === 'OPTIONS') {
+    return res.sendStatus(200);
+  }
+  next();
+});
 
 app.use(express.json());
 
@@ -131,11 +125,17 @@ testConnection().then(() => {
       await sequelize.query("ALTER TABLE `app_settings` ADD `onboarding_verification_enabled` TINYINT(1) DEFAULT 1;");
       console.log('✅ AppSetting onboarding_verification_enabled added.');
     } catch (migErr) {
-      if (migErr.parent?.code === 'ER_DUP_FIELDNAME') {
-        console.log('✅ AppSetting onboarding_verification_enabled already exists.');
-      } else {
-        console.log('Migration Note (onboarding_verification_enabled):', migErr.message);
-      }
+      if (migErr.parent?.code !== 'ER_DUP_FIELDNAME') console.log('Migration Note (onboarding):', migErr.message);
+    }
+
+    try {
+      await sequelize.query("ALTER TABLE `app_settings` ADD `pubscale_app_id` VARCHAR(255) DEFAULT '26048184';");
+      await sequelize.query("ALTER TABLE `app_settings` ADD `pubscale_enabled` TINYINT(1) DEFAULT 1;");
+      await sequelize.query("ALTER TABLE `app_settings` ADD `opinion_universe_url` TEXT;");
+      await sequelize.query("ALTER TABLE `app_settings` ADD `opinion_universe_enabled` TINYINT(1) DEFAULT 1;");
+      console.log('✅ AppSetting PubScale & OpinionUniverse columns added.');
+    } catch (migErr) {
+      if (migErr.parent?.code !== 'ER_DUP_FIELDNAME') console.log('Migration Note (AdNetworks):', migErr.message);
     }
     
     // Auto-Seed Defaults
@@ -175,7 +175,11 @@ testConnection().then(() => {
           game_reward_coins: 5, 
           game_limit_per_day: 20,
           adsgram_block_id: '29726',
-          monetag_zone_id: '10977311'
+          monetag_zone_id: '10977311',
+          pubscale_app_id: '26048184',
+          pubscale_enabled: true,
+          opinion_universe_url: 'https://opinionuniverse.com/offerwall?pubId=1863',
+          opinion_universe_enabled: true
         } 
       });
 

@@ -30,7 +30,13 @@ export const TaskCard: React.FC<TaskCardProps> = ({
   return (
     <div className={`${styles.highRewardCard} card`} onClick={handleClick} style={{ cursor: href ? 'pointer' : 'default' }}>
       <div className={styles.taskCardTop}>
-        <div className={styles.taskLogo}>{icon}</div>
+        <div className={styles.taskLogo}>
+          {icon.startsWith('http') || icon.startsWith('/') ? (
+            <img src={icon} alt={title} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+          ) : (
+            icon
+          )}
+        </div>
         <div className={styles.taskHeaderMain}>
           <div className={styles.taskTitleRow}>
             <h3>{title}</h3>

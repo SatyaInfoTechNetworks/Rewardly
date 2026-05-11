@@ -283,16 +283,32 @@ export default function AppDashboard() {
               />
               
               <div className={styles.taskVerticalList}>
-                <TaskCard 
-                  title="Opinion Universe"
-                  desc="Complete Tasks and earn Coins"
-                  reward="50K+"
-                  time="5-20 min"
-                  tag="POPULAR"
-                  urgency="High Paying"
-                  icon="🎯"
-                  href={`https://opinionuniverse.com/offerwall?pubId=1863&SID=${user?.id}&appId=ID_eb1f5bea3e8caadcfcf6ccb5d35a1d1d`}
-                />
+                {appSettings.pubscale_enabled && (
+                  <TaskCard 
+                    title="PubScale Offerwall"
+                    desc="Complete High-Value offers and earn 10K+ Coins"
+                    reward="10K+"
+                    time="10-30 min"
+                    tag="HOT"
+                    urgency="Very High Paying"
+                    icon="/pubscale.jpg"
+                    href={`https://wow.pubscale.com?app_id=${appSettings.pubscale_app_id || '26048184'}&user_id=${user?.telegram_id}`}
+                  />
+                )}
+
+                {appSettings.opinion_universe_enabled && (
+                  <TaskCard 
+                    title="Opinion Universe"
+                    desc="Complete Tasks and earn Coins"
+                    reward="50K+"
+                    time="5-20 min"
+                    tag="POPULAR"
+                    urgency="High Paying"
+                    icon="/opinionuniverse.png"
+                    href={appSettings.opinion_universe_url || `https://opinionuniverse.com/offerwall?pubId=1863&SID=${user?.telegram_id}`}
+                  />
+                )}
+                
                 {TASKS.map((task) => (
                   <TaskCard key={task.id} {...task} />
                 ))}

@@ -177,7 +177,7 @@ testConnection().then(() => {
 
     // Auto-Seed Defaults
     try {
-      // Seed App Settings
+      // 1. App Settings
       await AppSetting.findOrCreate({
         where: { id: 1 },
         defaults: {
@@ -194,9 +194,9 @@ testConnection().then(() => {
           opinion_universe_enabled: true
         }
       });
-
-      // Seed Referral Settings
-      const [refSettings] = await ReferralSetting.findOrCreate({ 
+ 
+      // 2. Referral Settings
+      await ReferralSetting.findOrCreate({ 
         where: { id: 1 }, 
         defaults: { 
           welcome_bonus: 50, 
@@ -206,17 +206,13 @@ testConnection().then(() => {
           same_device_block: true
         } 
       });
-      console.log('✅ Default settings initialized.');
-    } catch (seedErr) {
-      console.log('Seed Note:', seedErr.message);
-    }
 
-      // 6. Referral Milestones
+      // 3. Referral Milestones
       await ReferralMilestone.findOrCreate({ where: { required_referrals: 10 }, defaults: { reward_coins: 1000, icon: 'Gift' } });
       await ReferralMilestone.findOrCreate({ where: { required_referrals: 50 }, defaults: { reward_coins: 7000, icon: 'Zap' } });
       await ReferralMilestone.findOrCreate({ where: { required_referrals: 100 }, defaults: { reward_coins: 15000, icon: 'Trophy' } });
 
-      // 7. Payout Methods
+      // 4. Payout Methods
       const [upi] = await PayoutMethod.findOrCreate({ 
         where: { name: 'UPI' }, 
         defaults: { logo_url: 'https://upload.wikimedia.org/wikipedia/commons/e/e1/UPI-Logo-vector.svg', order_index: 1 } 
@@ -224,8 +220,9 @@ testConnection().then(() => {
       await PayoutTier.findOrCreate({ where: { payout_method_id: upi.id, coins_required: 5000 }, defaults: { amount_text: '₹50' } });
       await PayoutTier.findOrCreate({ where: { payout_method_id: upi.id, coins_required: 10000 }, defaults: { amount_text: '₹100' } });
 
+      console.log('✅ Default settings and seeds initialized.');
     } catch (e) {
-      console.log('ℹ️ Seed Note:', e.message);
+      console.log('ℹ️ Seed/Init Note:', e.message);
     }
 
     // --- CONTEST AUTOMATION ---

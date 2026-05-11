@@ -16,17 +16,17 @@ const Contest = sequelize.define('Contest', {
     allowNull: false,
     unique: true
   },
-  type: {
-    type: DataTypes.ENUM('earning', 'referral', 'streak'),
-    defaultValue: 'earning'
+  tracking_type: {
+    type: DataTypes.ENUM('earnings', 'referrals'),
+    defaultValue: 'earnings'
   },
-  banner_url: {
+  banner_image: {
     type: DataTypes.STRING,
     allowNull: true
   },
   status: {
-    type: DataTypes.ENUM('upcoming', 'active', 'ended'),
-    defaultValue: 'upcoming'
+    type: DataTypes.ENUM('draft', 'scheduled', 'active', 'completed', 'cancelled'),
+    defaultValue: 'draft'
   },
   start_time: {
     type: DataTypes.DATE,
@@ -36,6 +36,30 @@ const Contest = sequelize.define('Contest', {
     type: DataTypes.DATE,
     allowNull: false
   },
+  prize_pool: {
+    type: DataTypes.INTEGER,
+    defaultValue: 0
+  },
+  prize_pool_type: {
+    type: DataTypes.ENUM('fixed', 'dynamic'),
+    defaultValue: 'fixed'
+  },
+  access_type: {
+    type: DataTypes.ENUM('free', 'paid', 'invite_only'),
+    defaultValue: 'free'
+  },
+  entry_fee: {
+    type: DataTypes.INTEGER,
+    defaultValue: 0
+  },
+  entry_fee_type: {
+    type: DataTypes.ENUM('coins', 'cash'),
+    defaultValue: 'coins'
+  },
+  maximum_participants: {
+    type: DataTypes.INTEGER,
+    allowNull: true
+  },
   description: {
     type: DataTypes.TEXT,
     allowNull: true
@@ -44,19 +68,15 @@ const Contest = sequelize.define('Contest', {
     type: DataTypes.TEXT,
     allowNull: true
   },
-  min_qualification: {
+  auto_join: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: true,
+    comment: 'If true, users join automatically on activity. If false, they must pay/click join.'
+  },
+  minimum_activity: {
     type: DataTypes.INTEGER,
     defaultValue: 0,
-    comment: 'Min coins/referrals needed to qualify'
-  },
-  prize_pool_text: {
-    type: DataTypes.STRING,
-    allowNull: true,
-    defaultValue: '₹0'
-  },
-  is_auto_distribute: {
-    type: DataTypes.BOOLEAN,
-    defaultValue: false
+    comment: 'Min coins or referrals needed to qualify'
   }
 }, {
   tableName: 'contests',

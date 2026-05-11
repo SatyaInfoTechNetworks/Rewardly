@@ -7,7 +7,7 @@ const Referral = sequelize.define('Referral', {
     primaryKey: true,
     autoIncrement: true
   },
-  referrer_id: {
+  referrer_user_id: {
     type: DataTypes.BIGINT,
     allowNull: false
   },
@@ -16,14 +16,14 @@ const Referral = sequelize.define('Referral', {
     allowNull: false
   },
   status: {
-    type: DataTypes.ENUM('pending', 'active', 'qualified', 'rewarded', 'rejected', 'fraud'),
+    type: DataTypes.ENUM('pending', 'active', 'validated', 'rejected', 'fraud'),
     defaultValue: 'pending'
   },
-  reward_given: {
+  is_valid: {
     type: DataTypes.BOOLEAN,
     defaultValue: false
   },
-  completed_at: {
+  validated_at: {
     type: DataTypes.DATE
   },
   ip_address: { type: DataTypes.STRING },

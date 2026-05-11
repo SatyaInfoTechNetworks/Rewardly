@@ -8,16 +8,20 @@ interface Contest {
   id: number;
   name: string;
   slug: string;
-  type: 'earning' | 'referral' | 'streak';
-  banner_url?: string;
-  status: 'upcoming' | 'active' | 'ended';
+  tracking_type: 'earnings' | 'referrals';
+  access_type: 'free' | 'paid' | 'invite_only';
+  entry_fee: number;
+  entry_fee_type: 'coins' | 'cash';
+  banner_image?: string;
+  status: 'draft' | 'scheduled' | 'active' | 'completed' | 'cancelled';
   start_time: string;
   end_time: string;
   description?: string;
   rules?: string;
-  prize_pool_text: string;
-  rewards?: any[];
-  entriesCount?: number;
+  prize_pool: number;
+  prize_pool_type: 'fixed' | 'dynamic';
+  maximum_participants?: number;
+  participantsCount?: number;
 }
 
 interface ContestScreenProps {
@@ -28,6 +32,7 @@ export function ContestScreen({ user }: ContestScreenProps) {
   const [contests, setContests] = useState<Contest[]>([]);
   const [selectedContest, setSelectedContest] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [joining, setJoining] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://rewardlyapi.satyainfotechnetworks.com';
@@ -41,7 +46,7 @@ export function ContestScreen({ user }: ContestScreenProps) {
       setLoading(true);
       const res = await fetch(`${API_URL}/api/contests`, { credentials: 'include' });
       if (res.ok) {
-        const data = await res.ok ? await res.json() : [];
+        const data = await res.json();
         setContests(data);
       }
     } catch (err) {
@@ -73,6 +78,36 @@ export function ContestScreen({ user }: ContestScreenProps) {
     }
   };
 
+  const handleJoinContest = async (contestId: number) => {
+    try {
+      setJoining(true);
+      const tg = (window as any).Telegram?.WebApp;
+      const initData = tg?.initData || '';
+
+      const res = await fetch(`${API_URL}/api/contests/${contestId}/join`, {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'x-telegram-init-data': initData 
+        },
+        credentials: 'include'
+      });
+
+      const data = await res.json();
+      if (res.ok) {
+        alert("🎉 Successfully joined the contest!");
+        fetchContestDetail(selectedContest.contest.slug);
+      } else {
+        alert(`❌ ${data.error || 'Failed to join'}`);
+      }
+    } catch (err) {
+      console.error(err);
+      alert("❌ An error occurred while joining");
+    } finally {
+      setJoining(false);
+    }
+  };
+
   const formatTimeLeft = (endTime: string) => {
     const end = new Date(endTime).getTime();
     const now = new Date().getTime();
@@ -89,69 +124,156 @@ export function ContestScreen({ user }: ContestScreenProps) {
 
   if (selectedContest) {
     const { contest, leaderboard, userEntry } = selectedContest;
+    const top3 = leaderboard.slice(0, 3);
+    const others = leaderboard.slice(3);
+    const isJoined = !!userEntry;
+    const isFull = contest.maximum_participants && (contest.participantsCount || 0) >= contest.maximum_participants;
     
     return (
       <div className={styles.container}>
-        <button className={styles.backBtn} onClick={() => setSelectedContest(null)}>
-          <ChevronLeft size={20} />
-          Back to Contests
-        </button>
+        <div className={styles.detailHeader}>
+          <button className={styles.backBtn} onClick={() => setSelectedContest(null)}>
+            <ChevronLeft size={20} />
+            Back
+          </button>
+          <div className={styles.timerBadge}>
+            <Clock size={14} />
+            {formatTimeLeft(contest.end_time)}
+          </div>
+        </div>
 
-        <div className={styles.heroCard}>
-          <div className={styles.cardGlow} />
+        <div className={styles.heroSection}>
+          <div className={styles.heroGlow} />
           <h2 className={styles.heroTitle}>{contest.name}</h2>
-          <div style={{ display: 'flex', gap: '12px' }}>
-            <div className={styles.heroTimer}>
-              <Clock size={14} />
-              {formatTimeLeft(contest.end_time)}
+          <div className={styles.heroStats}>
+            <div className={styles.heroStat}>
+              <Trophy size={16} />
+              <span>{contest.prize_pool} {contest.prize_pool_type === 'dynamic' ? '%' : 'Coins'} Pool</span>
             </div>
-            <div className={styles.heroTimer} style={{ background: 'rgba(255,255,255,0.1)', color: '#fff' }}>
-              <Trophy size={14} />
-              {contest.prize_pool_text}
+            <div className={styles.heroStat}>
+              <Users size={16} />
+              <span>{contest.participantsCount || 0} / {contest.maximum_participants || '∞'}</span>
             </div>
           </div>
         </div>
 
-        <div className={styles.prizePoolBanner}>
-          <Trophy size={20} />
-          <span>{contest.prize_pool_text} Prize Pool</span>
-        </div>
-
-        {/* User Stats Card */}
-        <div className={styles.userRankCard}>
-          <div className={styles.urRank}>
-            <div className={styles.urLabel}>Your Rank</div>
-            <div className={styles.urValue}>{userEntry?.rank ? `#${userEntry.rank}` : 'Not Ranked'}</div>
+        {/* Join Section for Paid/Manual Contests */}
+        {!isJoined && (
+          <div className={styles.joinActionBox}>
+            <div className={styles.joinInfo}>
+              <div className={styles.joinLabel}>ENTRY FEE</div>
+              <div className={styles.joinValue}>{contest.entry_fee > 0 ? `${contest.entry_fee} ${contest.entry_fee_type === 'coins' ? 'Coins' : 'Cash'}` : 'FREE'}</div>
+            </div>
+            <button 
+              className={styles.primaryJoinBtn} 
+              disabled={joining || isFull}
+              onClick={() => handleJoinContest(contest.id)}
+            >
+              {joining ? 'Joining...' : isFull ? 'Contest Full' : 'Join Competition'}
+            </button>
           </div>
-          <div className={styles.urDivider} />
-          <div className={styles.urProgress}>
-            <div className={styles.urLabel}>Your Score</div>
-            <div className={styles.urValue}>{userEntry?.score || 0}</div>
-            {(!userEntry?.rank || userEntry.rank > 10) && (
-              <div style={{ fontSize: '0.625rem', color: '#38bdf8', marginTop: '4px', fontWeight: 600 }}>
-                Score more to enter Top 10 🚀
+        )}
+
+        {/* User Status Highlight */}
+        {isJoined && (
+          <div className={styles.userStickyRank}>
+            <div className={styles.userRankInfo}>
+              <div className={styles.urLabel}>YOUR RANK</div>
+              <div className={styles.urValue}>{userEntry?.rank ? `#${userEntry.rank}` : 'UNRANKED'}</div>
+            </div>
+            <div className={styles.urDivider} />
+            <div className={styles.userRankInfo}>
+              <div className={styles.urLabel}>YOUR SCORE</div>
+              <div className={styles.urValue}>{userEntry?.score || 0}</div>
+            </div>
+            <div className={styles.urAction}>
+              {contest.tracking_type === 'earnings' ? 'EARN MORE' : 'INVITE FRIENDS'}
+            </div>
+          </div>
+        )}
+
+        {/* Podium View */}
+        <section className={styles.podiumSection}>
+          <div className={styles.podiumContainer}>
+            {/* Podium items... (kept from before) */}
+            {top3[1] && (
+              <div className={`${styles.podiumItem} ${styles.second}`}>
+                <div className={styles.podiumAvatar}>
+                  {top3[1].User?.photo_url ? <img src={top3[1].User.photo_url} alt="" /> : <span>{top3[1].User?.first_name?.charAt(0)}</span>}
+                  <div className={styles.podiumRank}>2</div>
+                </div>
+                <div className={styles.podiumName}>{top3[1].User?.first_name}</div>
+                <div className={styles.podiumScore}>{top3[1].score}</div>
+              </div>
+            )}
+            
+            {top3[0] && (
+              <div className={`${styles.podiumItem} ${styles.first}`}>
+                <div className={styles.podiumAvatar}>
+                  <div className={styles.crown}>👑</div>
+                  {top3[0].User?.photo_url ? <img src={top3[0].User.photo_url} alt="" /> : <span>{top3[0].User?.first_name?.charAt(0)}</span>}
+                  <div className={styles.podiumRank}>1</div>
+                </div>
+                <div className={styles.podiumName}>{top3[0].User?.first_name}</div>
+                <div className={styles.podiumScore}>{top3[0].score}</div>
+              </div>
+            )}
+
+            {top3[2] && (
+              <div className={`${styles.podiumItem} ${styles.third}`}>
+                <div className={styles.podiumAvatar}>
+                  {top3[2].User?.photo_url ? <img src={top3[2].User.photo_url} alt="" /> : <span>{top3[2].User?.first_name?.charAt(0)}</span>}
+                  <div className={styles.podiumRank}>3</div>
+                </div>
+                <div className={styles.podiumName}>{top3[2].User?.first_name}</div>
+                <div className={styles.podiumScore}>{top3[2].score}</div>
               </div>
             )}
           </div>
-          <div className={styles.urDivider} />
-          <div className={styles.urRank}>
-            <div className={styles.urLabel}>Target</div>
-            <div className={styles.urValue}>Top 10</div>
-          </div>
-        </div>
+        </section>
 
-        {/* Prize Pool */}
+        {/* Rest of the UI... */}
+        <section className={styles.leaderboardSection}>
+          <div className={styles.sectionHeader}>
+            <h3 className={styles.sectionTitle}>Full Rankings</h3>
+            <TrendingUp size={18} />
+          </div>
+          <div className={styles.lbList}>
+            {others.length > 0 ? (
+              others.map((entry: any, index: number) => (
+                <div 
+                  key={entry.id} 
+                  className={`${styles.lbItem} ${entry.user_id === user?.id ? styles.lbItemActive : ''}`}
+                >
+                  <div className={styles.lbRank}>{index + 4}</div>
+                  <div className={styles.lbAvatar}>
+                    {entry.User?.photo_url ? <img src={entry.User.photo_url} alt="" /> : <span>{entry.User?.first_name?.charAt(0)}</span>}
+                  </div>
+                  <div className={styles.lbInfo}>
+                    <div className={styles.lbName}>{entry.User?.first_name || 'Anonymous'}</div>
+                    <div className={styles.lbScore}>{entry.score} {contest.tracking_type === 'earnings' ? 'Coins' : 'Invites'}</div>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className={styles.emptyList}>
+                <p>{isJoined ? "No other players yet. Climb up!" : "Join to see the competition"}</p>
+              </div>
+            )}
+          </div>
+        </section>
+
         <section className={styles.prizeSection}>
-          <div className={styles.lbHeader}>
-            <h3 className={styles.lbTitle}>Prize Distribution</h3>
-            <Award size={20} color="#eab308" />
+          <div className={styles.sectionHeader}>
+            <h3 className={styles.sectionTitle}>Prize Pool</h3>
+            <Award size={18} />
           </div>
           <div className={styles.prizeGrid}>
             {contest.rewards?.map((reward: any) => (
               <div key={reward.id} className={styles.prizeCard}>
                 <div className={styles.pRank}>Rank {reward.rank_from}{reward.rank_to !== reward.rank_from ? `-${reward.rank_to}` : ''}</div>
                 <div className={styles.pValue}>
-                  <Trophy size={16} color="#eab308" />
+                  <Zap size={14} fill="#eab308" color="#eab308" />
                   {reward.reward_text || `${reward.reward_value} Coins`}
                 </div>
               </div>
@@ -159,58 +281,9 @@ export function ContestScreen({ user }: ContestScreenProps) {
           </div>
         </section>
 
-        {/* Leaderboard */}
-        <section className={styles.leaderboardSection}>
-          <div className={styles.lbHeader}>
-            <h3 className={styles.lbTitle}>Leaderboard</h3>
-            <TrendingUp size={20} color="#2563eb" />
-          </div>
-          <div className={styles.lbList}>
-            {leaderboard.length > 0 ? (
-              leaderboard.map((entry: any, index: number) => (
-                <div 
-                  key={entry.id} 
-                  className={`${styles.lbItem} ${entry.user_id === user?.id ? styles.lbItemActive : ''}`}
-                >
-                  <div className={`${styles.rank} ${index < 3 ? styles[`rank${index + 1}`] : ''}`}>
-                    {index + 1}
-                  </div>
-                  <div className={styles.avatar}>
-                    {entry.User?.first_name?.charAt(0) || '?'}
-                  </div>
-                  <div className={styles.userInfo}>
-                    <div className={styles.userName}>{entry.User?.first_name || 'Anonymous'}</div>
-                    <div className={styles.userScore}>{entry.score} {contest.type === 'earning' ? 'Coins' : 'Invites'}</div>
-                  </div>
-                  <div className={styles.reward}>
-                    {/* Simplified reward display for leaderboard */}
-                    {index === 0 ? 'WINNER' : ''}
-                  </div>
-                </div>
-              ))
-            ) : (
-              <div style={{ textAlign: 'center', padding: '40px 20px' }}>
-                <p style={{ color: '#64748b', fontSize: '0.875rem', marginBottom: '16px' }}>
-                  Be the first to join the competition 🚀
-                </p>
-                <button 
-                  className={styles.viewLbBtn} 
-                  style={{ width: 'auto', padding: '10px 24px', margin: '0 auto' }}
-                  onClick={() => setSelectedContest(null)}
-                >
-                  Start Earning
-                </button>
-              </div>
-            )}
-          </div>
-        </section>
-
-        {/* Rules */}
-        <div className={styles.rulesBox}>
-          <Info size={20} color="#475569" style={{ flexShrink: 0 }} />
-          <p className={styles.rulesText}>
-            {contest.rules || "Complete tasks and earn coins to climb the leaderboard. Fraudulent activity will lead to disqualification."}
-          </p>
+        <div className={styles.footerInfo}>
+          <Info size={16} />
+          <span>{contest.rules || "Fair play only. Anti-fraud system active."}</span>
         </div>
       </div>
     );
@@ -218,38 +291,40 @@ export function ContestScreen({ user }: ContestScreenProps) {
 
   return (
     <div className={styles.container}>
-      <header style={{ marginBottom: '24px' }}>
-        <h2 style={{ fontSize: '1.5rem', fontWeight: 800, color: '#1e293b' }}>Active Contests</h2>
-        <p style={{ fontSize: '0.875rem', color: '#64748b' }}>Compete with others and win big prizes!</p>
+      <header className={styles.mainHeader}>
+        <h1 className={styles.mainTitle}>Contests</h1>
+        <p className={styles.mainSubtitle}>Compete and win massive rewards!</p>
       </header>
 
       {loading && contests.length === 0 ? (
-        <div className={styles.emptyBox}>
-          <div className="loader" />
-          <p>Loading contests...</p>
+        <div className={styles.loadingBox}>
+          <div className={styles.loader} />
         </div>
       ) : contests.length > 0 ? (
-        <div className={styles.contestGrid}>
+        <div className={styles.contestList}>
           {contests.map((contest) => (
             <div 
               key={contest.id} 
               className={styles.contestCard}
               onClick={() => fetchContestDetail(contest.slug)}
             >
-              <div className={styles.cardBanner}>
-                <div className={styles.cardGlow} />
-                <div className={styles.cardBadge}>{contest.type}</div>
-                <h3 className={styles.cardTitle}>{contest.name}</h3>
+              <div className={styles.cardHeader}>
+                <div className={styles.cardType}>{contest.tracking_type}</div>
+                <div className={styles.cardTimer}>{formatTimeLeft(contest.end_time)}</div>
               </div>
-              <div className={styles.cardInfo}>
-                <div className={styles.cardMeta}>
-                  <div className={styles.prizePool}>{contest.prize_pool_text}</div>
-                  <div className={styles.participants}>
-                    <Users size={14} />
-                    <span>{contest.entriesCount || 0} Participants</span>
-                  </div>
+              <div className={styles.cardContent}>
+                <h3 className={styles.cardName}>{contest.name}</h3>
+                <div className={styles.cardPrize}>
+                  <Trophy size={18} color="#eab308" />
+                  <span>{contest.prize_pool} Coins</span>
                 </div>
-                <button className={styles.viewLbBtn}>View Leaderboard</button>
+              </div>
+              <div className={styles.cardFooter}>
+                <div className={styles.cardParticipants}>
+                  <Users size={14} />
+                  <span>{contest.participantsCount || 0} participants</span>
+                </div>
+                <ChevronRight size={18} />
               </div>
             </div>
           ))}
@@ -258,7 +333,7 @@ export function ContestScreen({ user }: ContestScreenProps) {
         <div className={styles.emptyBox}>
           <Trophy size={48} opacity={0.2} />
           <h3>No Active Contests</h3>
-          <p>New challenges are coming soon. Stay tuned!</p>
+          <p>Stay tuned for new challenges!</p>
         </div>
       )}
     </div>

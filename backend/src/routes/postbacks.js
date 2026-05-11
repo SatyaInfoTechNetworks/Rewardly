@@ -4,6 +4,8 @@ const User = require('../models/User');
 const Transaction = require('../models/Transaction');
 const { sequelize } = require('../config/database');
 const AppSetting = require('../models/AppSetting');
+const { trackContestActivity } = require('../utils/contestTracker');
+const { validateReferral } = require('../utils/referralValidator');
 
 const getSettings = async () => {
   let settings = await AppSetting.findByPk(1);
@@ -55,8 +57,8 @@ router.get('/cpx', async (req, res) => {
     }, { transaction: t });
 
     await t.commit();
-    const { trackContestActivity } = require('../utils/contestTracker');
-    await trackContestActivity(user_id, 'earning', rewardAmount);
+    await trackContestActivity(user_id, 'earnings', rewardAmount);
+    await validateReferral(user_id);
 
     console.log(`✅ User ${user_id} credited with ${rewardAmount} coins.`);
     return res.send('OK');
@@ -107,8 +109,8 @@ router.get('/monetag', async (req, res) => {
 
     await t.commit();
 
-    const { trackContestActivity } = require('../utils/contestTracker');
-    await trackContestActivity(user_id, 'earning', rewardAmount);
+    await trackContestActivity(user_id, 'earnings', rewardAmount);
+    await validateReferral(user_id);
 
     return res.send('OK');
   } catch (error) {
@@ -155,8 +157,8 @@ router.get('/adsgram', async (req, res) => {
 
     await t.commit();
 
-    const { trackContestActivity } = require('../utils/contestTracker');
-    await trackContestActivity(user_id, 'earning', rewardAmount);
+    await trackContestActivity(user_id, 'earnings', rewardAmount);
+    await validateReferral(user_id);
 
     console.log(`✅ AdsGram Reward: User ${user_id} credited with ${rewardAmount} coins.`);
     return res.send('OK');

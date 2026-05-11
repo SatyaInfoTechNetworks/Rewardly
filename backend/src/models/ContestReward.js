@@ -20,7 +20,7 @@ const ContestReward = sequelize.define('ContestReward', {
     allowNull: false
   },
   reward_type: {
-    type: DataTypes.ENUM('coins', 'cash'),
+    type: DataTypes.ENUM('coins', 'cash', 'gift_card', 'badge'),
     defaultValue: 'coins'
   },
   reward_value: {
@@ -29,8 +29,7 @@ const ContestReward = sequelize.define('ContestReward', {
   },
   reward_text: {
     type: DataTypes.STRING,
-    allowNull: true,
-    comment: 'Display text like ₹500 or 5000 Coins'
+    allowNull: true
   }
 }, {
   tableName: 'contest_rewards',

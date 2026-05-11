@@ -35,6 +35,10 @@ const Transaction = sequelize.define('Transaction', {
   status: {
     type: DataTypes.ENUM('pending', 'completed', 'failed'),
     defaultValue: 'completed'
+  },
+  contest_id: {
+    type: DataTypes.INTEGER,
+    allowNull: true
   }
 }, {
   tableName: 'transactions',

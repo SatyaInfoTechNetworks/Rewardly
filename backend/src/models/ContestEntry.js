@@ -32,7 +32,8 @@ const ContestEntry = sequelize.define('ContestEntry', {
     defaultValue: false
   }
 }, {
-  tableName: 'contest_entries',
+  tableName: 'contest_participants',
+  timestamps: true,
   underscored: true
 });
 

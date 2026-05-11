@@ -65,7 +65,7 @@ WithdrawalRequest.belongsTo(User, { foreignKey: 'user_id' });
 WithdrawalRequest.belongsTo(PayoutMethod, { foreignKey: 'payout_method_id' });
 WithdrawalRequest.belongsTo(PayoutTier, { foreignKey: 'payout_tier_id' });
 
-Referral.belongsTo(User, { as: 'referrer', foreignKey: 'referrer_id' });
+Referral.belongsTo(User, { as: 'referrer', foreignKey: 'referrer_user_id' });
 Referral.belongsTo(User, { as: 'referred', foreignKey: 'referred_user_id' });
 
 // Contest Associations
@@ -162,6 +162,14 @@ testConnection().then(() => {
     } catch (e) {
       console.log('Seed skip:', e.message);
     }
+
+    // --- CONTEST AUTOMATION ---
+    const { processEndedContests } = require('./utils/contestManager');
+    // Run every 10 minutes to check for ended contests
+    setInterval(processEndedContests, 10 * 60 * 1000);
+    // Also run once on startup
+    processEndedContests();
+
   }).catch(err => {
     console.error('❌ Database Sync Error:', err);
   });

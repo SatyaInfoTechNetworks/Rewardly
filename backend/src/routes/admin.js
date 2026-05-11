@@ -329,7 +329,7 @@ router.put('/withdrawals/:id', adminAuth, async (req, res) => {
 
             // Track Referral Contest
             const { trackContestActivity } = require('../utils/contestTracker');
-            await trackContestActivity(referrer.telegram_id, 'referral', 1);
+            await trackContestActivity(referrer.telegram_id, 'referrals', 1);
           }
         }
       }

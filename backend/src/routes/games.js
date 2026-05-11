@@ -4,6 +4,7 @@ const User = require('../models/User');
 const Transaction = require('../models/Transaction');
 const { validateTelegramInitData } = require('../utils/telegramAuth');
 const { trackContestActivity } = require('../utils/contestTracker');
+const { validateReferral } = require('../utils/referralValidator');
 const AppSetting = require('../models/AppSetting');
 const { generateTransactionId } = require('../utils/transactions');
 
@@ -106,7 +107,8 @@ router.post('/reward', async (req, res) => {
     });
 
     // Update Contest Activity (Earning Contest)
-    await trackContestActivity(user.telegram_id, 'earning', rewardAmount);
+    await trackContestActivity(user.telegram_id, 'earnings', rewardAmount);
+    await validateReferral(user.telegram_id);
 
     res.json({
       success: true,

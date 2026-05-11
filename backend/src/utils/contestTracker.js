@@ -8,14 +8,14 @@ const { Op } = require('sequelize');
  * @param {string} type - 'earning', 'referral', or 'streak'
  * @param {number} amount - Amount to add to score (coins, count, etc)
  */
-async function trackContestActivity(userId, type, amount = 1) {
+async function trackContestActivity(userId, trackingType, amount = 1) {
   try {
     const now = new Date();
     
     // Find all active contests of this type
     const activeContests = await Contest.findAll({
       where: {
-        type,
+        tracking_type: trackingType,
         status: 'active',
         start_time: { [Op.lte]: now },
         end_time: { [Op.gte]: now }
@@ -23,15 +23,28 @@ async function trackContestActivity(userId, type, amount = 1) {
     });
 
     for (const contest of activeContests) {
-      // Find or Create Entry
-      const [entry, created] = await ContestEntry.findOrCreate({
-        where: { contest_id: contest.id, user_id: userId },
-        defaults: { score: 0 }
+      // Respect auto_join setting
+      let entry = await ContestEntry.findOne({
+        where: { contest_id: contest.id, user_id: userId }
       });
+
+      if (!entry) {
+        if (contest.auto_join) {
+          entry = await ContestEntry.create({
+            contest_id: contest.id,
+            user_id: userId,
+            score: 0,
+            status: 'active'
+          });
+        } else {
+          // User must manually join this contest (future feature)
+          continue;
+        }
+      }
 
       // Update Score
       await entry.increment('score', { by: amount });
-      console.log(`🏆 Contest [${contest.name}] - User ${userId} score updated: +${amount}`);
+      console.log(`🏆 Contest [${contest.name}] - User ${userId} score updated: +${amount} (${trackingType})`);
     }
   } catch (err) {
     console.error('❌ Contest Tracking Error:', err.message);

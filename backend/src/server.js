@@ -161,12 +161,37 @@ testConnection().then(() => {
         const isDuplicate = err.parent?.code === 'ER_DUP_FIELDNAME' || 
                            err.message.includes('Duplicate column name');
         if (!isDuplicate) console.log(`ℹ️ Migration Note: ${err.message}`);
-      }
+    // 5. Ensure existing settings have defaults (one-time fix for existing rows)
+    try {
+      await sequelize.query("UPDATE `app_settings` SET `pubscale_enabled` = 1 WHERE `pubscale_enabled` IS NULL;");
+      await sequelize.query("UPDATE `app_settings` SET `opinion_universe_enabled` = 1 WHERE `opinion_universe_enabled` IS NULL;");
+      await sequelize.query("UPDATE `app_settings` SET `pubscale_app_id` = '26048184' WHERE `pubscale_app_id` IS NULL;");
+      await sequelize.query("UPDATE `app_settings` SET `opinion_universe_url` = 'https://opinionuniverse.com/offerwall?pubId=1863' WHERE `opinion_universe_url` IS NULL;");
+    } catch (err) {
+      console.log('ℹ️ Migration Note (Defaults):', err.message);
     }
     console.log('✅ Database Schema Check Complete.');
 
     // Auto-Seed Defaults
     try {
+      // Seed App Settings
+      await AppSetting.findOrCreate({
+        where: { id: 1 },
+        defaults: {
+          game_reward_coins: 5,
+          game_limit_per_day: 20,
+          adsgram_block_id: '4376',
+          monetag_zone_id: '10977311',
+          adsgram_enabled: true,
+          monetag_enabled: true,
+          onboarding_verification_enabled: true,
+          pubscale_app_id: '26048184',
+          pubscale_enabled: true,
+          opinion_universe_url: 'https://opinionuniverse.com/offerwall?pubId=1863',
+          opinion_universe_enabled: true
+        }
+      });
+
       // Seed Referral Settings
       const [refSettings] = await ReferralSetting.findOrCreate({ 
         where: { id: 1 }, 
@@ -178,6 +203,10 @@ testConnection().then(() => {
           same_device_block: true
         } 
       });
+      console.log('✅ Default settings initialized.');
+    } catch (seedErr) {
+      console.log('Seed Note:', seedErr.message);
+    }
 
       // Seed Referral Milestones
       await ReferralMilestone.findOrCreate({ where: { required_referrals: 10 }, defaults: { reward_coins: 1000, icon: 'Gift' } });

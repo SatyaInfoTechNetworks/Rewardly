@@ -27,13 +27,40 @@ import { VerificationOverlay } from "@/components/ui/VerificationOverlay";
 import { useSurveys } from "@/hooks/useSurveys";
 
 // Data Constants
-const TASKS: any[] = []; // Demo data removed
+const TASKS: any[] = [
+  {
+    id: 'yt_sub',
+    title: 'Subscribe & Earn',
+    desc: 'Subscribe to our Official Channel for updates',
+    reward: 50,
+    time: '1 min',
+    tag: 'EASY',
+    urgency: 'Instant',
+    icon: '📺'
+  },
+  {
+    id: 'tg_join',
+    title: 'Join Community',
+    desc: 'Join our Telegram for daily promo codes',
+    reward: 100,
+    time: '1 min',
+    tag: 'NEW',
+    urgency: 'Daily Rewards',
+    icon: '📢'
+  }
+]; 
 
 export default function AppDashboard() {
   const [activeTab, setActiveTab] = useState("earn");
   const [user, setUser] = useState<any>(null);
   const [selectedGameContest, setSelectedGameContest] = useState<any>(null);
-  const [appSettings, setAppSettings] = useState<any>({ onboardingVerificationEnabled: true });
+  const [appSettings, setAppSettings] = useState<any>({ 
+    onboarding_verification_enabled: true,
+    pubscale_enabled: true,
+    opinion_universe_enabled: true,
+    pubscale_app_id: '26048184',
+    opinion_universe_url: 'https://opinionuniverse.com/offerwall?pubId=1863'
+  });
   
   // Dynamic API URL
   const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://rewardlyapi.satyainfotechnetworks.com';

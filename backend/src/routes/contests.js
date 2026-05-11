@@ -67,7 +67,19 @@ router.get('/:slug', async (req, res) => {
       userEntry = await ContestEntry.findOne({
         where: { contest_id: contest.id, user_id: tgUser.id }
       });
+      });
     }
+
+    res.json({
+      contest,
+      leaderboard,
+      userEntry
+    });
+  } catch (err) {
+    console.error("Fetch Contest Detail Error:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
 
 /**
  * POST /api/contests/:id/join

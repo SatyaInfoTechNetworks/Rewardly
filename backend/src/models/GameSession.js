@@ -8,7 +8,7 @@ const GameSession = sequelize.define('GameSession', {
     primaryKey: true
   },
   user_id: {
-    type: DataTypes.STRING,
+    type: DataTypes.BIGINT,
     allowNull: false
   },
   game_id: {

@@ -98,15 +98,16 @@ GameSession.belongsTo(User, { foreignKey: 'user_id', targetKey: 'telegram_id' })
 GameSession.belongsTo(Contest, { foreignKey: 'contest_id' });
 User.hasMany(GameSession, { foreignKey: 'user_id', sourceKey: 'telegram_id' });
 
-// Start Server
-app.listen(PORT, '0.0.0.0', () => {
-  console.log(`✨ Server started on 0.0.0.0:${PORT}`);
-});
+// Start Server (Move this inside sync)
 
 // Test DB Connection & Sync Models
 testConnection().then(() => {
   sequelize.sync({ alter: false }).then(async () => {
     console.log('✨ Database models synchronized.');
+    
+    app.listen(PORT, '0.0.0.0', () => {
+      console.log(`✨ Server started on 0.0.0.0:${PORT}`);
+    });
     
     // Manual Migration for Transactions table (since alter:false is set)
     try {

@@ -27,23 +27,31 @@ const PORT = process.env.PORT || 5000;
 app.set('trust proxy', true);
 
 // 1. CORS Configuration - MUST BE FIRST
-const allowedOrigins = [
-  'https://rewardly.satyainfotechnetworks.com',
-  'https://www.rewardly.satyainfotechnetworks.com',
-  'https://web.telegram.org'
-];
-
 app.use(cors({
   origin: function(origin, callback) {
+    // Allow requests with no origin (like mobile apps or curl)
     if (!origin) return callback(null, true);
-    if (allowedOrigins.includes(origin)) {
-      return callback(null, true);
+    
+    const allowedDomains = [
+      'satyainfotechnetworks.com',
+      'telegram.org'
+    ];
+    
+    const isAllowed = allowedDomains.some(domain => 
+      origin === `https://${domain}` || origin.endsWith(`.${domain}`)
+    );
+
+    if (isAllowed || process.env.NODE_ENV !== 'production') {
+      callback(null, true);
+    } else {
+      console.log('🚫 CORS Blocked for:', origin);
+      callback(new Error('Not allowed by CORS'));
     }
-    return callback(new Error('CORS not allowed'));
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'x-admin-secret', 'x-telegram-init-data']
+  allowedHeaders: ['Content-Type', 'Authorization', 'x-admin-secret', 'x-telegram-init-data'],
+  exposedHeaders: ['set-cookie']
 }));
 
 app.use(express.json());
@@ -208,6 +216,10 @@ app.use('/api/contests', require('./routes/contests'));
 app.use('/api/rewards', require('./routes/rewards'));
 app.use('/api/game-system', require('./routes/gameSystem'));
 app.use('/api/opinion-universe', require('./routes/opinionUniverse'));
+
+app.get('/health', (req, res) => {
+  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+});
 
 app.get('/', (req, res) => {
   res.json({ message: 'Rewardly Backend API is running' });

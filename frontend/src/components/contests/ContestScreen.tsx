@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import styles from "./ContestScreen.module.css";
-import { Trophy, Clock, ChevronLeft, Award, TrendingUp, Info, Users } from "lucide-react";
+import { Trophy, Clock, ChevronLeft, Award, TrendingUp, Info, Users, Zap } from "lucide-react";
 
 interface Contest {
   id: number;

@@ -319,7 +319,7 @@ export default function AppDashboard() {
                       time="10-30 min"
                       tag="HOT"
                       urgency="Very High Paying"
-                      icon="https://cdn6.aptoide.com/imgs/5/d/0/5d0505b0f14d3b84179e8c3395b0c95a_icon.png"
+                      icon="https://i.ibb.co/pB5NZtyz/download.png"
                       href={`https://wow.pubscale.com?app_id=${appSettings.pubscale_app_id || '78594689'}&user_id=${user.telegram_id}${user.google_aid ? `&ga_id=${user.google_aid}` : ''}${user.ios_idfa ? `&idfa=${user.ios_idfa}` : ''}`}
                     />
                   )}

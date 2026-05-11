@@ -109,74 +109,61 @@ testConnection().then(() => {
       console.log(`✨ Server started on 0.0.0.0:${PORT}`);
     });
     
-    // Manual Migration for Transactions table (since alter:false is set)
-    try {
-      // Standard MySQL syntax (catch will handle "column already exists" error)
-      // Removing UNIQUE to avoid "Too many keys" limit
-      await sequelize.query("ALTER TABLE `transactions` ADD `reference_id` VARCHAR(255) AFTER `telegram_id`;");
-      console.log('✅ Transaction reference_id added (no index).');
-    } catch (migErr) {
-      if (migErr.parent?.code === 'ER_DUP_FIELDNAME') {
-        console.log('✅ Transaction reference_id already exists.');
-      } else {
-        console.log('Migration Note (reference_id):', migErr.message);
-      }
-    }
+    // --- MASTER DATABASE MIGRATION SYSTEM ---
+    const migrations = [
+      // 1. Users Table
+      "ALTER TABLE `users` ADD `google_aid` VARCHAR(255);",
+      "ALTER TABLE `users` ADD `ios_idfa` VARCHAR(255);",
+      "ALTER TABLE `users` ADD `phone_number` VARCHAR(255);",
+      "ALTER TABLE `users` ADD `is_phone_verified` TINYINT(1) DEFAULT 0;",
+      "ALTER TABLE `users` ADD `is_channel_joined` TINYINT(1) DEFAULT 0;",
+      "ALTER TABLE `users` ADD `daily_games_played` INTEGER DEFAULT 0;",
+      "ALTER TABLE `users` ADD `last_game_date` DATE;",
+      
+      // 2. Transactions Table
+      "ALTER TABLE `transactions` ADD `reference_id` VARCHAR(255);",
+      "ALTER TABLE `transactions` ADD `external_id` VARCHAR(255);",
+      "ALTER TABLE `transactions` ADD `contest_id` INTEGER;",
+      "ALTER TABLE `transactions` MODIFY `type` VARCHAR(255);",
 
-    try {
-      await sequelize.query("ALTER TABLE `transactions` MODIFY `type` VARCHAR(255);");
-      console.log('✅ Transaction type column modified.');
-    } catch (migErr) {
-      console.log('Migration Note (type):', migErr.message);
-    }
-
-    try {
-      await sequelize.query("ALTER TABLE `app_settings` ADD `onboarding_verification_enabled` TINYINT(1) DEFAULT 1;");
-      console.log('✅ AppSetting onboarding_verification_enabled added.');
-    } catch (migErr) {
-      if (migErr.parent?.code !== 'ER_DUP_FIELDNAME') console.log('Migration Note (onboarding):', migErr.message);
-    }
-
-    // Split into individual migrations so one failure (duplicate) doesn't block others
-    const contestCols = [
+      // 3. Contests Table
+      "ALTER TABLE `contests` ADD `name` VARCHAR(255);",
+      "ALTER TABLE `contests` ADD `slug` VARCHAR(255);",
       "ALTER TABLE `contests` ADD `tracking_type` ENUM('earnings', 'referrals', 'game_score') DEFAULT 'earnings';",
       "ALTER TABLE `contests` ADD `game_id` INTEGER;",
       "ALTER TABLE `contests` ADD `banner_image` VARCHAR(255);",
+      "ALTER TABLE `contests` ADD `status` ENUM('draft', 'scheduled', 'active', 'completed', 'cancelled') DEFAULT 'draft';",
+      "ALTER TABLE `contests` ADD `start_time` DATETIME;",
+      "ALTER TABLE `contests` ADD `end_time` DATETIME;",
+      "ALTER TABLE `contests` ADD `prize_pool` INTEGER DEFAULT 0;",
       "ALTER TABLE `contests` ADD `prize_pool_type` ENUM('fixed', 'dynamic') DEFAULT 'fixed';",
       "ALTER TABLE `contests` ADD `access_type` ENUM('free', 'paid', 'invite_only') DEFAULT 'free';",
       "ALTER TABLE `contests` ADD `entry_fee` INTEGER DEFAULT 0;",
       "ALTER TABLE `contests` ADD `entry_fee_type` ENUM('coins', 'cash') DEFAULT 'coins';",
       "ALTER TABLE `contests` ADD `maximum_participants` INTEGER;",
+      "ALTER TABLE `contests` ADD `description` TEXT;",
       "ALTER TABLE `contests` ADD `rules` TEXT;",
       "ALTER TABLE `contests` ADD `auto_join` TINYINT(1) DEFAULT 1;",
-      "ALTER TABLE `contests` ADD `minimum_activity` INTEGER DEFAULT 0;"
-    ];
+      "ALTER TABLE `contests` ADD `minimum_activity` INTEGER DEFAULT 0;",
 
-    for (const sql of contestCols) {
-      try {
-        await sequelize.query(sql);
-      } catch (migErr) {
-        if (migErr.parent?.code !== 'ER_DUP_FIELDNAME') console.log('Migration Note (Contests):', migErr.message);
-      }
-    }
-    console.log('✅ Contest schema check completed.');
-
-    // AppSetting Checks
-    const appSettingCols = [
+      // 4. App Settings Table
+      "ALTER TABLE `app_settings` ADD `onboarding_verification_enabled` TINYINT(1) DEFAULT 1;",
       "ALTER TABLE `app_settings` ADD `pubscale_app_id` VARCHAR(255) DEFAULT '26048184';",
       "ALTER TABLE `app_settings` ADD `pubscale_enabled` TINYINT(1) DEFAULT 1;",
       "ALTER TABLE `app_settings` ADD `opinion_universe_url` TEXT;",
       "ALTER TABLE `app_settings` ADD `opinion_universe_enabled` TINYINT(1) DEFAULT 1;"
     ];
 
-    for (const sql of appSettingCols) {
+    for (const sql of migrations) {
       try {
         await sequelize.query(sql);
-      } catch (migErr) {
-        if (migErr.parent?.code !== 'ER_DUP_FIELDNAME') console.log('Migration Note (AdNetworks):', migErr.message);
+      } catch (err) {
+        const isDuplicate = err.parent?.code === 'ER_DUP_FIELDNAME' || 
+                           err.message.includes('Duplicate column name');
+        if (!isDuplicate) console.log(`ℹ️ Migration Note: ${err.message}`);
       }
     }
-    console.log('✅ AppSetting AdNetworks columns checked.');
+    console.log('✅ Database Schema Check Complete.');
 
     // Auto-Seed Defaults
     try {

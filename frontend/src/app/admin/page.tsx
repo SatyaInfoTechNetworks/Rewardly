@@ -1507,7 +1507,7 @@ export default function AdminPanel() {
           </div>
         </div>
       )}
-      {activeView === 'settings' && (
+        {activeView === 'settings' && (
           <section>
             <div className={styles.sectionHeader}>
               <h2 className={styles.sectionTitle}>Global Application Settings</h2>
@@ -1549,7 +1549,6 @@ export default function AdminPanel() {
                            value={appSettings?.adsgram_block_id || ''}
                            onChange={(e) => setAppSettings({...appSettings, adsgram_block_id: e.target.value})}
                         />
-                        <p style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '0.5rem' }}>Primary ad network block identifier.</p>
                      </div>
                      <div className={styles.formGroup}>
                         <label className={styles.formLabel}>Monetag Zone ID</label>
@@ -1559,17 +1558,34 @@ export default function AdminPanel() {
                            value={appSettings?.monetag_zone_id || ''}
                            onChange={(e) => setAppSettings({...appSettings, monetag_zone_id: e.target.value})}
                         />
-                        <p style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '0.5rem' }}>Fallback ad network zone identifier.</p>
                      </div>
                   </div>
 
-                  <h4 style={{ fontWeight: 600, color: '#f59e0b', fontSize: '1.1rem', marginBottom: '1.5rem' }}>Bypass / Kill Switch</h4>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem', marginBottom: '2rem' }}>
+                     <div className={styles.formGroup}>
+                        <label className={styles.formLabel}>PubScale App ID</label>
+                        <input 
+                           className={styles.formInput}
+                           placeholder="e.g. 26048184"
+                           value={appSettings?.pubscale_app_id || ''}
+                           onChange={(e) => setAppSettings({...appSettings, pubscale_app_id: e.target.value})}
+                        />
+                     </div>
+                     <div className={styles.formGroup}>
+                        <label className={styles.formLabel}>Opinion Universe URL</label>
+                        <input 
+                           className={styles.formInput}
+                           placeholder="https://..."
+                           value={appSettings?.opinion_universe_url || ''}
+                           onChange={(e) => setAppSettings({...appSettings, opinion_universe_url: e.target.value})}
+                        />
+                     </div>
+                  </div>
+
+                  <h4 style={{ fontWeight: 600, color: '#f59e0b', fontSize: '1.1rem', marginBottom: '1.5rem' }}>Toggle Networks & System</h4>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem' }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1.25rem', background: 'rgba(255,255,255,0.02)', borderRadius: '16px', border: '1px solid var(--border-subtle)' }}>
-                      <div>
-                        <div style={{ fontWeight: 600, color: '#fff' }}>Enable AdsGram</div>
-                        <p style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '2px' }}>Disable to bypass AdsGram review</p>
-                      </div>
+                      <div style={{ fontWeight: 600, color: '#fff' }}>Enable AdsGram</div>
                       <input 
                         type="checkbox" 
                         checked={appSettings?.adsgram_enabled ?? true} 
@@ -1578,10 +1594,7 @@ export default function AdminPanel() {
                       />
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1.25rem', background: 'rgba(255,255,255,0.02)', borderRadius: '16px', border: '1px solid var(--border-subtle)' }}>
-                      <div>
-                        <div style={{ fontWeight: 600, color: '#fff' }}>Enable Monetag</div>
-                        <p style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '2px' }}>Disable to hide Monetag ads</p>
-                      </div>
+                      <div style={{ fontWeight: 600, color: '#fff' }}>Enable Monetag</div>
                       <input 
                         type="checkbox" 
                         checked={appSettings?.monetag_enabled ?? true} 
@@ -1590,10 +1603,25 @@ export default function AdminPanel() {
                       />
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1.25rem', background: 'rgba(255,255,255,0.02)', borderRadius: '16px', border: '1px solid var(--border-subtle)' }}>
-                      <div>
-                        <div style={{ fontWeight: 600, color: '#fff' }}>User Verification</div>
-                        <p style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '2px' }}>Disable to bypass Onboarding (Review Mode)</p>
-                      </div>
+                      <div style={{ fontWeight: 600, color: '#fff' }}>Enable PubScale</div>
+                      <input 
+                        type="checkbox" 
+                        checked={appSettings?.pubscale_enabled ?? true} 
+                        onChange={(e) => setAppSettings({...appSettings, pubscale_enabled: e.target.checked})}
+                        style={{ width: '22px', height: '22px', cursor: 'pointer' }}
+                      />
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1.25rem', background: 'rgba(255,255,255,0.02)', borderRadius: '16px', border: '1px solid var(--border-subtle)' }}>
+                      <div style={{ fontWeight: 600, color: '#fff' }}>Enable Opinion Universe</div>
+                      <input 
+                        type="checkbox" 
+                        checked={appSettings?.opinion_universe_enabled ?? true} 
+                        onChange={(e) => setAppSettings({...appSettings, opinion_universe_enabled: e.target.checked})}
+                        style={{ width: '22px', height: '22px', cursor: 'pointer' }}
+                      />
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1.25rem', background: 'rgba(255,255,255,0.02)', borderRadius: '16px', border: '1px solid var(--border-subtle)' }}>
+                      <div style={{ fontWeight: 600, color: '#fff' }}>Onboarding Overlay</div>
                       <input 
                         type="checkbox" 
                         checked={appSettings?.onboarding_verification_enabled ?? true} 

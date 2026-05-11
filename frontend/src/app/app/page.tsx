@@ -7,6 +7,7 @@ import { ContestScreen } from "@/components/contests/ContestScreen";
 import { PlayGamesScreen } from "@/components/earn/PlayGamesScreen";
 import { DailyCheckInScreen } from "@/components/earn/DailyCheckInScreen";
 import { VisitAndEarnScreen } from "@/components/earn/VisitAndEarnScreen";
+import { GameModuleView } from "@/modules/games/GameModuleView";
 import { PlayCircle, Gamepad2, ChevronRight, Flame, Zap, Inbox, CalendarCheck, Globe } from "lucide-react";
 
 // Components
@@ -30,6 +31,7 @@ const TASKS: any[] = []; // Demo data removed
 export default function AppDashboard() {
   const [activeTab, setActiveTab] = useState("earn");
   const [user, setUser] = useState<any>(null);
+  const [selectedGameContest, setSelectedGameContest] = useState<any>(null);
   const [appSettings, setAppSettings] = useState<any>({ onboardingVerificationEnabled: true });
   
   // Dynamic API URL
@@ -137,7 +139,7 @@ export default function AppDashboard() {
     }
 
     if (activeTab === "contest") {
-      return <ContestScreen user={user} />;
+      return <ContestScreen user={user} onPlay={(contest) => setSelectedGameContest(contest)} />;
     }
 
     if (activeTab === "play_games") {
@@ -176,6 +178,18 @@ export default function AppDashboard() {
           surveys={surveys} 
           loading={surveysLoading} 
           onBack={() => setActiveTab("earn")} 
+        />
+      );
+    }
+
+    if (selectedGameContest) {
+      return (
+        <GameModuleView 
+          user={user} 
+          contest={selectedGameContest} 
+          gameSlug="flappy-bird" 
+          onBack={() => setSelectedGameContest(null)} 
+          onScoreSubmitted={handleSyncUser}
         />
       );
     }

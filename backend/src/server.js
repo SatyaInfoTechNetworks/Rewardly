@@ -15,6 +15,9 @@ const Contest = require('./models/Contest');
 const ContestReward = require('./models/ContestReward');
 const ContestEntry = require('./models/ContestEntry');
 const AppSetting = require('./models/AppSetting');
+const Game = require('./models/Game');
+const GameSession = require('./models/GameSession');
+const Transaction = require('./models/Transaction');
 const axios = require('axios');
 
 const app = express();
@@ -75,6 +78,15 @@ Contest.hasMany(ContestEntry, { as: 'entries', foreignKey: 'contest_id' });
 ContestEntry.belongsTo(Contest, { foreignKey: 'contest_id' });
 ContestEntry.belongsTo(User, { foreignKey: 'user_id' });
 User.hasMany(ContestEntry, { foreignKey: 'user_id' });
+
+// Game Associations
+Contest.belongsTo(Game, { foreignKey: 'game_id' });
+Game.hasMany(Contest, { foreignKey: 'game_id' });
+Game.hasMany(GameSession, { foreignKey: 'game_id' });
+GameSession.belongsTo(Game, { foreignKey: 'game_id' });
+GameSession.belongsTo(User, { foreignKey: 'user_id', targetKey: 'telegram_id' });
+GameSession.belongsTo(Contest, { foreignKey: 'contest_id' });
+User.hasMany(GameSession, { foreignKey: 'user_id', sourceKey: 'telegram_id' });
 
 // Start Server
 app.listen(PORT, '0.0.0.0', () => {
@@ -194,6 +206,7 @@ app.use('/api/payouts', require('./routes/payouts'));
 app.use('/api/referrals', require('./routes/referrals'));
 app.use('/api/contests', require('./routes/contests'));
 app.use('/api/rewards', require('./routes/rewards'));
+app.use('/api/game-system', require('./routes/gameSystem'));
 app.use('/api/opinion-universe', require('./routes/opinionUniverse'));
 
 app.get('/', (req, res) => {

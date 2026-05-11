@@ -17,8 +17,12 @@ const Contest = sequelize.define('Contest', {
     unique: true
   },
   tracking_type: {
-    type: DataTypes.ENUM('earnings', 'referrals'),
+    type: DataTypes.ENUM('earnings', 'referrals', 'game_score'),
     defaultValue: 'earnings'
+  },
+  game_id: {
+    type: DataTypes.INTEGER,
+    allowNull: true
   },
   banner_image: {
     type: DataTypes.STRING,

@@ -8,7 +8,8 @@ interface Contest {
   id: number;
   name: string;
   slug: string;
-  tracking_type: 'earnings' | 'referrals';
+  tracking_type: 'earnings' | 'referrals' | 'game_score';
+  game_id?: number;
   access_type: 'free' | 'paid' | 'invite_only';
   entry_fee: number;
   entry_fee_type: 'coins' | 'cash';
@@ -26,6 +27,7 @@ interface Contest {
 
 interface ContestScreenProps {
   user: any;
+  onPlay?: (contest: Contest) => void;
 }
 
 export function ContestScreen({ user }: ContestScreenProps) {
@@ -157,8 +159,8 @@ export function ContestScreen({ user }: ContestScreenProps) {
           </div>
         </div>
 
-        {/* Join Section for Paid/Manual Contests */}
-        {!isJoined && (
+        {/* Join/Play Action Box */}
+        {!isJoined ? (
           <div className={styles.joinActionBox}>
             <div className={styles.joinInfo}>
               <div className={styles.joinLabel}>ENTRY FEE</div>
@@ -170,6 +172,16 @@ export function ContestScreen({ user }: ContestScreenProps) {
               onClick={() => handleJoinContest(contest.id)}
             >
               {joining ? 'Joining...' : isFull ? 'Contest Full' : 'Join Competition'}
+            </button>
+          </div>
+        ) : contest.tracking_type === 'game_score' && (
+          <div className={styles.joinActionBox} style={{ border: '2px solid #22c55e', background: '#f0fdf4' }}>
+             <button 
+              className={styles.primaryJoinBtn} 
+              style={{ background: 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)', boxShadow: '0 4px 14px 0 rgba(34, 197, 94, 0.39)' }}
+              onClick={() => onPlay?.(contest)}
+            >
+              Play Now 🎮
             </button>
           </div>
         )}

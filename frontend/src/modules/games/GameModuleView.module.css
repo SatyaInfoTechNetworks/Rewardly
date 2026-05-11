@@ -1,0 +1,84 @@
+.container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: #f1f5f9;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+}
+
+.header {
+  padding: 16px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  background: white;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.backBtn {
+  background: #f1f5f9;
+  border: none;
+  padding: 8px;
+  border-radius: 12px;
+  color: #64748b;
+  cursor: pointer;
+}
+
+.titleInfo h2 {
+  font-size: 1rem;
+  font-weight: 800;
+  color: #1e293b;
+  margin: 0;
+}
+
+.titleInfo p {
+  font-size: 0.75rem;
+  color: #10b981;
+  font-weight: 700;
+  margin: 2px 0 0;
+}
+
+.gameWrapper {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.loader {
+  font-weight: 700;
+  color: #64748b;
+  animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.contestStats {
+  background: white;
+  padding: 16px 24px;
+  display: flex;
+  justify-content: space-around;
+  border-top: 1px solid #e2e8f0;
+  padding-bottom: calc(16px + env(safe-area-inset-bottom));
+}
+
+.stat {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: #475569;
+}
+
+.stat svg {
+  color: #3b82f6;
+}

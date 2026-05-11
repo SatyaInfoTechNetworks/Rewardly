@@ -174,9 +174,9 @@ router.get('/adsgram', async (req, res) => {
  * Credits coins for completed offers/tasks on the PubScale offerwall
  */
 router.get('/pubscale', async (req, res) => {
-  const { user_id, amount, transaction_id, status } = req.query;
+  const { user_id, amount, transaction_id, status, offer_name } = req.query;
 
-  console.log(`📥 PubScale Postback: User=${user_id}, Amount=${amount}, Trans=${transaction_id}, Status=${status}`);
+  console.log(`📥 PubScale Postback: User=${user_id}, Amount=${amount}, Trans=${transaction_id}, Status=${status}, Offer=${offer_name}`);
 
   // Status 1 usually means completed
   if (status !== '1' && status !== 'approved' && status !== 'completed') {
@@ -206,7 +206,7 @@ router.get('/pubscale', async (req, res) => {
       telegram_id: user_id,
       amount: rewardAmount,
       type: 'offerwall',
-      description: 'PubScale Offer Completion',
+      description: offer_name ? `PubScale: ${offer_name}` : 'PubScale Offer Completion',
       external_id: transaction_id,
       status: 'completed'
     }, { transaction: t });

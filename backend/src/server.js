@@ -140,7 +140,16 @@ testConnection().then(() => {
     try {
       await sequelize.query("ALTER TABLE `contests` ADD `tracking_type` ENUM('earnings', 'referrals', 'game_score') DEFAULT 'earnings';");
       await sequelize.query("ALTER TABLE `contests` ADD `game_id` INTEGER;");
-      console.log('✅ Contest tracking_type and game_id columns added.');
+      await sequelize.query("ALTER TABLE `contests` ADD `banner_image` VARCHAR(255);");
+      await sequelize.query("ALTER TABLE `contests` ADD `prize_pool_type` ENUM('fixed', 'dynamic') DEFAULT 'fixed';");
+      await sequelize.query("ALTER TABLE `contests` ADD `access_type` ENUM('free', 'paid', 'invite_only') DEFAULT 'free';");
+      await sequelize.query("ALTER TABLE `contests` ADD `entry_fee` INTEGER DEFAULT 0;");
+      await sequelize.query("ALTER TABLE `contests` ADD `entry_fee_type` ENUM('coins', 'cash') DEFAULT 'coins';");
+      await sequelize.query("ALTER TABLE `contests` ADD `maximum_participants` INTEGER;");
+      await sequelize.query("ALTER TABLE `contests` ADD `rules` TEXT;");
+      await sequelize.query("ALTER TABLE `contests` ADD `auto_join` TINYINT(1) DEFAULT 1;");
+      await sequelize.query("ALTER TABLE `contests` ADD `minimum_activity` INTEGER DEFAULT 0;");
+      console.log('✅ All missing Contest columns added.');
     } catch (migErr) {
       if (migErr.parent?.code !== 'ER_DUP_FIELDNAME') console.log('Migration Note (Contests):', migErr.message);
     }

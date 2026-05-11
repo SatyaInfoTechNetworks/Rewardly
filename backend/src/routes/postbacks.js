@@ -169,4 +169,61 @@ router.get('/adsgram', async (req, res) => {
   }
 });
 
+/**
+ * PubScale (WOW) Postback
+ * Credits coins for completed offers/tasks on the PubScale offerwall
+ */
+router.get('/pubscale', async (req, res) => {
+  const { user_id, amount, transaction_id, status } = req.query;
+
+  console.log(`📥 PubScale Postback: User=${user_id}, Amount=${amount}, Trans=${transaction_id}, Status=${status}`);
+
+  // Status 1 usually means completed
+  if (status !== '1' && status !== 'approved' && status !== 'completed') {
+    return res.send('OK');
+  }
+
+  const t = await sequelize.transaction();
+
+  try {
+    // 1. Check if transaction already processed
+    const existing = await Transaction.findOne({ where: { external_id: transaction_id } });
+    if (existing) return res.send('OK');
+
+    // 2. Find User
+    const user = await User.findByPk(user_id);
+    if (!user) {
+      console.error(`❌ PubScale User ${user_id} not found`);
+      return res.status(404).send('User not found');
+    }
+
+    // 3. Update Balance
+    const rewardAmount = parseInt(amount);
+    await user.update({ balance: user.balance + rewardAmount }, { transaction: t });
+
+    // 4. Record Transaction
+    await Transaction.create({
+      telegram_id: user_id,
+      amount: rewardAmount,
+      type: 'offerwall',
+      description: 'PubScale Offer Completion',
+      external_id: transaction_id,
+      status: 'completed'
+    }, { transaction: t });
+
+    await t.commit();
+
+    // 5. Post-reward processing
+    await trackContestActivity(user_id, 'earnings', rewardAmount);
+    await validateReferral(user_id);
+
+    console.log(`✅ PubScale Reward: User ${user_id} credited with ${rewardAmount} coins.`);
+    return res.send('OK');
+  } catch (error) {
+    if (t) await t.rollback();
+    console.error('❌ PubScale Postback Error:', error);
+    return res.status(500).send('Internal Error');
+  }
+});
+
 module.exports = router;

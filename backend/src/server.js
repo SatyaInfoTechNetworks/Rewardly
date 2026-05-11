@@ -557,6 +557,34 @@ app.post('/api/user/update-ids', async (req, res) => {
   }
 });
 
+/**
+ * GET /api/user/transactions
+ * Fetch user transaction history
+ */
+app.get('/api/user/transactions', async (req, res) => {
+  const initData = req.headers['x-telegram-init-data'];
+  const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
+
+  if (!validateTelegramInitData(initData, BOT_TOKEN) && process.env.NODE_ENV === 'production') {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+
+  try {
+    const urlParams = new URLSearchParams(initData);
+    const tgUser = JSON.parse(urlParams.get('user'));
+    
+    const transactions = await Transaction.findAll({
+      where: { telegram_id: tgUser.id },
+      order: [['created_at', 'DESC']],
+      limit: 50
+    });
+
+    res.json(transactions);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Global Error Handler
 app.use((err, req, res, next) => {
   console.error('[Global Error]', err.stack);

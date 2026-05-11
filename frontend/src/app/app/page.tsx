@@ -332,7 +332,7 @@ export default function AppDashboard() {
                       time="5-20 min"
                       tag="POPULAR"
                       urgency="High Paying"
-                      icon="https://www.opinionuniverse.com/favicon.ico"
+                      icon="/opinionuniverse.png"
                       href={`${appSettings.opinion_universe_url || 'https://opinionuniverse.com/offerwall?pubId=1863'}&SID=${user.id}`}
                     />
                   )}

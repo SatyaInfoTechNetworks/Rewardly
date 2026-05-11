@@ -11,26 +11,33 @@ interface WalletScreenProps {
 
 export const WalletScreen: React.FC<WalletScreenProps> = ({ user, onUpdateUser }) => {
   const [payoutMethods, setPayoutMethods] = useState<any[]>([]);
+  const [transactions, setTransactions] = useState<any[]>([]);
   const [selectedMethod, setSelectedMethod] = useState<any>(null);
+  const [showHistory, setShowHistory] = useState(false);
+  const [historyTab, setHistoryTab] = useState<'earnings' | 'redeems'>('earnings');
   const [loading, setLoading] = useState(true);
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://rewardlyapi.satyainfotechnetworks.com';
 
   useEffect(() => {
-    const fetchPayouts = async () => {
+    const fetchData = async () => {
       try {
-        const res = await fetch(`${API_URL}/api/payouts`, { credentials: 'include' });
-        if (res.ok) {
-          const data = await res.json();
-          setPayoutMethods(data);
-        }
+        const [payoutRes, transRes] = await Promise.all([
+          fetch(`${API_URL}/api/payouts`, { credentials: 'include' }),
+          fetch(`${API_URL}/api/user/transactions`, { 
+            headers: { 'x-telegram-init-data': (window as any).Telegram?.WebApp?.initData || '' }
+          })
+        ]);
+
+        if (payoutRes.ok) setPayoutMethods(await payoutRes.json());
+        if (transRes.ok) setTransactions(await transRes.json());
       } catch (error) {
-        console.error("Failed to fetch payouts", error);
+        console.error("Failed to fetch wallet data", error);
       } finally {
         setLoading(false);
       }
     };
-    fetchPayouts();
+    fetchData();
   }, []);
 
   if (selectedMethod) {
@@ -44,6 +51,64 @@ export const WalletScreen: React.FC<WalletScreenProps> = ({ user, onUpdateUser }
           onUpdateUser();
         }}
       />
+    );
+  }
+
+  // Filter transactions based on tab
+  const filteredTransactions = transactions.filter(t => {
+    if (historyTab === 'redeems') return t.type === 'payout' || t.type === 'withdrawal';
+    return t.type !== 'payout' && t.type !== 'withdrawal';
+  });
+
+  if (showHistory) {
+    return (
+      <div className={styles.walletScreen}>
+        <div className={styles.historyHeader}>
+          <button onClick={() => setShowHistory(false)} className={styles.backBtn}>
+             <ChevronRight style={{ transform: 'rotate(180deg)' }} />
+          </button>
+          <h2>Transaction History</h2>
+        </div>
+
+        <div className={styles.tabContainer}>
+          <button 
+            className={`${styles.tabBtn} ${historyTab === 'earnings' ? styles.activeTab : ''}`}
+            onClick={() => setHistoryTab('earnings')}
+          >
+            Earnings
+          </button>
+          <button 
+            className={`${styles.tabBtn} ${historyTab === 'redeems' ? styles.activeTab : ''}`}
+            onClick={() => setHistoryTab('redeems')}
+          >
+            Redeems
+          </button>
+        </div>
+
+        <div className={styles.historyList}>
+          {filteredTransactions.length > 0 ? (
+            filteredTransactions.map((t) => (
+              <div key={t.id} className={`${styles.historyCard} card`}>
+                <div className={styles.historyLeft}>
+                  <div className={`${styles.historyIcon} ${t.amount > 0 ? styles.plus : styles.minus}`}>
+                    {t.type === 'payout' ? <Star size={18} /> : <History size={18} />}
+                  </div>
+                  <div className={styles.historyInfo}>
+                    <h4>{t.description || t.type}</h4>
+                    <span>{new Date(t.created_at).toLocaleDateString()}</span>
+                  </div>
+                </div>
+                <div className={styles.historyRight}>
+                  <CoinBadge amount={t.amount} size="sm" showPlus={t.amount > 0} />
+                  <span className={`${styles.statusBadge} ${styles[t.status]}`}>{t.status}</span>
+                </div>
+              </div>
+            ))
+          ) : (
+            <div className={styles.noDataBox}>No {historyTab} found</div>
+          )}
+        </div>
+      </div>
     );
   }
 
@@ -81,7 +146,7 @@ export const WalletScreen: React.FC<WalletScreenProps> = ({ user, onUpdateUser }
           </div>
         </div>
 
-        <button className={styles.historyBtn}>
+        <button className={styles.historyBtn} onClick={() => setShowHistory(true)}>
           <History size={18} />
           <span>Transaction History</span>
           <ChevronRight size={16} />

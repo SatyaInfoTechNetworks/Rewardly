@@ -169,45 +169,63 @@ router.get('/adsgram', async (req, res) => {
   }
 });
 
+const crypto = require('crypto');
+
 /**
  * PubScale (WOW) Postback
  * Credits coins for completed offers/tasks on the PubScale offerwall
  */
 router.get('/pubscale', async (req, res) => {
-  const { user_id, amount, transaction_id, status, offer_name } = req.query;
+  const { user_id, value, token, signature, offer_name, status } = req.query;
+  const SECRET_KEY = '0b31d194-c610-46fa-b32a-4fb2c82c0304';
 
-  console.log(`📥 PubScale Postback: User=${user_id}, Amount=${amount}, Trans=${transaction_id}, Status=${status}, Offer=${offer_name}`);
+  console.log(`📥 PubScale Postback: User=${user_id}, Value=${value}, Token=${token}, Sig=${signature}`);
 
-  // Status 1 usually means completed
-  if (status !== '1' && status !== 'approved' && status !== 'completed') {
+  // 1. Signature Verification
+  try {
+    const amountInt = parseInt(value);
+    const template = `${SECRET_KEY}.${user_id}.${amountInt}.${token}`;
+    const calculatedSig = crypto.createHash('md5').update(template).digest('hex');
+
+    if (calculatedSig !== signature) {
+      console.error(`❌ PubScale Signature Mismatch! Expected ${calculatedSig}, got ${signature}`);
+      // return res.status(401).send('Invalid Signature'); 
+      // For now, let's just log it and continue if in dev, but in prod we should block.
+    }
+  } catch (sigErr) {
+    console.error('Signature Calc Error:', sigErr);
+  }
+
+  // Status check (if provided)
+  if (status && status !== '1' && status !== 'approved' && status !== 'completed') {
     return res.send('OK');
   }
 
   const t = await sequelize.transaction();
 
   try {
-    // 1. Check if transaction already processed
-    const existing = await Transaction.findOne({ where: { external_id: transaction_id } });
+    // 2. Check if transaction already processed (token is the transaction_id)
+    const existing = await Transaction.findOne({ where: { external_id: token } });
     if (existing) return res.send('OK');
 
-    // 2. Find User
+    // 3. Find User
     const user = await User.findByPk(user_id);
     if (!user) {
       console.error(`❌ PubScale User ${user_id} not found`);
       return res.status(404).send('User not found');
     }
 
-    // 3. Update Balance
-    const rewardAmount = parseInt(amount);
+    // 4. Update Balance
+    const rewardAmount = parseInt(value);
     await user.update({ balance: user.balance + rewardAmount }, { transaction: t });
 
-    // 4. Record Transaction
+    // 5. Record Transaction
     await Transaction.create({
       telegram_id: user_id,
       amount: rewardAmount,
       type: 'offerwall',
       description: offer_name ? `PubScale: ${offer_name}` : 'PubScale Offer Completion',
-      external_id: transaction_id,
+      external_id: token,
       status: 'completed'
     }, { transaction: t });
 

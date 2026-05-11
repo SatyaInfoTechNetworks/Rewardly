@@ -39,24 +39,19 @@ const posthog = new PostHog(
 // Trust proxy for Dokploy/Nginx to get real IP
 app.set('trust proxy', true);
 
-// 1. CORS Configuration - MUST BE FIRST
+// 1. SUPER PERMISSIVE CORS - MUST BE FIRST
 app.use((req, res, next) => {
   const origin = req.headers.origin;
-  const allowedDomains = ['satyainfotechnetworks.com', 'telegram.org'];
   
-  const isAllowed = !origin || allowedDomains.some(domain => 
-    origin === `https://${domain}` || origin.endsWith(`.${domain}`)
-  );
+  // Reflect origin back to support credentials, or use * as fallback
+  res.setHeader('Access-Control-Allow-Origin', origin || '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
+  res.setHeader('Access-Control-Allow-Headers', 'X-Requested-With, Content-Type, Authorization, x-admin-secret, x-telegram-init-data');
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
 
-  if (isAllowed || process.env.NODE_ENV !== 'production') {
-    res.setHeader('Access-Control-Allow-Origin', origin || '*');
-    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, x-admin-secret, x-telegram-init-data');
-    res.setHeader('Access-Control-Allow-Credentials', 'true');
-  }
-
+  // Handle Preflight
   if (req.method === 'OPTIONS') {
-    return res.sendStatus(200);
+    return res.status(200).end();
   }
   next();
 });

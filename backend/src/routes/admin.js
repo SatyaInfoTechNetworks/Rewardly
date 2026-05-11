@@ -64,22 +64,6 @@ router.get('/users', adminAuth, async (req, res) => {
 });
 
 /**
- * GET /api/admin/transactions
- * List recent transactions
- */
-router.get('/transactions', adminAuth, async (req, res) => {
-  try {
-    const transactions = await Transaction.findAll({
-      order: [['created_at', 'DESC']],
-      limit: 50
-    });
-    res.json(transactions);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-/**
  * GET /api/admin/seed
  * Populates database with mock data for testing
  */

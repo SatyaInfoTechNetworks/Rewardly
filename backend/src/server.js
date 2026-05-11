@@ -137,33 +137,47 @@ testConnection().then(() => {
       if (migErr.parent?.code !== 'ER_DUP_FIELDNAME') console.log('Migration Note (onboarding):', migErr.message);
     }
 
-    try {
-      await sequelize.query("ALTER TABLE `contests` ADD `tracking_type` ENUM('earnings', 'referrals', 'game_score') DEFAULT 'earnings';");
-      await sequelize.query("ALTER TABLE `contests` ADD `game_id` INTEGER;");
-      await sequelize.query("ALTER TABLE `contests` ADD `banner_image` VARCHAR(255);");
-      await sequelize.query("ALTER TABLE `contests` ADD `prize_pool_type` ENUM('fixed', 'dynamic') DEFAULT 'fixed';");
-      await sequelize.query("ALTER TABLE `contests` ADD `access_type` ENUM('free', 'paid', 'invite_only') DEFAULT 'free';");
-      await sequelize.query("ALTER TABLE `contests` ADD `entry_fee` INTEGER DEFAULT 0;");
-      await sequelize.query("ALTER TABLE `contests` ADD `entry_fee_type` ENUM('coins', 'cash') DEFAULT 'coins';");
-      await sequelize.query("ALTER TABLE `contests` ADD `maximum_participants` INTEGER;");
-      await sequelize.query("ALTER TABLE `contests` ADD `rules` TEXT;");
-      await sequelize.query("ALTER TABLE `contests` ADD `auto_join` TINYINT(1) DEFAULT 1;");
-      await sequelize.query("ALTER TABLE `contests` ADD `minimum_activity` INTEGER DEFAULT 0;");
-      console.log('✅ All missing Contest columns added.');
-    } catch (migErr) {
-      if (migErr.parent?.code !== 'ER_DUP_FIELDNAME') console.log('Migration Note (Contests):', migErr.message);
-    }
+    // Split into individual migrations so one failure (duplicate) doesn't block others
+    const contestCols = [
+      "ALTER TABLE `contests` ADD `tracking_type` ENUM('earnings', 'referrals', 'game_score') DEFAULT 'earnings';",
+      "ALTER TABLE `contests` ADD `game_id` INTEGER;",
+      "ALTER TABLE `contests` ADD `banner_image` VARCHAR(255);",
+      "ALTER TABLE `contests` ADD `prize_pool_type` ENUM('fixed', 'dynamic') DEFAULT 'fixed';",
+      "ALTER TABLE `contests` ADD `access_type` ENUM('free', 'paid', 'invite_only') DEFAULT 'free';",
+      "ALTER TABLE `contests` ADD `entry_fee` INTEGER DEFAULT 0;",
+      "ALTER TABLE `contests` ADD `entry_fee_type` ENUM('coins', 'cash') DEFAULT 'coins';",
+      "ALTER TABLE `contests` ADD `maximum_participants` INTEGER;",
+      "ALTER TABLE `contests` ADD `rules` TEXT;",
+      "ALTER TABLE `contests` ADD `auto_join` TINYINT(1) DEFAULT 1;",
+      "ALTER TABLE `contests` ADD `minimum_activity` INTEGER DEFAULT 0;"
+    ];
 
-    try {
-      await sequelize.query("ALTER TABLE `app_settings` ADD `pubscale_app_id` VARCHAR(255) DEFAULT '26048184';");
-      await sequelize.query("ALTER TABLE `app_settings` ADD `pubscale_enabled` TINYINT(1) DEFAULT 1;");
-      await sequelize.query("ALTER TABLE `app_settings` ADD `opinion_universe_url` TEXT;");
-      await sequelize.query("ALTER TABLE `app_settings` ADD `opinion_universe_enabled` TINYINT(1) DEFAULT 1;");
-      console.log('✅ AppSetting PubScale & OpinionUniverse columns added.');
-    } catch (migErr) {
-      if (migErr.parent?.code !== 'ER_DUP_FIELDNAME') console.log('Migration Note (AdNetworks):', migErr.message);
+    for (const sql of contestCols) {
+      try {
+        await sequelize.query(sql);
+      } catch (migErr) {
+        if (migErr.parent?.code !== 'ER_DUP_FIELDNAME') console.log('Migration Note (Contests):', migErr.message);
+      }
     }
-    
+    console.log('✅ Contest schema check completed.');
+
+    // AppSetting Checks
+    const appSettingCols = [
+      "ALTER TABLE `app_settings` ADD `pubscale_app_id` VARCHAR(255) DEFAULT '26048184';",
+      "ALTER TABLE `app_settings` ADD `pubscale_enabled` TINYINT(1) DEFAULT 1;",
+      "ALTER TABLE `app_settings` ADD `opinion_universe_url` TEXT;",
+      "ALTER TABLE `app_settings` ADD `opinion_universe_enabled` TINYINT(1) DEFAULT 1;"
+    ];
+
+    for (const sql of appSettingCols) {
+      try {
+        await sequelize.query(sql);
+      } catch (migErr) {
+        if (migErr.parent?.code !== 'ER_DUP_FIELDNAME') console.log('Migration Note (AdNetworks):', migErr.message);
+      }
+    }
+    console.log('✅ AppSetting AdNetworks columns checked.');
+
     // Auto-Seed Defaults
     try {
       // Seed Referral Settings

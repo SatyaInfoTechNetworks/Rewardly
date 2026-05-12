@@ -196,7 +196,44 @@ router.get('/pubscale', async (req, res) => {
     console.error('Signature Calc Error:', sigErr);
   }
 
-  // Status check (if provided)
+  // 2. Handle Statuses (Chargeback/Reversal)
+  if (status === 'chargeback' || status === 'reversed') {
+    const t = await sequelize.transaction();
+    try {
+      const existing = await Transaction.findOne({ where: { external_id: token } });
+      if (!existing) return res.send('OK'); // Nothing to reverse
+
+      if (existing.status === 'failed') return res.send('OK'); // Already reversed
+
+      const user = await User.findByPk(user_id);
+      if (user) {
+        // Deduct the amount from user balance
+        await user.update({ balance: user.balance - existing.amount }, { transaction: t });
+      }
+
+      // Mark original transaction as failed
+      await existing.update({ status: 'failed' }, { transaction: t });
+
+      // Create a NEW negative transaction record for history
+      await Transaction.create({
+        telegram_id: user_id,
+        amount: -existing.amount,
+        type: 'offerwall',
+        description: `FRAUD REVERSAL: ${existing.description}`,
+        external_id: `rev_${token}`,
+        status: 'completed'
+      }, { transaction: t });
+      
+      await t.commit();
+      console.log(`⚠️ PubScale Chargeback: User ${user_id} penalized (Token: ${token})`);
+      return res.send('OK');
+    } catch (err) {
+      if (t) await t.rollback();
+      return res.status(500).send('Error processing chargeback');
+    }
+  }
+
+  // 3. Status check for completions (if provided)
   if (status && status !== '1' && status !== 'approved' && status !== 'completed') {
     return res.send('OK');
   }

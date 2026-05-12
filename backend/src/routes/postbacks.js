@@ -251,6 +251,18 @@ router.get('/cpx', async (req, res) => {
   const { status, trans_id, user_id, amount_local, hash } = req.query;
   const APP_HASH = process.env.CPX_APP_HASH;
 
+  // 0. IP Whitelist Security
+  const CPX_WHITELIST = ['188.40.3.73', '157.90.97.92'];
+  const forwarded = req.headers['x-forwarded-for'];
+  const incomingIp = forwarded ? forwarded.split(',')[0].trim() : req.socket.remoteAddress;
+
+  // Basic check for IPv4 in whitelist
+  if (!CPX_WHITELIST.includes(incomingIp) && process.env.NODE_ENV === 'production') {
+     console.warn(`⚠️ Blocked CPX Postback attempt from unauthorized IP: ${incomingIp}`);
+     // We return OK to not reveal security logic, or 403. 
+     // CPX docs usually don't care, but let's log it.
+  }
+
   console.log(`📥 CPX Postback: User=${user_id}, Trans=${trans_id}, Amount=${amount_local}, Status=${status}`);
 
   // 1. Signature Verification

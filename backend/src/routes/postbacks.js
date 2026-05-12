@@ -276,11 +276,21 @@ router.get('/cpx', async (req, res) => {
         await user.update({ balance: user.balance - existing.amount }, { transaction: t });
       }
 
-      // Mark transaction as failed/reversed
-      await existing.update({ status: 'failed', description: `REVERSED: ${existing.description}` }, { transaction: t });
+      // Mark original transaction as failed
+      await existing.update({ status: 'failed' }, { transaction: t });
+
+      // Create a NEW negative transaction record for history
+      await Transaction.create({
+        telegram_id: user_id,
+        amount: -existing.amount,
+        type: 'survey',
+        description: `FRAUD REVERSAL: ${existing.description}`,
+        external_id: `rev_${trans_id}`,
+        status: 'completed'
+      }, { transaction: t });
       
       await t.commit();
-      console.log(`⚠️ CPX Chargeback: User ${user_id} penalized for fraud (Trans: ${trans_id})`);
+      console.log(`⚠️ CPX Chargeback: User ${user_id} penalized for fraud. Negative record created (Trans: ${trans_id})`);
       return res.send('OK');
     } catch (err) {
       if (t) await t.rollback();

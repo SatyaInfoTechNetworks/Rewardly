@@ -1612,6 +1612,15 @@ export default function AdminPanel() {
                       />
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1.25rem', background: 'rgba(255,255,255,0.02)', borderRadius: '16px', border: '1px solid var(--border-subtle)' }}>
+                      <div style={{ fontWeight: 600, color: '#fbbf24' }}>PubScale Sandbox Mode</div>
+                      <input 
+                        type="checkbox" 
+                        checked={appSettings?.pubscale_sandbox ?? false} 
+                        onChange={(e) => setAppSettings({...appSettings, pubscale_sandbox: e.target.checked})}
+                        style={{ width: '22px', height: '22px', cursor: 'pointer' }}
+                      />
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1.25rem', background: 'rgba(255,255,255,0.02)', borderRadius: '16px', border: '1px solid var(--border-subtle)' }}>
                       <div style={{ fontWeight: 600, color: '#fff' }}>Enable Opinion Universe</div>
                       <input 
                         type="checkbox" 

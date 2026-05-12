@@ -151,7 +151,8 @@ testConnection().then(() => {
       "ALTER TABLE `app_settings` ADD `pubscale_app_id` VARCHAR(255) DEFAULT '78594689';",
       "ALTER TABLE `app_settings` ADD `pubscale_enabled` TINYINT(1) DEFAULT 1;",
       "ALTER TABLE `app_settings` ADD `opinion_universe_url` TEXT;",
-      "ALTER TABLE `app_settings` ADD `opinion_universe_enabled` TINYINT(1) DEFAULT 1;"
+      "ALTER TABLE `app_settings` ADD `opinion_universe_enabled` TINYINT(1) DEFAULT 1;",
+      "ALTER TABLE `app_settings` ADD `pubscale_sandbox` TINYINT(1) DEFAULT 0;"
     ];
 
     for (const sql of migrations) {
@@ -191,7 +192,8 @@ testConnection().then(() => {
           pubscale_app_id: '78594689',
           pubscale_enabled: true,
           opinion_universe_url: 'https://opinionuniverse.com/offerwall?pubId=1863',
-          opinion_universe_enabled: true
+          opinion_universe_enabled: true,
+          pubscale_sandbox: false
         }
       });
  

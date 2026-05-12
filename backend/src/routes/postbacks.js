@@ -279,6 +279,8 @@ router.get(['/pubscale', '/pubscale/*'], async (req, res) => {
     console.error('❌ PubScale Postback Error:', error);
     return res.status(500).send('Internal Error');
   }
+});
+
 router.get(['/pubscale-chargeback', '/pubscale-chargeback/*'], async (req, res) => {
   const { user_id, value, token, signature, offer_name } = req.query;
   const SECRET_KEY = '0b31d194-c610-46fa-b32a-4fb2c82c0304';

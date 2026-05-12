@@ -161,6 +161,10 @@ testConnection().then(async () => {
   sequelize.sync({ alter: false }).then(async () => {
     console.log('✨ Database models synchronized.');
 
+    app.listen(PORT, '0.0.0.0', () => {
+      console.log(`✨ Server started on 0.0.0.0:${PORT}`);
+    });
+
     // 5. Ensure existing settings have defaults (one-time fix for existing rows)
     try {
       await sequelize.query("UPDATE `app_settings` SET `pubscale_enabled` = 1 WHERE `pubscale_enabled` IS NULL;");

@@ -179,61 +179,31 @@ router.get(/^\/pubscale(\/.*)?$/, async (req, res) => {
   const { user_id, value, token, signature, offer_name, status } = req.query;
   const SECRET_KEY = '0b31d194-c610-46fa-b32a-4fb2c82c0304';
 
-  console.log(`📥 PubScale Postback: User=${user_id}, Value=${value}, Token=${token}, Sig=${signature}`);
+  console.log(`📥 PubScale Postback: User=${user_id}, Value=${value}, Token=${token}`);
+
+  // 0. Safety Check
+  if (!user_id || !token || !value) {
+    console.error('❌ PubScale Postback: Missing required parameters');
+    return res.status(400).send('Missing Parameters');
+  }
 
   // 1. Signature Verification
   try {
-    const amountInt = parseInt(value);
+    const amountInt = Math.floor(parseFloat(value));
     const template = `${SECRET_KEY}.${user_id}.${amountInt}.${token}`;
     const calculatedSig = crypto.createHash('md5').update(template).digest('hex');
 
     if (calculatedSig !== signature) {
       console.error(`❌ PubScale Signature Mismatch! Expected ${calculatedSig}, got ${signature}`);
-      // return res.status(401).send('Invalid Signature'); 
-      // For now, let's just log it and continue if in dev, but in prod we should block.
+      if (process.env.NODE_ENV === 'production') {
+        return res.status(401).send('Invalid Signature');
+      }
     }
   } catch (sigErr) {
     console.error('Signature Calc Error:', sigErr);
   }
 
-  // 2. Handle Statuses (Chargeback/Reversal)
-  if (status === 'chargeback' || status === 'reversed') {
-    const t = await sequelize.transaction();
-    try {
-      const existing = await Transaction.findOne({ where: { external_id: token } });
-      if (!existing) return res.send('OK'); // Nothing to reverse
-
-      if (existing.status === 'failed') return res.send('OK'); // Already reversed
-
-      const user = await User.findByPk(user_id);
-      if (user) {
-        // Deduct the amount from user balance
-        await user.update({ balance: user.balance - existing.amount }, { transaction: t });
-      }
-
-      // Mark original transaction as failed
-      await existing.update({ status: 'failed' }, { transaction: t });
-
-      // Create a NEW negative transaction record for history
-      await Transaction.create({
-        telegram_id: user_id,
-        amount: -existing.amount,
-        type: 'offerwall',
-        description: `FRAUD REVERSAL: ${existing.description}`,
-        external_id: `rev_${token}`,
-        status: 'completed'
-      }, { transaction: t });
-      
-      await t.commit();
-      console.log(`⚠️ PubScale Chargeback: User ${user_id} penalized (Token: ${token})`);
-      return res.send('OK');
-    } catch (err) {
-      if (t) await t.rollback();
-      return res.status(500).send('Error processing chargeback');
-    }
-  }
-
-  // 3. Status check for completions (if provided)
+  // 2. Status check for completions (if provided)
   if (status && status !== '1' && status !== 'approved' && status !== 'completed') {
     return res.send('OK');
   }
@@ -241,22 +211,22 @@ router.get(/^\/pubscale(\/.*)?$/, async (req, res) => {
   const t = await sequelize.transaction();
 
   try {
-    // 2. Check if transaction already processed (token is the transaction_id)
+    // 3. Check if transaction already processed (token is the transaction_id)
     const existing = await Transaction.findOne({ where: { external_id: token } });
     if (existing) return res.send('OK');
 
-    // 3. Find User
+    // 4. Find User
     const user = await User.findByPk(user_id);
     if (!user) {
       console.error(`❌ PubScale User ${user_id} not found`);
       return res.status(404).send('User not found');
     }
 
-    // 4. Update Balance
-    const rewardAmount = parseInt(value);
+    // 5. Update Balance
+    const rewardAmount = Math.floor(parseFloat(value));
     await user.update({ balance: user.balance + rewardAmount }, { transaction: t });
 
-    // 5. Record Transaction
+    // 6. Record Transaction
     await Transaction.create({
       telegram_id: user_id,
       amount: rewardAmount,
@@ -268,7 +238,7 @@ router.get(/^\/pubscale(\/.*)?$/, async (req, res) => {
 
     await t.commit();
 
-    // 5. Post-reward processing
+    // 7. Post-reward processing
     await trackContestActivity(user_id, 'earnings', rewardAmount);
     await validateReferral(user_id);
 

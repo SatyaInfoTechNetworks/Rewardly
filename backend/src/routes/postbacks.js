@@ -175,7 +175,7 @@ const crypto = require('crypto');
  * PubScale (WOW) Postback
  * Credits coins for completed offers/tasks on the PubScale offerwall
  */
-router.get(['/pubscale', '/pubscale/*'], async (req, res) => {
+router.get(/^\/pubscale(\/.*)?$/, async (req, res) => {
   const { user_id, value, token, signature, offer_name, status } = req.query;
   const SECRET_KEY = '0b31d194-c610-46fa-b32a-4fb2c82c0304';
 
@@ -281,7 +281,7 @@ router.get(['/pubscale', '/pubscale/*'], async (req, res) => {
   }
 });
 
-router.get(['/pubscale-chargeback', '/pubscale-chargeback/*'], async (req, res) => {
+router.get(/^\/pubscale-chargeback(\/.*)?$/, async (req, res) => {
   const { user_id, value, token, signature, offer_name } = req.query;
   const SECRET_KEY = '0b31d194-c610-46fa-b32a-4fb2c82c0304';
 

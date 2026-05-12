@@ -301,8 +301,8 @@ export default function AppDashboard() {
                   {appSettings.pubscale_enabled && (
                     <TaskCard 
                       title="PubScale Offerwall"
-                      desc="Complete High-Value offers and earn 10K+ Coins"
-                      reward="10K+"
+                      desc="Complete High-Value offers and earn 50K+ Coins"
+                      reward="50K+"
                       time="10-30 min"
                       tag="HOT"
                       urgency="Very High Paying"
@@ -315,7 +315,7 @@ export default function AppDashboard() {
                     <TaskCard 
                       title="Opinion Universe"
                       desc="Complete Tasks and earn Coins"
-                      reward="50K+"
+                      reward="10K+"
                       time="5-20 min"
                       tag="POPULAR"
                       urgency="High Paying"

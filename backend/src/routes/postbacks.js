@@ -279,7 +279,49 @@ router.get('/pubscale', async (req, res) => {
     console.error('❌ PubScale Postback Error:', error);
     return res.status(500).send('Internal Error');
   }
+router.get('/pubscale-chargeback', async (req, res) => {
+  const { user_id, value, token, signature, offer_name } = req.query;
+  const SECRET_KEY = '0b31d194-c610-46fa-b32a-4fb2c82c0304';
+
+  console.log(`⚠️ PubScale Chargeback Received: User=${user_id}, Token=${token}`);
+
+  const t = await sequelize.transaction();
+
+  try {
+    const existing = await Transaction.findOne({ where: { external_id: token } });
+    if (!existing) return res.send('OK'); // Nothing to reverse
+
+    if (existing.status === 'failed') return res.send('OK'); // Already reversed
+
+    const user = await User.findByPk(user_id);
+    if (user) {
+      // Deduct the amount from user balance
+      await user.update({ balance: user.balance - existing.amount }, { transaction: t });
+    }
+
+    // Mark original transaction as failed
+    await existing.update({ status: 'failed' }, { transaction: t });
+
+    // Create a NEW negative transaction record for history
+    await Transaction.create({
+      telegram_id: user_id,
+      amount: -existing.amount,
+      type: 'offerwall',
+      description: `FRAUD REVERSAL: ${existing.description}`,
+      external_id: `rev_${token}`,
+      status: 'completed'
+    }, { transaction: t });
+    
+    await t.commit();
+    console.log(`✅ PubScale Chargeback Processed: User ${user_id} (Token: ${token})`);
+    return res.send('OK');
+  } catch (err) {
+    if (t) await t.rollback();
+    console.error('❌ PubScale Chargeback Error:', err);
+    return res.status(500).send('Internal Error');
+  }
 });
+
 /**
  * CPX Research Postback
  * Credits coins for completed surveys via S2S

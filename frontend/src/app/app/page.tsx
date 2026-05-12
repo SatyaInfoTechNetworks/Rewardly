@@ -27,28 +27,7 @@ import { VerificationOverlay } from "@/components/ui/VerificationOverlay";
 import { useSurveys } from "@/hooks/useSurveys";
 
 // Data Constants
-const TASKS: any[] = [
-  {
-    id: 'yt_sub',
-    title: 'Subscribe & Earn',
-    desc: 'Subscribe to our Official Channel for updates',
-    reward: 50,
-    time: '1 min',
-    tag: 'EASY',
-    urgency: 'Instant',
-    icon: '📺'
-  },
-  {
-    id: 'tg_join',
-    title: 'Join Community',
-    desc: 'Join our Telegram for daily promo codes',
-    reward: 100,
-    time: '1 min',
-    tag: 'NEW',
-    urgency: 'Daily Rewards',
-    icon: '📢'
-  }
-]; 
+const TASKS: any[] = []; 
 
 export default function AppDashboard() {
   const [activeTab, setActiveTab] = useState("earn");

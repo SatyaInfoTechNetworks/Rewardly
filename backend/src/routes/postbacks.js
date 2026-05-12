@@ -260,7 +260,34 @@ router.get('/cpx', async (req, res) => {
     return res.status(401).send('Invalid Signature');
   }
 
-  // 2. Status Check (1 = completed)
+  // 2. Handle Statuses
+  if (status === '2') {
+    // Status 2 = Canceled/Fraud (Chargeback)
+    const t = await sequelize.transaction();
+    try {
+      const existing = await Transaction.findOne({ where: { external_id: trans_id } });
+      if (!existing) return res.send('OK'); // Nothing to reverse
+
+      if (existing.status === 'failed') return res.send('OK'); // Already reversed
+
+      const user = await User.findByPk(user_id);
+      if (user) {
+        // Deduct the amount from user balance
+        await user.update({ balance: user.balance - existing.amount }, { transaction: t });
+      }
+
+      // Mark transaction as failed/reversed
+      await existing.update({ status: 'failed', description: `REVERSED: ${existing.description}` }, { transaction: t });
+      
+      await t.commit();
+      console.log(`⚠️ CPX Chargeback: User ${user_id} penalized for fraud (Trans: ${trans_id})`);
+      return res.send('OK');
+    } catch (err) {
+      if (t) await t.rollback();
+      return res.status(500).send('Error processing chargeback');
+    }
+  }
+
   if (status !== '1') {
     return res.send('OK');
   }

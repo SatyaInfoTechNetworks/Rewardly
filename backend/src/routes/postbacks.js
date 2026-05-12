@@ -255,37 +255,71 @@ router.get(/^\/pubscale-chargeback(\/.*)?$/, async (req, res) => {
   const { user_id, value, token, signature, offer_name } = req.query;
   const SECRET_KEY = '0b31d194-c610-46fa-b32a-4fb2c82c0304';
 
-  console.log(`⚠️ PubScale Chargeback Received: User=${user_id}, Token=${token}`);
+  console.log(`⚠️ PubScale Chargeback Attempt: User=${user_id}, Token=${token}, Value=${value}`);
+
+  // 1. Signature Verification
+  try {
+    const amountInt = Math.floor(parseFloat(value));
+    const template = `${SECRET_KEY}.${user_id}.${amountInt}.${token}`;
+    const calculatedSig = crypto.createHash('md5').update(template).digest('hex');
+
+    if (calculatedSig !== signature) {
+      console.error(`❌ PubScale Chargeback Sig Mismatch! Expected ${calculatedSig}, got ${signature}`);
+      if (process.env.NODE_ENV === 'production') {
+        return res.status(401).send('Invalid Signature');
+      }
+    }
+  } catch (sigErr) {
+    console.error('Signature Calc Error:', sigErr);
+  }
 
   const t = await sequelize.transaction();
 
   try {
     const existing = await Transaction.findOne({ where: { external_id: token } });
-    if (!existing) return res.send('OK'); // Nothing to reverse
+    
+    if (!existing) {
+      console.warn(`ℹ️ PubScale Chargeback: Original transaction ${token} not found in database. Still creating reversal record.`);
+      // We still create the record and deduct balance if user exists
+      const user = await User.findByPk(user_id);
+      if (user) {
+        const rewardAmount = Math.floor(parseFloat(value));
+        await user.update({ balance: user.balance - rewardAmount }, { transaction: t });
+        
+        await Transaction.create({
+          telegram_id: user_id,
+          amount: -rewardAmount,
+          type: 'offerwall',
+          description: offer_name ? `FRAUD REVERSAL: ${offer_name}` : 'PubScale Fraud Reversal',
+          external_id: `rev_${token}`,
+          status: 'completed'
+        }, { transaction: t });
+      }
+    } else {
+      if (existing.status === 'failed') {
+        await t.rollback();
+        return res.send('OK'); // Already reversed
+      }
 
-    if (existing.status === 'failed') return res.send('OK'); // Already reversed
+      const user = await User.findByPk(user_id);
+      if (user) {
+        await user.update({ balance: user.balance - existing.amount }, { transaction: t });
+      }
 
-    const user = await User.findByPk(user_id);
-    if (user) {
-      // Deduct the amount from user balance
-      await user.update({ balance: user.balance - existing.amount }, { transaction: t });
+      await existing.update({ status: 'failed' }, { transaction: t });
+
+      await Transaction.create({
+        telegram_id: user_id,
+        amount: -existing.amount,
+        type: 'offerwall',
+        description: `FRAUD REVERSAL: ${existing.description}`,
+        external_id: `rev_${token}`,
+        status: 'completed'
+      }, { transaction: t });
     }
-
-    // Mark original transaction as failed
-    await existing.update({ status: 'failed' }, { transaction: t });
-
-    // Create a NEW negative transaction record for history
-    await Transaction.create({
-      telegram_id: user_id,
-      amount: -existing.amount,
-      type: 'offerwall',
-      description: `FRAUD REVERSAL: ${existing.description}`,
-      external_id: `rev_${token}`,
-      status: 'completed'
-    }, { transaction: t });
     
     await t.commit();
-    console.log(`✅ PubScale Chargeback Processed: User ${user_id} (Token: ${token})`);
+    console.log(`✅ PubScale Chargeback Processed Successfully for User ${user_id}`);
     return res.send('OK');
   } catch (err) {
     if (t) await t.rollback();

@@ -6,9 +6,10 @@ interface CoinBadgeProps {
   amount: string | number;
   size?: 'sm' | 'md' | 'lg';
   className?: string;
+  showPlus?: boolean;
 }
 
-export const CoinBadge: React.FC<CoinBadgeProps> = ({ amount, size = 'md', className }) => {
+export const CoinBadge: React.FC<CoinBadgeProps> = ({ amount, size = 'md', className, showPlus }) => {
   const iconSize = size === 'sm' ? 14 : size === 'lg' ? 20 : 16;
   
   return (
@@ -19,7 +20,7 @@ export const CoinBadge: React.FC<CoinBadgeProps> = ({ amount, size = 'md', class
         fill="currentColor" 
       />
       <span className={styles.balanceText} style={{ fontSize: size === 'lg' ? '16px' : '13px' }}>
-        {amount.toLocaleString()}
+        {showPlus && amount > 0 ? '+' : ''}{amount.toLocaleString()}
       </span>
     </div>
   );

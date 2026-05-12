@@ -52,6 +52,7 @@ const TASKS: any[] = [
 
 export default function AppDashboard() {
   const [activeTab, setActiveTab] = useState("earn");
+  const [walletSubTab, setWalletSubTab] = useState<'main' | 'history'>('main');
   const [user, setUser] = useState<any>(null);
   const [selectedGameContest, setSelectedGameContest] = useState<any>(null);
   const [appSettings, setAppSettings] = useState<any>({ 
@@ -174,7 +175,14 @@ export default function AppDashboard() {
     }
 
     if (activeTab === "wallet") {
-      return <WalletScreen user={user} onUpdateUser={handleSyncUser} />;
+      return (
+        <WalletScreen 
+          user={user} 
+          onUpdateUser={handleSyncUser} 
+          subTab={walletSubTab}
+          onSubTabChange={setWalletSubTab}
+        />
+      );
     }
 
     if (activeTab === "share") {
@@ -384,7 +392,10 @@ export default function AppDashboard() {
         {renderContent()}
       </div>
 
-      <Navbar activeTab={activeTab === "surveys_all" ? "earn" : activeTab} onTabChange={setActiveTab} />
+      <Navbar activeTab={activeTab === "surveys_all" ? "earn" : activeTab} onTabChange={(tab) => {
+        setActiveTab(tab);
+        if (tab !== "wallet") setWalletSubTab('main');
+      }} />
     </div>
   );
 }

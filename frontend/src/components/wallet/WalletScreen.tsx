@@ -7,17 +7,26 @@ import { RedeemScreen } from './RedeemScreen';
 interface WalletScreenProps {
   user: any;
   onUpdateUser: () => void;
+  subTab?: 'main' | 'history';
+  onSubTabChange?: (tab: 'main' | 'history') => void;
 }
 
-export const WalletScreen: React.FC<WalletScreenProps> = ({ user, onUpdateUser }) => {
+export const WalletScreen: React.FC<WalletScreenProps> = ({ 
+  user, 
+  onUpdateUser, 
+  subTab = 'main',
+  onSubTabChange 
+}) => {
   const [payoutMethods, setPayoutMethods] = useState<any[]>([]);
   const [transactions, setTransactions] = useState<any[]>([]);
   const [selectedMethod, setSelectedMethod] = useState<any>(null);
-  const [showHistory, setShowHistory] = useState(false);
   const [historyTab, setHistoryTab] = useState<'earnings' | 'redeems'>('earnings');
   const [loading, setLoading] = useState(true);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [historyError, setHistoryError] = useState<string | null>(null);
+
+  const showHistory = subTab === 'history';
+  const setShowHistory = (show: boolean) => onSubTabChange?.(show ? 'history' : 'main');
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://rewardlyapi.satyainfotechnetworks.com';
 

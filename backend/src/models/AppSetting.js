@@ -50,6 +50,10 @@ const AppSetting = sequelize.define('AppSetting', {
   opinion_universe_enabled: {
     type: DataTypes.BOOLEAN,
     defaultValue: true
+  },
+  pubscale_sandbox: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: false
   }
 }, {
   tableName: 'app_settings',

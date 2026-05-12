@@ -307,7 +307,7 @@ export default function AppDashboard() {
                       tag="HOT"
                       urgency="Very High Paying"
                       icon="https://i.ibb.co/pB5NZtyz/download.png"
-                      href={`https://wow.pubscale.com?app_id=${appSettings.pubscale_app_id || '78594689'}&user_id=${user.id}${user.google_aid ? `&ga_id=${user.google_aid}` : ''}${user.ios_idfa ? `&idfa=${user.ios_idfa}` : ''}&is_test=1`}
+                      href={`https://wow.pubscale.com?app_id=${appSettings.pubscale_app_id || '78594689'}&user_id=${user.id}${user.google_aid ? `&ga_id=${user.google_aid}` : ''}${user.ios_idfa ? `&idfa=${user.ios_idfa}` : ''}${appSettings.pubscale_sandbox ? '&sandbox=true' : ''}`}
                     />
                   )}
 

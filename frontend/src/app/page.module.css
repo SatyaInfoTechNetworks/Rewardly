@@ -1037,6 +1037,52 @@
   border-radius: 6px;
 }
 
+.loadingBox, .noDataBox {
+  grid-column: 1 / -1;
+  padding: 40px 20px;
+  text-align: center;
+  background: white;
+  border-radius: var(--radius-card);
+  color: var(--text-secondary);
+  font-size: 14px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  border: 1px dashed #e2e8f0;
+}
+
+.refreshBtn {
+  background: none;
+  border: none;
+  color: var(--primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 50%;
+  transition: var(--transition);
+}
+
+.refreshBtn:active {
+  transform: rotate(180deg);
+  background: rgba(91, 95, 251, 0.1);
+}
+
+.spinner {
+  width: 24px;
+  height: 24px;
+  border: 3px solid rgba(91, 95, 251, 0.1);
+  border-top-color: var(--primary);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
 /* Redeem Screen Pro Styles */
 .redeemScreen {
   height: 100vh;

@@ -16,21 +16,38 @@ export const WalletScreen: React.FC<WalletScreenProps> = ({ user, onUpdateUser }
   const [showHistory, setShowHistory] = useState(false);
   const [historyTab, setHistoryTab] = useState<'earnings' | 'redeems'>('earnings');
   const [loading, setLoading] = useState(true);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [historyError, setHistoryError] = useState<string | null>(null);
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://rewardlyapi.satyainfotechnetworks.com';
+
+  const fetchTransactions = async () => {
+    setHistoryLoading(true);
+    setHistoryError(null);
+    try {
+      const res = await fetch(`${API_URL}/api/user/transactions`, { 
+        headers: { 'x-telegram-init-data': (window as any).Telegram?.WebApp?.initData || '' }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setTransactions(data);
+      } else {
+        setHistoryError("Failed to load history from server.");
+      }
+    } catch (error) {
+      console.error("Failed to fetch transactions", error);
+      setHistoryError("Network error. Please try again.");
+    } finally {
+      setHistoryLoading(false);
+    }
+  };
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [payoutRes, transRes] = await Promise.all([
-          fetch(`${API_URL}/api/payouts`, { credentials: 'include' }),
-          fetch(`${API_URL}/api/user/transactions`, { 
-            headers: { 'x-telegram-init-data': (window as any).Telegram?.WebApp?.initData || '' }
-          })
-        ]);
-
+        const payoutRes = await fetch(`${API_URL}/api/payouts`, { credentials: 'include' });
         if (payoutRes.ok) setPayoutMethods(await payoutRes.json());
-        if (transRes.ok) setTransactions(await transRes.json());
+        await fetchTransactions();
       } catch (error) {
         console.error("Failed to fetch wallet data", error);
       } finally {
@@ -49,6 +66,7 @@ export const WalletScreen: React.FC<WalletScreenProps> = ({ user, onUpdateUser }
         onSuccess={() => {
           setSelectedMethod(null);
           onUpdateUser();
+          fetchTransactions(); // Refresh history after redemption
         }}
       />
     );
@@ -56,8 +74,8 @@ export const WalletScreen: React.FC<WalletScreenProps> = ({ user, onUpdateUser }
 
   // Filter transactions based on tab
   const filteredTransactions = transactions.filter(t => {
-    if (historyTab === 'redeems') return t.type === 'payout' || t.type === 'withdrawal';
-    return t.type !== 'payout' && t.type !== 'withdrawal';
+    if (historyTab === 'redeems') return t.type === 'payout' || t.type === 'withdrawal' || t.type === 'redeem';
+    return t.type !== 'payout' && t.type !== 'withdrawal' && t.type !== 'redeem';
   });
 
   if (showHistory) {
@@ -68,6 +86,9 @@ export const WalletScreen: React.FC<WalletScreenProps> = ({ user, onUpdateUser }
              <ChevronRight style={{ transform: 'rotate(180deg)' }} />
           </button>
           <h2>Transaction History</h2>
+          <button onClick={fetchTransactions} className={styles.refreshBtn} disabled={historyLoading}>
+             <Clock size={16} />
+          </button>
         </div>
 
         <div className={styles.tabContainer}>
@@ -86,12 +107,23 @@ export const WalletScreen: React.FC<WalletScreenProps> = ({ user, onUpdateUser }
         </div>
 
         <div className={styles.historyList}>
-          {filteredTransactions.length > 0 ? (
+          {historyLoading ? (
+            <div className={styles.loadingBox}>
+              <div className={styles.spinner}></div>
+              <p>Loading History...</p>
+            </div>
+          ) : historyError ? (
+            <div className={styles.noDataBox}>
+              <History size={32} style={{ color: '#ef4444', opacity: 0.5 }} />
+              <p style={{ color: '#ef4444' }}>{historyError}</p>
+              <button onClick={fetchTransactions} className={styles.featuredBtn} style={{ marginTop: '10px' }}>Try Again</button>
+            </div>
+          ) : filteredTransactions.length > 0 ? (
             filteredTransactions.map((t) => (
               <div key={t.id} className={`${styles.historyCard} card`}>
                 <div className={styles.historyLeft}>
                   <div className={`${styles.historyIcon} ${t.amount > 0 ? styles.plus : styles.minus}`}>
-                    {t.type === 'payout' ? <Star size={18} /> : <History size={18} />}
+                    {t.type === 'payout' || t.type === 'redeem' ? <Star size={18} /> : <History size={18} />}
                   </div>
                   <div className={styles.historyInfo}>
                     <h4>{t.description || t.type}</h4>
@@ -105,7 +137,10 @@ export const WalletScreen: React.FC<WalletScreenProps> = ({ user, onUpdateUser }
               </div>
             ))
           ) : (
-            <div className={styles.noDataBox}>No {historyTab} found</div>
+            <div className={styles.noDataBox}>
+              <History size={32} style={{ opacity: 0.2 }} />
+              <p>No {historyTab} found</p>
+            </div>
           )}
         </div>
       </div>

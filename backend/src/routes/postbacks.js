@@ -243,5 +243,69 @@ router.get('/pubscale', async (req, res) => {
     return res.status(500).send('Internal Error');
   }
 });
+/**
+ * CPX Research Postback
+ * Credits coins for completed surveys via S2S
+ */
+router.get('/cpx', async (req, res) => {
+  const { status, trans_id, user_id, amount_local, hash } = req.query;
+  const APP_HASH = process.env.CPX_APP_HASH;
+
+  console.log(`📥 CPX Postback: User=${user_id}, Trans=${trans_id}, Amount=${amount_local}, Status=${status}`);
+
+  // 1. Signature Verification
+  const calculatedHash = crypto.createHash('md5').update(`${trans_id}-${APP_HASH}`).digest('hex');
+  if (calculatedHash !== hash) {
+    console.error(`❌ CPX Signature Mismatch! Expected ${calculatedHash}, got ${hash}`);
+    return res.status(401).send('Invalid Signature');
+  }
+
+  // 2. Status Check (1 = completed)
+  if (status !== '1') {
+    return res.send('OK');
+  }
+
+  const t = await sequelize.transaction();
+
+  try {
+    // 3. Check if transaction already processed
+    const existing = await Transaction.findOne({ where: { external_id: trans_id } });
+    if (existing) return res.send('OK');
+
+    // 4. Find User
+    const user = await User.findByPk(user_id);
+    if (!user) {
+      console.error(`❌ CPX User ${user_id} not found`);
+      return res.status(404).send('User not found');
+    }
+
+    // 5. Update Balance
+    const rewardAmount = parseInt(amount_local);
+    await user.update({ balance: user.balance + rewardAmount }, { transaction: t });
+
+    // 6. Record Transaction
+    await Transaction.create({
+      telegram_id: user_id,
+      amount: rewardAmount,
+      type: 'survey',
+      description: 'CPX Research Survey Reward',
+      external_id: trans_id,
+      status: 'completed'
+    }, { transaction: t });
+
+    await t.commit();
+
+    // 7. Post-reward processing
+    await trackContestActivity(user_id, 'earnings', rewardAmount);
+    await validateReferral(user_id);
+
+    console.log(`✅ CPX Reward: User ${user_id} credited with ${rewardAmount} coins.`);
+    return res.send('OK');
+  } catch (error) {
+    if (t) await t.rollback();
+    console.error('❌ CPX Postback Error:', error);
+    return res.status(500).send('Internal Error');
+  }
+});
 
 module.exports = router;

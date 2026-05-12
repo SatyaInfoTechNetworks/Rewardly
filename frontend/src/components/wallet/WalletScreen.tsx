@@ -136,7 +136,7 @@ export const WalletScreen: React.FC<WalletScreenProps> = ({
                   </div>
                   <div className={styles.historyInfo}>
                     <h4>{t.description || t.type}</h4>
-                    <span>{new Date(t.created_at).toLocaleDateString()}</span>
+                    <span>{t.created_at || t.createdAt ? new Date(t.created_at || t.createdAt).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' }) : 'Date unknown'}</span>
                   </div>
                 </div>
                 <div className={styles.historyRight}>

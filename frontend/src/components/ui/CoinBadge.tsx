@@ -20,7 +20,7 @@ export const CoinBadge: React.FC<CoinBadgeProps> = ({ amount, size = 'md', class
         fill="currentColor" 
       />
       <span className={styles.balanceText} style={{ fontSize: size === 'lg' ? '16px' : '13px' }}>
-        {showPlus && amount > 0 ? '+' : ''}{amount.toLocaleString()}
+        {showPlus && Number(amount) > 0 ? '+' : ''}{amount.toLocaleString()}
       </span>
     </div>
   );

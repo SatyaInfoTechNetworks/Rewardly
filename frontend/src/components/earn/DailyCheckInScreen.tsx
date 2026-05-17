@@ -19,11 +19,8 @@ export const DailyCheckInScreen: React.FC<DailyCheckInScreenProps> = ({ user, on
   const [status, setStatus] = useState<any>(null);
   const [showSuccess, setShowSuccess] = useState(false);
   const [earnedAmount, setEarnedAmount] = useState(0);
-  const [adController, setAdController] = useState<any>(null);
-  const [adReady, setAdReady] = useState(false);
   const [adError, setAdError] = useState<string | null>(null);
   const [countdown, setCountdown] = useState<string>('');
-  const adSuccessRef = useRef(false);
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://rewardlyapi.satyainfotechnetworks.com';
 
@@ -68,72 +65,25 @@ export const DailyCheckInScreen: React.FC<DailyCheckInScreenProps> = ({ user, on
     return () => clearInterval(timer);
   }, [status?.nextClaimAt]);
 
-  // ─── Init AdsGram SDK ─────────────────────────────────────────────────────
-  useEffect(() => {
-    if (!status?.canClaim) return;
-
-    const initAdsGram = async () => {
-      try {
-        const tg = (window as any).Telegram?.WebApp;
-        const blockId = (window as any).__ADSGRAM_CHECKIN_BLOCK_ID__ || '4376';
-
-        const controller = await (window as any).Adsgram?.init({
-          blockId,
-          // Pass user id so AdsGram can call back your server with it
-          onReward: async () => {
-            // AdsGram confirmed the ad; the S2S postback will credit the user.
-            // Here we just poll for the updated status.
-            console.log('[AdsGram CheckIn] onReward fired — waiting for S2S postback');
-            adSuccessRef.current = true;
-          },
-          onError: (err: any) => {
-            console.error('[AdsGram CheckIn] SDK Error:', err);
-            setAdError('Ad not available right now. Try again in a moment.');
-            setClaimState('idle');
-          },
-          onClose: () => {
-            console.log('[AdsGram CheckIn] Ad closed');
-          }
-        });
-
-        setAdController(controller);
-        setAdReady(true);
-      } catch (e) {
-        console.error('[AdsGram CheckIn] Init Error:', e);
-        // AdsGram not loaded → fallback to direct claim
-        setAdReady(false);
-      }
-    };
-
-    if ((window as any).Adsgram) {
-      initAdsGram();
-    } else {
-      // AdsGram SDK not loaded (e.g. dev environment) — use direct claim
-      setAdReady(false);
-    }
-  }, [status?.canClaim]);
-
   // ─── Handle Claim Button ──────────────────────────────────────────────────
   const handleClaim = async () => {
     if (claimState !== 'idle' || !status?.canClaim) return;
     setAdError(null);
 
-    // If AdsGram is ready, show the ad and wait for S2S postback
-    if (adReady && adController) {
+    const blockId = (window as any).__ADSGRAM_CHECKIN_BLOCK_ID__ || '4376';
+    if ((window as any).Adsgram) {
       setClaimState('ad_watching');
-      adSuccessRef.current = false; // reset flag
       try {
-        await adController.show();
-        // Wait a small moment to let the event loop process onReward callback
-        setTimeout(async () => {
-          if (adSuccessRef.current) {
-            setClaimState('claiming');
-            await pollForReward();
-          } else {
-            setClaimState('idle');
-            setAdError('❌ Ad was closed early. You must watch the complete ad to claim.');
-          }
-        }, 800);
+        const controller = await (window as any).Adsgram.init({ blockId });
+        controller.show().then(async () => {
+          console.log('[AdsGram CheckIn] Ad watched successfully');
+          setClaimState('claiming');
+          await pollForReward();
+        }).catch((err: any) => {
+          console.error('[AdsGram CheckIn Show Error]', err);
+          setAdError('❌ Ad was closed early. You must watch the complete ad to claim.');
+          setClaimState('idle');
+        });
       } catch (err: any) {
         console.error('[AdsGram CheckIn] show() failed:', err);
         setAdError('Ad could not be shown. Please try again.');
@@ -260,7 +210,7 @@ export const DailyCheckInScreen: React.FC<DailyCheckInScreenProps> = ({ user, on
             </>
           );
         }
-        if (adReady) {
+        if (typeof window !== 'undefined' && (window as any).Adsgram) {
           return (
             <>
               <Play size={18} fill="currentColor" />
@@ -476,7 +426,7 @@ export const DailyCheckInScreen: React.FC<DailyCheckInScreenProps> = ({ user, on
             width: '100%',
             padding: '18px',
             background: status?.canClaim
-              ? adReady
+              ? (typeof window !== 'undefined' && (window as any).Adsgram)
                 ? 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)'
                 : 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)'
               : '#e2e8f0',
@@ -486,7 +436,7 @@ export const DailyCheckInScreen: React.FC<DailyCheckInScreenProps> = ({ user, on
             fontWeight: 800,
             border: 'none',
             boxShadow: status?.canClaim
-              ? adReady
+              ? (typeof window !== 'undefined' && (window as any).Adsgram)
                 ? '0 10px 25px rgba(245, 158, 11, 0.3)'
                 : '0 10px 25px rgba(99, 102, 241, 0.25)'
               : 'none',
@@ -505,7 +455,7 @@ export const DailyCheckInScreen: React.FC<DailyCheckInScreenProps> = ({ user, on
         <div style={{ marginTop: '20px', display: 'flex', gap: '8px', alignItems: 'flex-start', color: '#64748b' }}>
           <Zap size={15} style={{ marginTop: '2px', flexShrink: 0 }} />
           <p style={{ fontSize: '12px', lineHeight: 1.5, margin: 0 }}>
-            {adReady
+            {(typeof window !== 'undefined' && (window as any).Adsgram)
               ? 'Watch a short ad to claim your daily reward. Don\'t miss a day — your streak resets after 48 hours!'
               : 'Check in every day to earn coins. Streak resets if you miss more than 48 hours. Day 7 has a bonus reward!'}
           </p>

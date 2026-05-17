@@ -2,9 +2,9 @@
 
 import { useState, useEffect } from "react";
 import styles from "./ContestScreen.module.css";
-import { 
-  Trophy, Clock, ChevronLeft, ChevronRight, Award, 
-  TrendingUp, Info, Users, Zap, Ticket, Calendar, Play, Gift, AlertCircle 
+import {
+  Trophy, Clock, ChevronLeft, ChevronRight, Award,
+  TrendingUp, Info, Users, Zap, Ticket, Calendar, Play, Gift, AlertCircle
 } from "lucide-react";
 import { analytics } from "@/modules/analytics/tracker";
 import { motion, AnimatePresence } from "framer-motion";
@@ -83,11 +83,11 @@ interface ContestScreenProps {
 export function ContestScreen({ user, onPlay }: ContestScreenProps) {
   // Tabs: 'contests' | 'draws'
   const [activeTab, setActiveTab] = useState<'contests' | 'draws'>('contests');
-  
+
   // Contest States
   const [contests, setContests] = useState<Contest[]>([]);
   const [selectedContest, setSelectedContest] = useState<any>(null);
-  
+
   // Lucky Draw States
   const [draws, setDraws] = useState<Draw[]>([]);
   const [recentWinners, setRecentWinners] = useState<Winner[]>([]);
@@ -192,11 +192,11 @@ export function ContestScreen({ user, onPlay }: ContestScreenProps) {
         headers: { 'x-telegram-init-data': initData },
         credentials: 'include'
       });
-      
+
       if (res.ok) {
         const data = await res.json();
         setSelectedContest(data);
-        
+
         // Track View
         analytics.track(analytics.events.CONTEST.VIEWED, {
           contest_id: data.id,
@@ -221,7 +221,7 @@ export function ContestScreen({ user, onPlay }: ContestScreenProps) {
       const res = await fetch(`${API_URL}/api/lucky-draws/${slug}`, {
         headers: { 'x-telegram-init-data': initData }
       });
-      
+
       if (res.ok) {
         const data = await res.json();
         setDrawDetail(data);
@@ -247,7 +247,7 @@ export function ContestScreen({ user, onPlay }: ContestScreenProps) {
       const res = await fetch(`${API_URL}/api/lucky-draws/${slug}`, {
         headers: { 'x-telegram-init-data': initData }
       });
-      
+
       if (res.ok) {
         const data = await res.json();
         setDrawDetail(data);
@@ -273,9 +273,9 @@ export function ContestScreen({ user, onPlay }: ContestScreenProps) {
 
       const res = await fetch(`${API_URL}/api/contests/${contestId}/join`, {
         method: 'POST',
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
-          'x-telegram-init-data': initData 
+          'x-telegram-init-data': initData
         },
         credentials: 'include'
       });
@@ -283,7 +283,7 @@ export function ContestScreen({ user, onPlay }: ContestScreenProps) {
       const data = await res.json();
       if (res.ok) {
         alert("🎉 Successfully joined the contest!");
-        
+
         // Track Join
         analytics.track(analytics.events.CONTEST.JOINED, {
           contest_id: contestId,
@@ -321,7 +321,7 @@ export function ContestScreen({ user, onPlay }: ContestScreenProps) {
       if (res.ok) {
         // Successful entry
         alert(`🎟️ Ticket Registered! ${data.message || ''}`);
-        
+
         // Update local coins balance if they purchased with coins
         if (source === 'coins' && selectedDraw) {
           setUserCoins(prev => Math.max(0, prev - selectedDraw.coin_cost_per_entry));
@@ -360,7 +360,7 @@ export function ContestScreen({ user, onPlay }: ContestScreenProps) {
           onReward: async () => {
             adSuccess = true;
             console.log('[AdsGram LuckyDraw] onReward callback success');
-            
+
             // Capture current ad entry count
             const currentAdEntries = drawDetail?.userStats?.ad || 0;
             let pollSuccess = false;
@@ -451,7 +451,7 @@ export function ContestScreen({ user, onPlay }: ContestScreenProps) {
     const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
     const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
     const seconds = Math.floor((diff % (1000 * 60)) / 1000);
-    
+
     if (days > 0) {
       return `${days}D : ${hours.toString().padStart(2, '0')}H : ${minutes.toString().padStart(2, '0')}M`;
     }
@@ -478,7 +478,7 @@ export function ContestScreen({ user, onPlay }: ContestScreenProps) {
     const others = leaderboard.slice(3);
     const isJoined = !!userEntry;
     const isFull = contest.maximum_participants && (contest.participantsCount || 0) >= contest.maximum_participants;
-    
+
     return (
       <div className={styles.container}>
         <div className={styles.detailHeader}>
@@ -513,8 +513,8 @@ export function ContestScreen({ user, onPlay }: ContestScreenProps) {
               <div className={styles.joinLabel}>ENTRY FEE</div>
               <div className={styles.joinValue}>{contest.entry_fee > 0 ? `${contest.entry_fee} ${contest.entry_fee_type === 'coins' ? 'Coins' : 'Cash'}` : 'FREE'}</div>
             </div>
-            <button 
-              className={styles.primaryJoinBtn} 
+            <button
+              className={styles.primaryJoinBtn}
               disabled={joining || isFull}
               onClick={() => handleJoinContest(contest.id)}
             >
@@ -523,8 +523,8 @@ export function ContestScreen({ user, onPlay }: ContestScreenProps) {
           </div>
         ) : contest.tracking_type === 'game_score' && (
           <div className={styles.joinActionBox} style={{ border: '2px solid #22c55e', background: '#f0fdf4' }}>
-             <button 
-              className={styles.primaryJoinBtn} 
+            <button
+              className={styles.primaryJoinBtn}
               style={{ background: 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)', boxShadow: '0 4px 14px 0 rgba(34, 197, 94, 0.39)' }}
               onClick={() => onPlay?.(contest)}
             >
@@ -562,7 +562,7 @@ export function ContestScreen({ user, onPlay }: ContestScreenProps) {
                 <div className={styles.podiumScore}>{top3[1].score}</div>
               </div>
             )}
-            
+
             {top3[0] && (
               <div className={`${styles.podiumItem} ${styles.first}`}>
                 <div className={styles.podiumAvatar}>
@@ -596,8 +596,8 @@ export function ContestScreen({ user, onPlay }: ContestScreenProps) {
           <div className={styles.lbList}>
             {others.length > 0 ? (
               others.map((entry: any, index: number) => (
-                <div 
-                  key={entry.id} 
+                <div
+                  key={entry.id}
                   className={`${styles.lbItem} ${entry.user_id === user?.id ? styles.lbItemActive : ''}`}
                 >
                   <div className={styles.lbRank}>{index + 4}</div>
@@ -668,10 +668,10 @@ export function ContestScreen({ user, onPlay }: ContestScreenProps) {
         </div>
 
         <div className={styles.drawDetailHero}>
-          <img 
-            src={draw.banner_image || 'https://images.unsplash.com/photo-1595853035070-59a39fe84de3?auto=format&fit=crop&q=80&w=600'} 
-            className={styles.drawDetailBanner} 
-            alt={draw.title} 
+          <img
+            src={draw.banner_image || 'https://images.unsplash.com/photo-1595853035070-59a39fe84de3?auto=format&fit=crop&q=80&w=600'}
+            className={styles.drawDetailBanner}
+            alt={draw.title}
           />
           <div className={styles.drawDetailOverlay}>
             <div className={styles.drawBadge}>{getDrawTypeLabel(draw.type)}</div>
@@ -829,13 +829,13 @@ export function ContestScreen({ user, onPlay }: ContestScreenProps) {
 
       {/* Main Tab Switcher */}
       <div className={styles.tabContainer}>
-        <button 
+        <button
           className={`${styles.tabBtn} ${activeTab === 'contests' ? styles.activeTabBtn : ''}`}
           onClick={() => setActiveTab('contests')}
         >
           🏆 Skill Contests
         </button>
-        <button 
+        <button
           className={`${styles.tabBtn} ${activeTab === 'draws' ? styles.activeTabBtn : ''}`}
           onClick={() => setActiveTab('draws')}
         >
@@ -853,8 +853,8 @@ export function ContestScreen({ user, onPlay }: ContestScreenProps) {
           ) : contests.length > 0 ? (
             <div className={styles.contestList}>
               {contests.map((contest) => (
-                <div 
-                  key={contest.id} 
+                <div
+                  key={contest.id}
                   className={styles.contestCard}
                   onClick={() => fetchContestDetail(contest.slug)}
                 >
@@ -914,18 +914,18 @@ export function ContestScreen({ user, onPlay }: ContestScreenProps) {
             {draws.length > 0 ? (
               draws.map((draw) => {
                 const isExpired = new Date(draw.end_time).getTime() <= timeTick;
-                
+
                 return (
-                  <div 
-                    key={draw.id} 
+                  <div
+                    key={draw.id}
                     className={styles.drawCard}
                     onClick={() => fetchDrawDetail(draw.slug)}
                   >
                     <div className={styles.drawBannerWrapper}>
-                      <img 
-                        src={draw.banner_image || 'https://images.unsplash.com/photo-1595853035070-59a39fe84de3?auto=format&fit=crop&q=80&w=600'} 
-                        className={styles.drawBannerImage} 
-                        alt={draw.title} 
+                      <img
+                        src={draw.banner_image || 'https://images.unsplash.com/photo-1595853035070-59a39fe84de3?auto=format&fit=crop&q=80&w=600'}
+                        className={styles.drawBannerImage}
+                        alt={draw.title}
                       />
                       <div className={styles.drawBadge}>{getDrawTypeLabel(draw.type)}</div>
                       <div className={styles.drawPrizeOverlay}>🎁 Prize: {draw.prize_amount}</div>
@@ -933,7 +933,7 @@ export function ContestScreen({ user, onPlay }: ContestScreenProps) {
                     <div className={styles.drawCardInfo}>
                       <h3 className={styles.drawCardTitle}>{draw.title}</h3>
                       <p className={styles.drawCardDesc}>{draw.description || 'Watch ads, spend coins or get referrals to maximize ticket entries!'}</p>
-                      
+
                       <div className={styles.drawMetaRow}>
                         <div className={styles.drawCountdownBox} style={{ background: isExpired ? '#f1f5f9' : '#fee2e2', color: isExpired ? '#64748b' : '#ef4444' }}>
                           <Clock size={12} />
@@ -962,7 +962,7 @@ export function ContestScreen({ user, onPlay }: ContestScreenProps) {
       {/* ─── Ticket Success Modal ─── */}
       <AnimatePresence>
         {ticketSuccessModal && (
-          <div 
+          <div
             style={{
               position: 'fixed',
               top: 0,
@@ -997,7 +997,7 @@ export function ContestScreen({ user, onPlay }: ContestScreenProps) {
               }}
             >
               {/* Confetti Accent Gradients */}
-              <div 
+              <div
                 style={{
                   position: 'absolute',
                   top: '-40px',
@@ -1008,7 +1008,7 @@ export function ContestScreen({ user, onPlay }: ContestScreenProps) {
                   pointerEvents: 'none'
                 }}
               />
-              <div 
+              <div
                 style={{
                   position: 'absolute',
                   bottom: '-40px',
@@ -1048,7 +1048,7 @@ export function ContestScreen({ user, onPlay }: ContestScreenProps) {
               </p>
 
               {/* Info Pill */}
-              <div 
+              <div
                 style={{
                   background: '#f8fafc',
                   border: '1px solid #e2e8f0',

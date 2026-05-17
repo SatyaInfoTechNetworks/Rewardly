@@ -91,31 +91,19 @@ export const PlayGamesScreen: React.FC<PlayGamesScreenProps> = ({ user, onBack, 
     if ((window as any).Adsgram) {
       try {
         setModalState('validating');
-        let adSuccess = false;
-        const controller = await (window as any).Adsgram.init({
-          blockId,
-          onReward: async () => {
-            console.log('[AdsGram Game] onReward callback success');
-            adSuccess = true;
-          },
-          onError: (err: any) => {
-            console.error('[AdsGram Game] SDK error:', err);
-            setModalState('none');
-            alert("❌ Ad is not available right now or failed to load.");
-          }
-        });
+        const controller = await (window as any).Adsgram.init({ blockId });
         
-        await controller.show();
-        
-        if (adSuccess) {
+        controller.show().then(() => {
+          console.log('[AdsGram Game] Ad watched successfully');
           // Wait 1.8s to let S2S register before claiming
           setTimeout(() => {
             claimReward();
           }, 1800);
-        } else {
+        }).catch((err: any) => {
+          console.error('[AdsGram Game Show Error]', err);
           setModalState('none');
-          alert("❌ Ad was closed early. No reward earned.");
-        }
+          alert("❌ Ad was closed early or failed to load. No reward earned.");
+        });
       } catch (err) {
         console.error('[AdsGram Game Error]', err);
         setModalState('none');

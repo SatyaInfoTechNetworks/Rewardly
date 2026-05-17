@@ -39,7 +39,7 @@ export default function AppDashboard() {
     pubscale_enabled: true,
     opinion_universe_enabled: true,
     pubscale_app_id: '78594689',
-    opinion_universe_url: 'https://opinionuniverse.com/offerwall?pubId=1863&app_id=ID_eb1f5bea3e8caadcfcf6ccb5d35a1d1d'
+    opinion_universe_url: 'https://opinionuniverse.com/offerwall?pubId=1863&SID={SID}&appId=ID_eb1f5bea3e8caadcfcf6ccb5d35a1d1d'
   });
   
   // Dynamic API URL
@@ -322,17 +322,28 @@ export default function AppDashboard() {
                       icon="/opinionuniverse.png"
                       href={(() => {
                         let url = appSettings.opinion_universe_url || 'https://opinionuniverse.com/offerwall?pubId=1863&SID={SID}&appId=ID_eb1f5bea3e8caadcfcf6ccb5d35a1d1d';
+                        
+                        // Sanitize snake_case app_id to camelCase appId if configured incorrectly
+                        url = url.replace('app_id=', 'appId=');
+
+                        // Replace all placeholder options globally
                         if (url.includes('{SID}')) {
-                          url = url.replace('{SID}', user.id);
+                          url = url.replace(/{SID}/g, user.id.toString());
                         } else if (url.includes('[userId]')) {
-                          url = url.replace('[userId]', user.id);
+                          url = url.replace(/\[userId\]/g, user.id.toString());
                         } else if (url.includes('{userId}')) {
-                          url = url.replace('{userId}', user.id);
-                        } else if (!url.includes('SID=')) {
+                          url = url.replace(/{userId}/g, user.id.toString());
+                        } else if (url.includes('{user_id}')) {
+                          url = url.replace(/{user_id}/g, user.id.toString());
+                        }
+
+                        // Enforce correct SID mapping
+                        if (!url.includes('SID=')) {
                           url = url.includes('?') ? `${url}&SID=${user.id}` : `${url}?SID=${user.id}`;
                         } else {
                           url = url.replace(/SID=[^&]*/, `SID=${user.id}`);
                         }
+                        
                         return url;
                       })()}
                     />

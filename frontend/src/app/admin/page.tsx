@@ -875,8 +875,28 @@ export default function AdminPanel() {
                           </div>
                         </td>
                         <td>
-                          <div><strong>ID:</strong> {user.telegram_id}</div>
-                          <div style={{ color: '#6c757d', fontSize: '12px' }}><strong>Phone:</strong> {user.phone_number || 'N/A'}</div>
+                          <div><strong>ID:</strong> <code style={{ background: '#f1f5f9', padding: '2px 4px', borderRadius: '4px' }}>{user.telegram_id}</code></div>
+                          <div style={{ color: '#475569', fontSize: '11px', marginTop: '4px' }}><strong>Phone:</strong> {user.phone_number || 'N/A'}</div>
+                          {user.referred_by && (
+                            <div style={{ color: '#d97706', fontSize: '11px', marginTop: '2px' }}>
+                              <strong>Referred By:</strong> <code style={{ background: '#fffbeb', padding: '1px 3px', borderRadius: '3px', border: '1px solid #fde68a' }}>{user.referred_by}</code>
+                            </div>
+                          )}
+                          {user.ip_address && (
+                            <div style={{ color: '#2563eb', fontSize: '11px', marginTop: '2px' }}>
+                              <strong>IP:</strong> <code style={{ background: '#eff6ff', padding: '1px 3px', borderRadius: '3px', border: '1px solid #bfdbfe' }}>{user.ip_address}</code>
+                            </div>
+                          )}
+                          {user.google_aid && (
+                            <div style={{ color: '#059669', fontSize: '11px', marginTop: '2px', wordBreak: 'break-all', maxWidth: '200px' }}>
+                              <strong>Google AID:</strong> <code style={{ background: '#ecfdf5', padding: '1px 3px', borderRadius: '3px', border: '1px solid #a7f3d0', fontSize: '10px' }}>{user.google_aid}</code>
+                            </div>
+                          )}
+                          {user.ios_idfa && (
+                            <div style={{ color: '#4f46e5', fontSize: '11px', marginTop: '2px', wordBreak: 'break-all', maxWidth: '200px' }}>
+                              <strong>iOS IDFA:</strong> <code style={{ background: '#e0e7ff', padding: '1px 3px', borderRadius: '3px', border: '1px solid #c7d2fe', fontSize: '10px' }}>{user.ios_idfa}</code>
+                            </div>
+                          )}
                         </td>
                         <td>
                           <div style={{ display: 'flex', gap: '8px' }}>
@@ -2032,6 +2052,25 @@ export default function AdminPanel() {
               </button>
             </div>
             <div className={styles.lteModalBody}>
+              <div style={{ padding: '12px', background: '#f1f5f9', borderRadius: '8px', marginBottom: '15px', fontSize: '12px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                  <div><strong>Telegram ID:</strong> <code style={{ background: 'white', padding: '1px 3px', borderRadius: '3px' }}>{editingUser.telegram_id}</code></div>
+                  <div><strong>Phone:</strong> {editingUser.phone_number || 'N/A'}</div>
+                  <div><strong>Referred By:</strong> <code style={{ background: 'white', padding: '1px 3px', borderRadius: '3px' }}>{editingUser.referred_by || 'Direct Join'}</code></div>
+                  <div><strong>IP Address:</strong> <code style={{ background: 'white', padding: '1px 3px', borderRadius: '3px' }}>{editingUser.ip_address || 'N/A'}</code></div>
+                </div>
+                {editingUser.google_aid && (
+                  <div style={{ marginTop: '8px', wordBreak: 'break-all' }}>
+                    <strong>Google AID:</strong> <code style={{ background: 'white', padding: '1px 3px', borderRadius: '3px' }}>{editingUser.google_aid}</code>
+                  </div>
+                )}
+                {editingUser.ios_idfa && (
+                  <div style={{ marginTop: '4px', wordBreak: 'break-all' }}>
+                    <strong>iOS IDFA:</strong> <code style={{ background: 'white', padding: '1px 3px', borderRadius: '3px' }}>{editingUser.ios_idfa}</code>
+                  </div>
+                )}
+              </div>
+
               <div className={styles.lteFormGroup}>
                 <label className={styles.lteFormLabel}>User Account Wallet Balance (Coins)</label>
                 <input 

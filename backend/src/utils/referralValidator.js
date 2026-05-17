@@ -30,7 +30,7 @@ async function validateReferral(userId) {
     
     // A. Account Age > 1 hour
     const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
-    if (user.created_at > oneHourAgo) return;
+    if ((user.createdAt || user.created_at) > oneHourAgo) return;
 
     // B. Earned Coins >= 50
     // We should count only 'survey', 'offer', 'game', 'task' etc.

@@ -99,7 +99,7 @@ router.post('/:id/join', async (req, res) => {
     if (!user) return res.status(404).json({ error: 'User not found' });
 
     // Minimum Account Requirements (Anti-Fraud)
-    const accountAgeHours = (new Date() - new Date(user.created_at)) / (1000 * 60 * 60);
+    const accountAgeHours = (new Date() - new Date(user.createdAt || user.created_at)) / (1000 * 60 * 60);
     if (accountAgeHours < 24) {
       return res.status(400).json({ error: 'Account must be at least 24 hours old to join premium contests' });
     }

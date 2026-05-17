@@ -148,7 +148,7 @@ router.get('/:slug', async (req, res) => {
       userStats.cooldownPeriod = cooldownPeriod;
 
       if (lastAdEntry) {
-        const elapsedSec = Math.floor((Date.now() - new Date(lastAdEntry.created_at).getTime()) / 1000);
+        const elapsedSec = Math.floor((Date.now() - new Date(lastAdEntry.createdAt || lastAdEntry.created_at).getTime()) / 1000);
         if (elapsedSec < cooldownPeriod) {
           userStats.cooldownRemaining = cooldownPeriod - elapsedSec;
         }
@@ -253,7 +253,7 @@ router.post('/:id/enter', async (req, res) => {
       const settings = await AppSetting.findByPk(1);
       cooldownPeriod = settings ? settings.ad_entry_cooldown : 60;
       if (lastAdEntry) {
-        const elapsedSec = Math.floor((Date.now() - new Date(lastAdEntry.created_at).getTime()) / 1000);
+        const elapsedSec = Math.floor((Date.now() - new Date(lastAdEntry.createdAt || lastAdEntry.created_at).getTime()) / 1000);
         if (elapsedSec < cooldownPeriod) {
           return res.status(400).json({ error: `Please wait ${cooldownPeriod - elapsedSec} seconds before adding another ad ticket.` });
         }

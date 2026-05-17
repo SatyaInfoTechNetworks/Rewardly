@@ -54,7 +54,7 @@ router.get('/stats', async (req, res) => {
     
     let cooldownRemaining = 0;
     if (lastGameTx) {
-      const elapsedSec = Math.floor((Date.now() - new Date(lastGameTx.created_at).getTime()) / 1000);
+      const elapsedSec = Math.floor((Date.now() - new Date(lastGameTx.createdAt || lastGameTx.created_at).getTime()) / 1000);
       if (elapsedSec < settings.watch_earn_cooldown) {
         cooldownRemaining = settings.watch_earn_cooldown - elapsedSec;
       }
@@ -107,7 +107,7 @@ router.post('/reward', async (req, res) => {
     });
     
     if (lastGameTx) {
-      const elapsedSec = Math.floor((Date.now() - new Date(lastGameTx.created_at).getTime()) / 1000);
+      const elapsedSec = Math.floor((Date.now() - new Date(lastGameTx.createdAt || lastGameTx.created_at).getTime()) / 1000);
       if (elapsedSec < settings.watch_earn_cooldown) {
         return res.status(400).json({ error: `Please wait ${settings.watch_earn_cooldown - elapsedSec} seconds before watching another ad.` });
       }

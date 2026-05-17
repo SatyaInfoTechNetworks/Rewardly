@@ -86,12 +86,19 @@ export const VisitAndEarnScreen: React.FC<VisitAndEarnScreenProps> = ({ user, on
         setIsAdLoading(false);
       }
     } else {
-      // Dev / Simulated Ad
-      console.log('🎬 [Mock Interstitial Ad Playing]');
-      setTimeout(() => {
-        setAdCompleted(true);
+      // Dev / Simulated Ad (only outside Telegram and in local dev mode)
+      const isDev = process.env.NODE_ENV !== 'production';
+      const isTelegram = typeof window !== 'undefined' && (window as any).Telegram?.WebApp?.initData;
+      if (isDev && !isTelegram) {
+        console.log('🎬 [Mock Interstitial Ad Playing]');
+        setTimeout(() => {
+          setAdCompleted(true);
+          setIsAdLoading(false);
+        }, 2000);
+      } else {
+        alert("❌ Ads are only available inside Telegram Mini App.");
         setIsAdLoading(false);
-      }, 2000); // 2 second simulated ad
+      }
     }
   };
 

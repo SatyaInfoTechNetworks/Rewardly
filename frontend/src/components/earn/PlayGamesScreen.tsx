@@ -87,7 +87,7 @@ export const PlayGamesScreen: React.FC<PlayGamesScreenProps> = ({ user, onBack, 
     }
 
     // 1. Show Ad
-    const blockId = (window as any).__ADSGRAM_GAME_BLOCK_ID__ || '4376';
+    const blockId = stats?.adsgramBlockId || (window as any).__ADSGRAM_GAME_BLOCK_ID__ || '4376';
     if ((window as any).Adsgram) {
       try {
         setModalState('validating');
@@ -98,8 +98,8 @@ export const PlayGamesScreen: React.FC<PlayGamesScreenProps> = ({ user, onBack, 
           },
           onError: (err: any) => {
             console.error('[AdsGram Game] SDK error:', err);
-            alert("❌ Ad is not available right now. Falling back to trial mode.");
-            triggerFallbackClaim();
+            setModalState('none');
+            alert("❌ Ad is not available right now or was closed early. No reward credited.");
           }
         });
         
@@ -110,11 +110,19 @@ export const PlayGamesScreen: React.FC<PlayGamesScreenProps> = ({ user, onBack, 
         }, 1500);
       } catch (err) {
         console.error('[AdsGram Game Error]', err);
-        triggerFallbackClaim();
+        setModalState('none');
+        alert("❌ Failed to play ad.");
       }
     } else {
-      // Fallback for non-telegram browser testing
-      triggerFallbackClaim();
+      // Fallback for non-telegram browser testing in dev mode only
+      const isDev = process.env.NODE_ENV !== 'production';
+      const isTelegram = typeof window !== 'undefined' && (window as any).Telegram?.WebApp?.initData;
+      if (isDev && !isTelegram) {
+        triggerFallbackClaim();
+      } else {
+        setModalState('none');
+        alert("❌ Ads are only available inside Telegram Mini App.");
+      }
     }
   };
 

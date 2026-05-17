@@ -341,20 +341,25 @@ export function ContestScreen({ user, onPlay }: ContestScreenProps) {
           },
           onError: (err: any) => {
             console.error('[AdsGram LuckyDraw] SDK error:', err);
-            alert('❌ Ad is not available right now. Falling back to trial mode.');
-            triggerMockAd(drawId);
+            alert('❌ Ad is not available right now or failed to play. No ticket registered.');
           }
         });
         await controller.show();
       } catch (err) {
         console.error('[AdsGram Init Error]', err);
-        triggerMockAd(drawId);
+        alert('❌ Failed to play ad.');
       } finally {
         setEnteringDraw(false);
       }
     } else {
-      // Dev mode simulated ad watching to make local testing premium & functional
-      triggerMockAd(drawId);
+      // Dev mode simulated ad watching to make local testing premium & functional (only outside Telegram and in local dev mode)
+      const isDev = process.env.NODE_ENV !== 'production';
+      const isTelegram = typeof window !== 'undefined' && (window as any).Telegram?.WebApp?.initData;
+      if (isDev && !isTelegram) {
+        triggerMockAd(drawId);
+      } else {
+        alert("❌ Ads are only available inside Telegram Mini App.");
+      }
     }
   };
 

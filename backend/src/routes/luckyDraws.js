@@ -187,6 +187,7 @@ router.post('/:id/enter', async (req, res) => {
 
     const user = await User.findByPk(tgUser.id);
     if (!user) return res.status(404).json({ error: 'User not found' });
+    let cooldownPeriod = 60;
 
     // Anti-Fraud check: Account age
     const accountAgeHours = (new Date() - new Date(user.created_at)) / (1000 * 60 * 60);
@@ -250,7 +251,7 @@ router.post('/:id/enter', async (req, res) => {
       });
       const AppSetting = require('../models/AppSetting');
       const settings = await AppSetting.findByPk(1);
-      const cooldownPeriod = settings ? settings.ad_entry_cooldown : 60;
+      cooldownPeriod = settings ? settings.ad_entry_cooldown : 60;
       if (lastAdEntry) {
         const elapsedSec = Math.floor((Date.now() - new Date(lastAdEntry.created_at).getTime()) / 1000);
         if (elapsedSec < cooldownPeriod) {
@@ -307,7 +308,9 @@ router.post('/:id/enter', async (req, res) => {
     });
 
   } catch (err) {
-    await t.rollback();
+    if (t && !t.finished) {
+      await t.rollback();
+    }
     console.error("Enter LuckyDraw Error:", err);
     res.status(500).json({ error: err.message });
   }

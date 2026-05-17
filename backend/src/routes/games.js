@@ -68,6 +68,7 @@ router.get('/stats', async (req, res) => {
       rewardPerGame: settings.game_reward_coins,
       adsgramEnabled: settings.adsgram_enabled,
       monetagEnabled: settings.monetag_enabled,
+      adsgramBlockId: settings.adsgram_block_id,
       cooldownRemaining,
       cooldownPeriod: settings.watch_earn_cooldown
     });

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Copy, Apple, FileText, Shield, Handshake, Mail, ChevronRight, Fingerprint, X } from 'lucide-react';
+import { Copy, Apple, FileText, Shield, Handshake, Mail, ChevronRight, Fingerprint, X, Gift } from 'lucide-react';
 import styles from '@/app/page.module.css';
 
 interface MoreScreenProps {
@@ -10,8 +10,48 @@ export const MoreScreen: React.FC<MoreScreenProps> = ({ user }) => {
   const [modalType, setModalType] = useState<'gaid' | 'idfa' | null>(null);
   const [inputValue, setInputValue] = useState("");
   const [isUpdating, setIsUpdating] = useState(false);
+  
+  // Lifafa Claims States
+  const [showLifafaModal, setShowLifafaModal] = useState(false);
+  const [lifafaCode, setLifafaCode] = useState("");
+  const [isClaimingLifafa, setIsClaimingLifafa] = useState(false);
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://rewardlyapi.satyainfotechnetworks.com';
+
+  const handleClaimLifafa = async () => {
+    if (!lifafaCode.trim()) {
+      alert("Please enter a Lifafa code!");
+      return;
+    }
+    try {
+      setIsClaimingLifafa(true);
+      const tg = (window as any).Telegram?.WebApp;
+      const initData = tg?.initData;
+
+      const response = await fetch(`${API_URL}/api/user/claim-lifafa`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ initData, code: lifafaCode })
+      });
+
+      const data = await response.json();
+      if (response.ok) {
+        alert(`🎉 Success! You claimed ${data.rewardCoins} coins!`);
+        setShowLifafaModal(false);
+        setLifafaCode("");
+        if (typeof window !== 'undefined') {
+          window.location.reload();
+        }
+      } else {
+        alert(data.error || "Failed to claim Lifafa code");
+      }
+    } catch (error) {
+      alert("Something went wrong. Please try again.");
+    } finally {
+      setIsClaimingLifafa(false);
+    }
+  };
 
   const handleUpdate = async () => {
     try {
@@ -114,6 +154,14 @@ export const MoreScreen: React.FC<MoreScreenProps> = ({ user }) => {
           <span className={styles.menuLabel}>Contact Us</span>
           <ChevronRight size={18} className={styles.chevron} />
         </div>
+
+        <div className={styles.menuItem} onClick={() => setShowLifafaModal(true)}>
+          <div className={`${styles.menuIconContainer} ${styles.pink}`} style={{ background: 'rgba(236, 72, 153, 0.1)', color: '#ec4899' }}>
+            <Gift size={20} />
+          </div>
+          <span className={styles.menuLabel}>Claim Lifafa (Promo Code)</span>
+          <ChevronRight size={18} className={styles.chevron} />
+        </div>
       </div>
 
       {/* ID Update Modal */}
@@ -148,6 +196,45 @@ export const MoreScreen: React.FC<MoreScreenProps> = ({ user }) => {
                 style={{ flex: 1, padding: '14px', borderRadius: '12px', border: 'none', background: 'var(--primary-gradient)', color: 'white', fontWeight: 700 }}
               >
                 {isUpdating ? "Updating..." : "Update"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Lifafa Modal */}
+      {showLifafaModal && (
+        <div className={styles.modalOverlay}>
+          <div className={styles.modalBox} style={{ background: 'linear-gradient(to bottom, #ffffff 0%, #fff5f5 100%)', border: '2px solid rgba(239, 68, 68, 0.2)' }}>
+            <div className={styles.modalHeader}>
+              <h3 style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#dc2626' }}>🧧 Claim Lifafa</h3>
+              <X size={20} onClick={() => setShowLifafaModal(false)} style={{ cursor: 'pointer', color: '#64748b' }} />
+            </div>
+            <p style={{ fontSize: '13px', color: '#64748b', marginBottom: '16px', lineHeight: '1.4' }}>
+              Enter your sponsored Lifafa promo code below to instantly claim your free bonus coins!
+            </p>
+            <input 
+              type="text" 
+              className={styles.modalInput}
+              placeholder="e.g. SUPERCOINS"
+              value={lifafaCode}
+              onChange={(e) => setLifafaCode(e.target.value)}
+              style={{ border: '1px solid #fca5a5', textTransform: 'uppercase' }}
+              autoFocus
+            />
+            <div style={{ display: 'flex', gap: '12px', marginTop: '20px' }}>
+              <button 
+                onClick={() => setShowLifafaModal(false)}
+                style={{ flex: 1, padding: '14px', borderRadius: '12px', border: '1px solid #e2e8f0', background: 'white', color: '#64748b', fontWeight: 600 }}
+              >
+                Cancel
+              </button>
+              <button 
+                onClick={handleClaimLifafa}
+                disabled={isClaimingLifafa}
+                style={{ flex: 1, padding: '14px', borderRadius: '12px', border: 'none', background: 'linear-gradient(135deg, #ef4444 0%, #b91c1c 100%)', color: 'white', fontWeight: 700, boxShadow: '0 4px 12px rgba(239, 68, 68, 0.2)' }}
+              >
+                {isClaimingLifafa ? "Claiming..." : "🧧 Claim Code"}
               </button>
             </div>
           </div>

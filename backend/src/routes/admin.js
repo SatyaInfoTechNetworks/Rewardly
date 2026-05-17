@@ -497,4 +497,96 @@ router.get('/transactions', adminAuth, async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+
+/**
+ * POST /api/admin/users/:id/adjust-coins
+ * Add or remove user coins with custom reason message
+ */
+router.post('/users/:id/adjust-coins', adminAuth, async (req, res) => {
+  const t = await sequelize.transaction();
+  try {
+    const { id } = req.params;
+    const { amount, type, reason } = req.body;
+
+    const user = await User.findByPk(id);
+    if (!user) return res.status(404).json({ error: 'User not found' });
+
+    const changeAmount = parseInt(amount);
+    if (isNaN(changeAmount) || changeAmount <= 0) {
+      return res.status(400).json({ error: 'Invalid amount value' });
+    }
+
+    if (type === 'add') {
+      await user.increment('balance', { by: changeAmount, transaction: t });
+      await Transaction.create({
+        telegram_id: user.telegram_id,
+        amount: changeAmount,
+        type: 'admin',
+        description: reason || 'Coins added by Administrator',
+        status: 'completed'
+      }, { transaction: t });
+    } else if (type === 'remove') {
+      const finalDeduction = Math.min(Number(user.balance), changeAmount);
+      await user.decrement('balance', { by: finalDeduction, transaction: t });
+      await Transaction.create({
+        telegram_id: user.telegram_id,
+        amount: -finalDeduction,
+        type: 'admin',
+        description: reason || 'Coins removed by Administrator',
+        status: 'completed'
+      }, { transaction: t });
+    } else {
+      return res.status(400).json({ error: 'Invalid operation type' });
+    }
+
+    await t.commit();
+    
+    // Refresh user balance details
+    await user.reload();
+    res.json({ success: true, newBalance: user.balance });
+  } catch (error) {
+    await t.rollback();
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * GET /api/admin/lifafas
+ */
+router.get('/lifafas', adminAuth, async (req, res) => {
+  try {
+    const Lifafa = require('../models/Lifafa');
+    const lifafas = await Lifafa.findAll({ order: [['created_at', 'DESC']] });
+    res.json(lifafas);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * POST /api/admin/lifafas
+ */
+router.post('/lifafas', adminAuth, async (req, res) => {
+  try {
+    const Lifafa = require('../models/Lifafa');
+    const lifafa = await Lifafa.create(req.body);
+    res.json(lifafa);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * DELETE /api/admin/lifafas/:id
+ */
+router.delete('/lifafas/:id', adminAuth, async (req, res) => {
+  try {
+    const Lifafa = require('../models/Lifafa');
+    await Lifafa.destroy({ where: { id: req.params.id } });
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 module.exports = router;

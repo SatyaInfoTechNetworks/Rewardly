@@ -28,6 +28,8 @@ const Transaction = require('./models/Transaction');
 const LuckyDraw = require('./models/LuckyDraw');
 const LuckyDrawEntry = require('./models/LuckyDrawEntry');
 const LuckyDrawWinner = require('./models/LuckyDrawWinner');
+const Lifafa = require('./models/Lifafa');
+const LifafaClaim = require('./models/LifafaClaim');
 const axios = require('axios');
 
 const app = express();
@@ -112,6 +114,11 @@ LuckyDrawWinner.belongsTo(LuckyDraw, { foreignKey: 'lucky_draw_id' });
 LuckyDrawWinner.belongsTo(User, { foreignKey: 'user_id', targetKey: 'telegram_id' });
 User.hasMany(LuckyDrawWinner, { foreignKey: 'user_id', sourceKey: 'telegram_id' });
 
+// Lifafa Associations
+Lifafa.hasMany(LifafaClaim, { as: 'claims', foreignKey: 'lifafa_id' });
+LifafaClaim.belongsTo(Lifafa, { foreignKey: 'lifafa_id' });
+LifafaClaim.belongsTo(User, { foreignKey: 'user_id', targetKey: 'telegram_id' });
+
 // Start Server (Move this inside sync)
 
 // Test DB Connection & Sync Models
@@ -165,7 +172,11 @@ testConnection().then(async () => {
     "ALTER TABLE `app_settings` ADD `adsgram_visit_block_id` VARCHAR(255) DEFAULT 'int 30395';",
     
     // 5. Referrals Status Enum Alteration
-    "ALTER TABLE `referrals` MODIFY COLUMN `status` ENUM('pending', 'active', 'qualified', 'rewarded', 'validated', 'rejected', 'fraud') DEFAULT 'pending';"
+    "ALTER TABLE `referrals` MODIFY COLUMN `status` ENUM('pending', 'active', 'qualified', 'rewarded', 'validated', 'rejected', 'fraud') DEFAULT 'pending';",
+
+    // 6. Lifafa Tables DDL Creation
+    "CREATE TABLE IF NOT EXISTS `lifafas` (`id` INTEGER AUTO_INCREMENT PRIMARY KEY, `code` VARCHAR(255) NOT NULL UNIQUE, `reward_coins` INTEGER NOT NULL, `max_uses` INTEGER DEFAULT -1, `current_uses` INTEGER DEFAULT 0, `status` VARCHAR(255) DEFAULT 'active', `expires_at` DATETIME NULL, `created_at` DATETIME NOT NULL, `updated_at` DATETIME NOT NULL);",
+    "CREATE TABLE IF NOT EXISTS `lifafa_claims` (`id` INTEGER AUTO_INCREMENT PRIMARY KEY, `lifafa_id` INTEGER NOT NULL, `user_id` BIGINT NOT NULL, `claimed_at` DATETIME DEFAULT CURRENT_TIMESTAMP, `created_at` DATETIME NOT NULL, `updated_at` DATETIME NOT NULL);"
   ];
 
   for (const sql of migrations) {
@@ -663,6 +674,97 @@ app.post('/api/user/update-ids', async (req, res) => {
     await user.save();
     res.json({ success: true, user });
   } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * POST /api/user/claim-lifafa
+ * Claim a Lifafa promo code
+ */
+app.post('/api/user/claim-lifafa', async (req, res) => {
+  const { initData, code } = req.body;
+  const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
+
+  if (!validateTelegramInitData(initData, BOT_TOKEN) && process.env.NODE_ENV === 'production') {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+
+  const t = await sequelize.transaction();
+  try {
+    const urlParams = new URLSearchParams(initData);
+    const tgUser = JSON.parse(urlParams.get('user'));
+    
+    const user = await User.findByPk(tgUser.id);
+    if (!user) return res.status(404).json({ error: 'User not found' });
+
+    if (!code || typeof code !== 'string') {
+      return res.status(400).json({ error: 'Promo code is required' });
+    }
+
+    const cleanCode = code.trim().toUpperCase();
+
+    // 1. Find Lifafa
+    const lifafa = await Lifafa.findOne({ where: { code: cleanCode } });
+    if (!lifafa) {
+      return res.status(404).json({ error: 'Invalid Lifafa code' });
+    }
+
+    // 2. Check Status
+    if (lifafa.status !== 'active') {
+      return res.status(400).json({ error: 'This Lifafa code is inactive' });
+    }
+
+    // 3. Check Expiry
+    if (lifafa.expires_at && new Date(lifafa.expires_at) < new Date()) {
+      return res.status(400).json({ error: 'This Lifafa code has expired' });
+    }
+
+    // 4. Check Max Uses
+    if (lifafa.max_uses !== -1 && lifafa.current_uses >= lifafa.max_uses) {
+      return res.status(400).json({ error: 'This Lifafa code has reached maximum claim limit' });
+    }
+
+    // 5. Check if user already claimed
+    const alreadyClaimed = await LifafaClaim.findOne({
+      where: {
+        lifafa_id: lifafa.id,
+        user_id: user.telegram_id
+      }
+    });
+
+    if (alreadyClaimed) {
+      return res.status(400).json({ error: 'You have already claimed this Lifafa code!' });
+    }
+
+    // 6. Award coins & save claim
+    await user.increment('balance', { by: lifafa.reward_coins, transaction: t });
+    
+    await Transaction.create({
+      telegram_id: user.telegram_id,
+      amount: lifafa.reward_coins,
+      type: 'lifafa',
+      description: `Lifafa Claimed: ${cleanCode}`,
+      status: 'completed'
+    }, { transaction: t });
+
+    await LifafaClaim.create({
+      lifafa_id: lifafa.id,
+      user_id: user.telegram_id
+    }, { transaction: t });
+
+    await lifafa.increment('current_uses', { by: 1, transaction: t });
+
+    await t.commit();
+    
+    res.json({
+      success: true,
+      rewardCoins: lifafa.reward_coins,
+      newBalance: user.balance + lifafa.reward_coins
+    });
+
+  } catch (error) {
+    await t.rollback();
     res.status(500).json({ error: error.message });
   }
 });

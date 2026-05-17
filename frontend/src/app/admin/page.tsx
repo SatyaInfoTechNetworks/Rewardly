@@ -103,6 +103,23 @@ export default function AdminPanel() {
   });
   const [tiersForm, setTiersForm] = useState<any[]>([]);
 
+  // Lifafa States
+  const [lifafas, setLifafas] = useState<any[]>([]);
+  const [isLifafaModalOpen, setIsLifafaModalOpen] = useState(false);
+  const [lifafaForm, setLifafaForm] = useState({
+    code: '',
+    reward_coins: 100,
+    max_uses: -1,
+    status: 'active',
+    expires_at: ''
+  });
+
+  // Balance Adjustment States
+  const [adjustType, setAdjustType] = useState<'add' | 'remove'>('add');
+  const [adjustAmount, setAdjustAmount] = useState("");
+  const [adjustReason, setAdjustReason] = useState("");
+  const [isAdjusting, setIsAdjusting] = useState(false);
+
   // Toast State
   const [toast, setToast] = useState<{ message: string, type: 'success' | 'error' } | null>(null);
 
@@ -127,7 +144,8 @@ export default function AdminPanel() {
         fetch(`${API_URL}/api/admin/referral/milestones`, options),
         fetch(`${API_URL}/api/admin/referral/stats`, options),
         fetch(`${API_URL}/api/admin/contests`, options),
-        fetch(`${API_URL}/api/admin/settings`, options)
+        fetch(`${API_URL}/api/admin/settings`, options),
+        fetch(`${API_URL}/api/admin/lifafas`, options)
       ]);
  
       if (statsRes.ok && usersRes.ok && payoutsRes.ok && withdrawalsRes.ok && transRes.ok) {
@@ -143,6 +161,12 @@ export default function AdminPanel() {
         if (refStatsRes.ok) setReferralStats(await refStatsRes.json());
         if (contestsRes.ok) setContests(await contestsRes.json());
         if (appSettingsRes.ok) setAppSettings(await appSettingsRes.json());
+        
+        // Fetch Lifafas
+        const lifafasRes = await Promise.all([
+          fetch(`${API_URL}/api/admin/lifafas`, options)
+        ]);
+        if (lifafasRes[0].ok) setLifafas(await lifafasRes[0].json());
         
         // Fetch Daily Rewards
         const rewardsRes = await fetch(`${API_URL}/api/admin/rewards`, options);
@@ -503,6 +527,87 @@ export default function AdminPanel() {
     }
   };
 
+  const handleAdjustCoins = async (userId: any) => {
+    const amountNum = parseInt(adjustAmount);
+    if (isNaN(amountNum) || amountNum <= 0) {
+      showToast("Please enter a valid coin amount", "error");
+      return;
+    }
+
+    try {
+      setIsAdjusting(true);
+      const res = await fetch(`${API_URL}/api/admin/users/${userId}/adjust-coins`, {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'x-admin-secret': secret 
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          amount: amountNum,
+          type: adjustType,
+          reason: adjustReason
+        })
+      });
+
+      const data = await res.json();
+      if (res.ok) {
+        showToast(`Successfully adjusted ${adjustType === 'add' ? '+' : '-'}${amountNum} coins!`);
+        setAdjustAmount("");
+        setAdjustReason("");
+        setNewBalance(data.newBalance.toString());
+        fetchAllData(secret);
+      } else {
+        showToast(data.error || "Adjustment failed", "error");
+      }
+    } catch (err) {
+      showToast("Failed to complete request", "error");
+    } finally {
+      setIsAdjusting(false);
+    }
+  };
+
+  const handleSaveLifafa = async () => {
+    if (!lifafaForm.code.trim()) {
+      showToast("Please enter a code name", "error");
+      return;
+    }
+    try {
+      const payload = {
+        ...lifafaForm,
+        code: lifafaForm.code.trim().toUpperCase(),
+        expires_at: lifafaForm.expires_at ? new Date(lifafaForm.expires_at) : null
+      };
+
+      const res = await fetch(`${API_URL}/api/admin/lifafas`, {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'x-admin-secret': secret 
+        },
+        credentials: 'include',
+        body: JSON.stringify(payload)
+      });
+
+      if (res.ok) {
+        showToast("🎉 Lifafa promo code created successfully!");
+        setIsLifafaModalOpen(false);
+        setLifafaForm({
+          code: '',
+          reward_coins: 100,
+          max_uses: -1,
+          status: 'active',
+          expires_at: ''
+        });
+        fetchAllData(secret);
+      } else {
+        showToast("Failed to create Lifafa", "error");
+      }
+    } catch (err) {
+      showToast("Error saving Lifafa code", "error");
+    }
+  };
+
   const handleSearchUsers = (e: React.ChangeEvent<HTMLInputElement>) => {
     const query = e.target.value;
     setSearchQuery(query);
@@ -619,6 +724,7 @@ export default function AdminPanel() {
               {[
                 { id: 'dashboard', icon: LayoutDashboard, label: 'Dashboard Overview' },
                 { id: 'users', icon: Users, label: 'User Database' },
+                { id: 'lifafas', icon: Gift, label: 'Lifafa Promo Codes' },
                 { id: 'payouts', icon: Gift, label: 'Payout Gateways' },
                 { id: 'withdrawals', icon: ArrowUpRight, label: 'Withdrawal Tickets' },
                 { id: 'referrals', icon: Users, label: 'Referral Engine' },
@@ -1462,6 +1568,73 @@ export default function AdminPanel() {
             </div>
           )}
 
+          {/* ──── VIEW: LIFAFA PROMO CODES ──── */}
+          {activeView === 'lifafas' && (
+            <div className={styles.lteCard}>
+              <div className={styles.lteCardHeader} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <h3 className={styles.lteCardTitle}>🧧 Lifafa (Promo Code) Manager</h3>
+                <button className={`${styles.lteBtn} ${styles.lteBtnPrimary}`} onClick={() => setIsLifafaModalOpen(true)}>
+                  <Plus size={16} style={{ marginRight: '6px' }} /> Create New Lifafa
+                </button>
+              </div>
+              <div className={`${styles.lteCardBody} ${styles.lteTableResponsive}`}>
+                <table className={`${styles.lteTable} ${styles.lteTableStriped}`}>
+                  <thead>
+                    <tr>
+                      <th>Promo Code</th>
+                      <th>Reward Amount</th>
+                      <th>Max Claims</th>
+                      <th>Current Claims</th>
+                      <th>Expiry Date</th>
+                      <th>Status</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {lifafas.map(l => (
+                      <tr key={l.id}>
+                        <td><code className={styles.lteCode}>{l.code}</code></td>
+                        <td><strong style={{ color: '#28a745' }}>+{l.reward_coins} Coins</strong></td>
+                        <td>{l.max_uses === -1 ? 'Unlimited' : l.max_uses}</td>
+                        <td><span className={styles.lteCoinTag}>{l.current_uses} claims</span></td>
+                        <td>{l.expires_at ? new Date(l.expires_at).toLocaleString() : 'Never Expires'}</td>
+                        <td>
+                          <span className={`${styles.lteBadge} ${l.status === 'active' ? styles.lteBadgeSuccess : styles.lteBadgeDanger}`}>
+                            {l.status}
+                          </span>
+                        </td>
+                        <td>
+                          <button 
+                            className={`${styles.lteBtn} ${styles.lteBtnDanger}`}
+                            onClick={async () => {
+                              if (confirm(`Delete promo code "${l.code}"?`)) {
+                                try {
+                                  const res = await fetch(`${API_URL}/api/admin/lifafas/${l.id}`, {
+                                    method: 'DELETE',
+                                    headers: { 'x-admin-secret': secret },
+                                    credentials: 'include'
+                                  });
+                                  if (res.ok) {
+                                    showToast("Lifafa promo code deleted successfully!");
+                                    fetchAllData(secret);
+                                  }
+                                } catch (err) {
+                                  showToast("Failed to delete", "error");
+                                }
+                              }
+                            }}
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
           {/* ──── VIEW: LUCKY DRAWS & JACKPOTS ──── */}
           {activeView === 'lucky_draws' && (
             <div>
@@ -1867,6 +2040,55 @@ export default function AdminPanel() {
                   value={newBalance}
                   onChange={(e) => setNewBalance(e.target.value)}
                 />
+              </div>
+
+              <div style={{ margin: '20px 0', padding: '15px', background: '#f8fafc', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+                <h5 style={{ margin: '0 0 12px 0', fontSize: '13px', color: '#1e293b', fontWeight: 600 }}>⚡ Adjust User Coins Balance</h5>
+                <div style={{ display: 'flex', gap: '10px', marginBottom: '10px' }}>
+                  <button 
+                    type="button"
+                    style={{ flex: 1, padding: '8px', borderRadius: '8px', border: '1px solid #28a745', background: adjustType === 'add' ? '#28a745' : 'white', color: adjustType === 'add' ? 'white' : '#28a745', fontWeight: 'bold', cursor: 'pointer' }}
+                    onClick={() => setAdjustType('add')}
+                  >
+                    ➕ Add Coins
+                  </button>
+                  <button 
+                    type="button"
+                    style={{ flex: 1, padding: '8px', borderRadius: '8px', border: '1px solid #dc3545', background: adjustType === 'remove' ? '#dc3545' : 'white', color: adjustType === 'remove' ? 'white' : '#dc3545', fontWeight: 'bold', cursor: 'pointer' }}
+                    onClick={() => setAdjustType('remove')}
+                  >
+                    ➖ Remove Coins
+                  </button>
+                </div>
+                <div className={styles.lteFormGroup} style={{ marginBottom: '10px' }}>
+                  <label className={styles.lteFormLabel} style={{ fontSize: '11px' }}>Adjustment Coins Amount</label>
+                  <input 
+                    type="number"
+                    className={styles.lteFormControl}
+                    placeholder="e.g. 500"
+                    value={adjustAmount}
+                    onChange={(e) => setAdjustAmount(e.target.value)}
+                  />
+                </div>
+                <div className={styles.lteFormGroup} style={{ marginBottom: '12px' }}>
+                  <label className={styles.lteFormLabel} style={{ fontSize: '11px' }}>Adjustment Message / Reason</label>
+                  <input 
+                    type="text"
+                    className={styles.lteFormControl}
+                    placeholder="e.g. Compensation for offerwall delay"
+                    value={adjustReason}
+                    onChange={(e) => setAdjustReason(e.target.value)}
+                  />
+                </div>
+                <button 
+                  type="button"
+                  className={`${styles.lteBtn} ${adjustType === 'add' ? styles.lteBtnSuccess : styles.lteBtnDanger}`}
+                  style={{ width: '100%', padding: '10px', borderRadius: '8px', fontWeight: 'bold' }}
+                  onClick={() => handleAdjustCoins(editingUser.telegram_id)}
+                  disabled={isAdjusting}
+                >
+                  {isAdjusting ? "Processing..." : `Confirm ${adjustType === 'add' ? 'Addition' : 'Removal'}`}
+                </button>
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px', marginTop: '15px' }}>
@@ -2567,6 +2789,80 @@ export default function AdminPanel() {
                   }
                 } catch (err) { showToast("Error creating task", "error"); }
               }}>Create Visit Task</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ──── MODAL: CREATE LIFAFA ──── */}
+      {isLifafaModalOpen && (
+        <div className={styles.lteModalOverlay}>
+          <div className={styles.lteModalBox} style={{ maxWidth: '450px' }}>
+            <div className={styles.lteModalHeader}>
+              <h4 className={styles.lteModalTitle}>🧧 Create Lifafa Promo Code</h4>
+              <button className={styles.lteModalClose} onClick={() => setIsLifafaModalOpen(false)}>
+                <X size={20} />
+              </button>
+            </div>
+            <div className={styles.lteModalBody}>
+              <div className={styles.lteFormGroup}>
+                <label className={styles.lteFormLabel}>Promo Code Name (Uppercase)</label>
+                <input 
+                  className={styles.lteFormControl}
+                  style={{ textTransform: 'uppercase' }}
+                  placeholder="e.g. WELCOME500"
+                  value={lifafaForm.code}
+                  onChange={(e) => setLifafaForm({...lifafaForm, code: e.target.value})}
+                />
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px', marginTop: '10px' }}>
+                <div className={styles.lteFormGroup}>
+                  <label className={styles.lteFormLabel}>Reward Amount (Coins)</label>
+                  <input 
+                    type="number"
+                    className={styles.lteFormControl}
+                    value={lifafaForm.reward_coins}
+                    onChange={(e) => setLifafaForm({...lifafaForm, reward_coins: parseInt(e.target.value)})}
+                  />
+                </div>
+                <div className={styles.lteFormGroup}>
+                  <label className={styles.lteFormLabel}>Max Uses Limit (-1 for unlimited)</label>
+                  <input 
+                    type="number"
+                    className={styles.lteFormControl}
+                    value={lifafaForm.max_uses}
+                    onChange={(e) => setLifafaForm({...lifafaForm, max_uses: parseInt(e.target.value)})}
+                  />
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px', marginTop: '10px' }}>
+                <div className={styles.lteFormGroup}>
+                  <label className={styles.lteFormLabel}>Expiry Date & Time (Optional)</label>
+                  <input 
+                    type="datetime-local"
+                    className={styles.lteFormControl}
+                    value={lifafaForm.expires_at}
+                    onChange={(e) => setLifafaForm({...lifafaForm, expires_at: e.target.value})}
+                  />
+                </div>
+                <div className={styles.lteFormGroup}>
+                  <label className={styles.lteFormLabel}>Promo Status</label>
+                  <select 
+                    className={styles.lteFormControl}
+                    value={lifafaForm.status}
+                    onChange={(e) => setLifafaForm({...lifafaForm, status: e.target.value})}
+                  >
+                    <option value="active">Active</option>
+                    <option value="inactive">Inactive</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+            <div className={styles.lteModalFooter}>
+              <button className={`${styles.lteBtn} ${styles.lteBtnSecondary}`} onClick={() => setIsLifafaModalOpen(false)}>Discard</button>
+              <button className={`${styles.lteBtn} ${styles.lteBtnPrimary}`} onClick={handleSaveLifafa}>🧧 Launch Promo Code</button>
             </div>
           </div>
         </div>

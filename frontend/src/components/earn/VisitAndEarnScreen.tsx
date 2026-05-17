@@ -17,6 +17,7 @@ export const VisitAndEarnScreen: React.FC<VisitAndEarnScreenProps> = ({ user, on
   const [loading, setLoading] = useState(true);
   const [visitingTask, setVisitingTask] = useState<any>(null);
   const [timeLeft, setTimeLeft] = useState(0);
+  const [timerStarted, setTimerStarted] = useState(false);
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://rewardlyapi.satyainfotechnetworks.com';
 
@@ -45,29 +46,59 @@ export const VisitAndEarnScreen: React.FC<VisitAndEarnScreenProps> = ({ user, on
     }
   };
 
-  const handleVisit = (task: any) => {
+  const handleVisit = async (task: any) => {
     if (completedIds.includes(task.id)) return;
 
     setVisitingTask(task);
-    setTimeLeft(task.timer_seconds);
-    
-    // Open URL
-    const tg = (window as any).Telegram?.WebApp;
-    if (tg) {
-      tg.openLink(task.url);
+    setTimerStarted(false); // Do not start the timer until the ad finishes!
+
+    const blockId = (window as any).__ADSGRAM_VISIT_BLOCK_ID__ || 'int 30395';
+
+    // Helper to proceed to task after ad
+    const startTaskTimerAndRedirect = () => {
+      setTimeLeft(task.timer_seconds);
+      setTimerStarted(true);
+      
+      const tg = (window as any).Telegram?.WebApp;
+      if (tg) {
+        tg.openLink(task.url);
+      } else {
+        window.open(task.url, '_blank');
+      }
+    };
+
+    if ((window as any).Adsgram) {
+      try {
+        const controller = await (window as any).Adsgram.init({ blockId });
+        controller.show().then(() => {
+          // Ad played successfully or skipped (Interstitial) -> start task
+          startTaskTimerAndRedirect();
+        }).catch((err: any) => {
+          console.error('[AdsGram Interstitial Show Error]', err);
+          // Fallback to start directly if ad fail
+          startTaskTimerAndRedirect();
+        });
+      } catch (err) {
+        console.error('[AdsGram Interstitial Init Error]', err);
+        startTaskTimerAndRedirect();
+      }
     } else {
-      window.open(task.url, '_blank');
+      // Dev / Simulated Ad
+      console.log('🎬 [Mock Interstitial Ad Playing]');
+      setTimeout(() => {
+        startTaskTimerAndRedirect();
+      }, 2000); // 2 second simulated ad
     }
   };
 
   useEffect(() => {
-    if (visitingTask && timeLeft > 0) {
+    if (visitingTask && timerStarted && timeLeft > 0) {
       const timer = setTimeout(() => setTimeLeft(timeLeft - 1), 1000);
       return () => clearTimeout(timer);
-    } else if (visitingTask && timeLeft === 0) {
+    } else if (visitingTask && timerStarted && timeLeft === 0) {
       claimReward(visitingTask.id);
     }
-  }, [visitingTask, timeLeft]);
+  }, [visitingTask, timerStarted, timeLeft]);
 
   const claimReward = async (taskId: number) => {
     try {
@@ -89,6 +120,7 @@ export const VisitAndEarnScreen: React.FC<VisitAndEarnScreenProps> = ({ user, on
       console.error(err);
     } finally {
       setVisitingTask(null);
+      setTimerStarted(false);
     }
   };
 
@@ -200,7 +232,7 @@ export const VisitAndEarnScreen: React.FC<VisitAndEarnScreenProps> = ({ user, on
                     {isCurrent ? (
                       <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                         <div style={{ width: '12px', height: '12px', border: '2px solid rgba(255,255,255,0.3)', borderTopColor: 'white', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
-                        {timeLeft}s
+                        {timerStarted ? `${timeLeft}s` : 'Ad...'}
                       </span>
                     ) : (
                       'Visit'

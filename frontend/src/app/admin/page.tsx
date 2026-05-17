@@ -1768,7 +1768,7 @@ export default function AdminPanel() {
                   </div>
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginTop: '15px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '20px', marginTop: '15px' }}>
                   <div className={styles.lteFormGroup}>
                     <label className={styles.lteFormLabel}>Monetag Integration Zone ID</label>
                     <input 
@@ -1785,6 +1785,15 @@ export default function AdminPanel() {
                       placeholder="e.g. 78594689"
                       value={appSettings.pubscale_app_id || ''}
                       onChange={(e) => setAppSettings({...appSettings, pubscale_app_id: e.target.value})}
+                    />
+                  </div>
+                  <div className={styles.lteFormGroup}>
+                    <label className={styles.lteFormLabel}>AdsGram Visit Interstitial ID</label>
+                    <input 
+                      className={styles.lteFormControl}
+                      placeholder="e.g. int 30395"
+                      value={appSettings.adsgram_visit_block_id || 'int 30395'}
+                      onChange={(e) => setAppSettings({...appSettings, adsgram_visit_block_id: e.target.value})}
                     />
                   </div>
                 </div>

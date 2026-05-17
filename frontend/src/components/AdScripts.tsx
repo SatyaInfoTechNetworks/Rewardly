@@ -14,10 +14,12 @@ export default function AdScripts() {
           (window as any).AdsgramController = (window as any).Adsgram.init({ blockId: settings.adsgram_block_id || "29726" });
           (window as any).__ADSGRAM_CHECKIN_BLOCK_ID__ = settings.adsgram_checkin_block_id || "30393";
           (window as any).__ADSGRAM_DRAW_BLOCK_ID__ = settings.adsgram_draw_block_id || "30394";
+          (window as any).__ADSGRAM_VISIT_BLOCK_ID__ = settings.adsgram_visit_block_id || "int 30395";
           console.log("✅ AdsGram Configured:", {
             game: settings.adsgram_block_id || "29726",
             checkin: settings.adsgram_checkin_block_id || "30393",
-            draw: settings.adsgram_draw_block_id || "30394"
+            draw: settings.adsgram_draw_block_id || "30394",
+            visit: settings.adsgram_visit_block_id || "int 30395"
           });
         }
       } catch (err) {

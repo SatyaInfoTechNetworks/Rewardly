@@ -62,6 +62,10 @@ const AppSetting = sequelize.define('AppSetting', {
   adsgram_draw_block_id: {
     type: DataTypes.STRING,
     defaultValue: '30394'  // Dedicated AdsGram block for lucky draws & contests
+  },
+  adsgram_visit_block_id: {
+    type: DataTypes.STRING,
+    defaultValue: 'int 30395'  // Dedicated AdsGram interstitial block for Visit & Earn
   }
 }, {
   tableName: 'app_settings',

@@ -53,7 +53,7 @@ export const VisitAndEarnScreen: React.FC<VisitAndEarnScreenProps> = ({ user, on
     setTimerStarted(false); // Do not start the timer until the ad finishes!
 
     const rawBlockId = (window as any).__ADSGRAM_VISIT_BLOCK_ID__ || '30395';
-    const blockId = rawBlockId.toString().replace(/\D/g, '');
+    const blockId = `int-${rawBlockId.toString().replace(/\D/g, '')}`;
 
     // Helper to proceed to task after ad
     const startTaskTimerAndRedirect = () => {

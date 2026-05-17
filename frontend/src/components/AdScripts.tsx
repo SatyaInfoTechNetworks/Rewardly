@@ -14,7 +14,7 @@ export default function AdScripts() {
           const gameId = (settings.adsgram_block_id || "29726").toString().replace(/\D/g, '');
           const checkinId = (settings.adsgram_checkin_block_id || "30393").toString().replace(/\D/g, '');
           const drawId = (settings.adsgram_draw_block_id || "30394").toString().replace(/\D/g, '');
-          const visitId = (settings.adsgram_visit_block_id || "int 30395").toString().replace(/\D/g, '');
+          const visitId = "int-" + (settings.adsgram_visit_block_id || "30395").toString().replace(/\D/g, '');
 
           (window as any).AdsgramController = (window as any).Adsgram.init({ blockId: gameId });
           (window as any).__ADSGRAM_CHECKIN_BLOCK_ID__ = checkinId;

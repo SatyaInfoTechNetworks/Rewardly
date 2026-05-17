@@ -3,42 +3,43 @@ const axios = require('axios');
 const BOT_TOKEN = '8441190461:AAErfv2dgLp7DiWuo85RmnFL7AS3HwHu1W0';
 const ADMIN_CHAT_ID = '1981634693';
 
+function escapeHtml(text) {
+  if (!text) return '';
+  return String(text)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
+
 /**
  * Sends a Telegram notification to the Admin on offerwall completion
- * @param {Object} params
- * @param {string} params.offerName - Name of the survey or offer completed
- * @param {string} params.offerwall - Name of the offerwall (e.g. CPX Research, PubScale, Opinion Universe)
- * @param {number|string} params.amount - Coins credited to the user
- * @param {string} params.transactionId - Transaction reference ID
- * @param {string} params.username - Username of the user who completed the offer
- * @param {string} params.firstName - First name of the user
- * @param {string} params.telegramId - Telegram ID of the user
  */
 async function sendCompletionAlert({ offerName, offerwall, amount, transactionId, username, firstName, telegramId }) {
   try {
     const userDisplay = username ? `@${username}` : (firstName || telegramId || 'Unknown User');
-    const escapedUserDisplay = String(userDisplay).replace(/[_*[\]()~`>#+\-=|{}.!]/g, '\\$&');
-    const escapedOfferName = String(offerName || 'Offer Completion').replace(/[_*[\]()~`>#+\-=|{}.!]/g, '\\$&');
-    const escapedOfferwall = String(offerwall).replace(/[_*[\]()~`>#+\-=|{}.!]/g, '\\$&');
-    const escapedAmount = String(amount).replace(/[_*[\]()~`>#+\-=|{}.!]/g, '\\$&');
-    const escapedTxId = String(transactionId || 'N/A').replace(/[_*[\]()~`>#+\-=|{}.!]/g, '\\$&');
+    
+    const escapedUserDisplay = escapeHtml(userDisplay);
+    const escapedOfferName = escapeHtml(offerName || 'Offer Completion');
+    const escapedOfferwall = escapeHtml(offerwall);
+    const escapedAmount = escapeHtml(amount);
+    const escapedTxId = escapeHtml(transactionId || 'N/A');
 
-    const message = `🎉 *Offerwall Completion Alert*
+    const message = `🎉 <b>Offerwall Completion Alert</b>
 
-👤 *User:* ${escapedUserDisplay} \(_tg: ${telegramId || 'N/A'}_\)
-🔥 *Offer Name:* ${escapedOfferName}
-🏢 *Offerwall:* ${escapedOfferwall}
-💰 *Coins Credited:* \+${escapedAmount} Coins
-🆔 *Transaction ID:* \`${escapedTxId}\`
+👤 <b>User:</b> ${escapedUserDisplay} (tg: ${telegramId || 'N/A'})
+🔥 <b>Offer Name:</b> ${escapedOfferName}
+🏢 <b>Offerwall:</b> ${escapedOfferwall}
+💰 <b>Coins Credited:</b> +${escapedAmount} Coins
+🆔 <b>Transaction ID:</b> <code>${escapedTxId}</code>
 
-⚡ *Powered by Rewardly*`;
+⚡ <b>Powered by Rewardly</b>`;
 
     console.log(`📡 Sending Telegram Alert for offer ${offerName} to Admin ${ADMIN_CHAT_ID}...`);
     
     await axios.post(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
       chat_id: ADMIN_CHAT_ID,
       text: message,
-      parse_mode: 'MarkdownV2'
+      parse_mode: 'HTML'
     });
 
     console.log(`✅ Telegram Alert sent successfully.`);
@@ -50,30 +51,31 @@ async function sendCompletionAlert({ offerName, offerwall, amount, transactionId
 async function sendChargebackAlert({ offerName, offerwall, amount, transactionId, username, firstName, telegramId, reason }) {
   try {
     const userDisplay = username ? `@${username}` : (firstName || telegramId || 'Unknown User');
-    const escapedUserDisplay = String(userDisplay).replace(/[_*[\]()~`>#+\-=|{}.!]/g, '\\$&');
-    const escapedOfferName = String(offerName || 'Offer Reversal').replace(/[_*[\]()~`>#+\-=|{}.!]/g, '\\$&');
-    const escapedOfferwall = String(offerwall).replace(/[_*[\]()~`>#+\-=|{}.!]/g, '\\$&');
-    const escapedAmount = String(amount).replace(/[_*[\]()~`>#+\-=|{}.!]/g, '\\$&');
-    const escapedTxId = String(transactionId || 'N/A').replace(/[_*[\]()~`>#+\-=|{}.!]/g, '\\$&');
-    const escapedReason = String(reason || 'Fraud chargeback / offer reversal').replace(/[_*[\]()~`>#+\-=|{}.!]/g, '\\$&');
+    
+    const escapedUserDisplay = escapeHtml(userDisplay);
+    const escapedOfferName = escapeHtml(offerName || 'Offer Reversal');
+    const escapedOfferwall = escapeHtml(offerwall);
+    const escapedAmount = escapeHtml(amount);
+    const escapedTxId = escapeHtml(transactionId || 'N/A');
+    const escapedReason = escapeHtml(reason || 'Fraud chargeback / offer reversal');
 
-    const message = `⚠️ *Offerwall Chargeback Alert*
+    const message = `⚠️ <b>Offerwall Chargeback Alert</b>
 
-👤 *User:* ${escapedUserDisplay} \(_tg: ${telegramId || 'N/A'}_\)
-🔥 *Offer Name:* ${escapedOfferName}
-🏢 *Offerwall:* ${escapedOfferwall}
-📉 *Coins Deducted:* \-${escapedAmount} Coins
-🆔 *Transaction ID:* \`${escapedTxId}\`
-🚨 *Reason:* ${escapedReason}
+👤 <b>User:</b> ${escapedUserDisplay} (tg: ${telegramId || 'N/A'})
+🔥 <b>Offer Name:</b> ${escapedOfferName}
+🏢 <b>Offerwall:</b> ${escapedOfferwall}
+📉 <b>Coins Deducted:</b> -${escapedAmount} Coins
+🆔 <b>Transaction ID:</b> <code>${escapedTxId}</code>
+🚨 <b>Reason:</b> ${escapedReason}
 
-⚡ *Powered by Rewardly*`;
+⚡ <b>Powered by Rewardly</b>`;
 
     console.log(`📡 Sending Telegram Chargeback Alert for offer ${offerName} to Admin ${ADMIN_CHAT_ID}...`);
     
     await axios.post(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
       chat_id: ADMIN_CHAT_ID,
       text: message,
-      parse_mode: 'MarkdownV2'
+      parse_mode: 'HTML'
     });
 
     console.log(`✅ Telegram Chargeback Alert sent successfully.`);

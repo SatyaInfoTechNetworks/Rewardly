@@ -54,6 +54,10 @@ const AppSetting = sequelize.define('AppSetting', {
   pubscale_sandbox: {
     type: DataTypes.BOOLEAN,
     defaultValue: false
+  },
+  adsgram_checkin_block_id: {
+    type: DataTypes.STRING,
+    defaultValue: '4376'  // Same as main block by default; set separately in Admin if needed
   }
 }, {
   tableName: 'app_settings',

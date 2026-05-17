@@ -151,7 +151,7 @@ router.get('/adsgram', async (req, res) => {
       telegram_id: user_id,
       amount: rewardAmount,
       type: 'game',
-      description: 'AdsGram S2S Reward',
+      description: 'Watch Ads Reward',
       status: 'completed'
     }, { transaction: t });
 

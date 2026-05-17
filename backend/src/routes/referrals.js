@@ -25,11 +25,11 @@ router.get('/me', async (req, res) => {
     const userId = tgUser.id;
 
     // Fetch Stats
-    const totalInvited = await Referral.count({ where: { referrer_id: userId } });
+    const totalInvited = await Referral.count({ where: { referrer_user_id: userId } });
     const successfulReferrals = await Referral.count({ 
       where: { 
-        referrer_id: userId,
-        status: 'rewarded'
+        referrer_user_id: userId,
+        status: 'validated'
       } 
     });
 
@@ -41,7 +41,7 @@ router.get('/me', async (req, res) => {
 
     // Fetch Recent Activity
     const activity = await Referral.findAll({
-      where: { referrer_id: userId },
+      where: { referrer_user_id: userId },
       include: [{ model: User, as: 'referred', attributes: ['first_name', 'username'] }],
       order: [['created_at', 'DESC']],
       limit: 10
@@ -82,8 +82,8 @@ router.post('/claim-milestone', async (req, res) => {
 
     const successfulReferrals = await Referral.count({ 
       where: { 
-        referrer_id: userId,
-        status: 'rewarded'
+        referrer_user_id: userId,
+        status: 'validated'
       } 
     });
 

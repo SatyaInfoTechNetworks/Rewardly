@@ -99,6 +99,19 @@ router.get('/seed', adminAuth, async (req, res) => {
 });
 
 /**
+ * POST /api/admin/reset-streaks
+ * Resets all user daily streak counters to 0
+ */
+router.post('/reset-streaks', adminAuth, async (req, res) => {
+  try {
+    await User.update({ streak: 0, last_check_in: null }, { where: {} });
+    res.json({ success: true, message: 'All user check-in daily streaks reset successfully!' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
  * PUT /api/admin/users/:id
  * Update user details (balance, status, etc.)
  */

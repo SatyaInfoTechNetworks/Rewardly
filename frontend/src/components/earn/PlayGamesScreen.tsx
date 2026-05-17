@@ -134,7 +134,7 @@ export const PlayGamesScreen: React.FC<PlayGamesScreenProps> = ({ user, onBack, 
           <ChevronLeft size={24} />
         </button>
         <div className={styles.subPageTitleGroup}>
-          <h2 style={{ fontSize: '18px' }}>Play2Reward</h2>
+          <h2 style={{ fontSize: '18px' }}>Watch & Earn</h2>
         </div>
         <div style={{ width: '40px' }} />
       </header>
@@ -216,7 +216,7 @@ export const PlayGamesScreen: React.FC<PlayGamesScreenProps> = ({ user, onBack, 
               <div style={{ fontSize: '40px', marginBottom: '12px' }}>{game.icon}</div>
               <div style={{ fontWeight: 700, fontSize: '14px', marginBottom: '12px' }}>{game.name}</div>
               <div style={{ background: '#f1f5f9', borderRadius: '20px', padding: '6px 0', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', border: '1px solid #e2e8f0' }}>
-                <div style={{ width: '16px', height: '16px', background: '#94a3b8', borderRadius: '50%' }} />
+                <span style={{ fontSize: '14px' }}>🪙</span>
                 <span style={{ fontWeight: 700, fontSize: '12px', color: '#64748b' }}>{game.reward} Coins</span>
               </div>
             </div>
@@ -238,15 +238,26 @@ export const PlayGamesScreen: React.FC<PlayGamesScreenProps> = ({ user, onBack, 
               {modalState === 'instruction' && (
                 <>
                   <div style={{ fontSize: '40px', marginBottom: '16px' }}>🎬</div>
-                  <h3 style={{ fontWeight: 800, fontSize: '18px', marginBottom: '16px' }}>Watch Ad to Play {selectedGame?.name}</h3>
+                  <h3 style={{ fontWeight: 800, fontSize: '18px', marginBottom: '16px' }}>
+                    {selectedGame?.name === 'Video Task' ? 'Watch Ad to Earn Coins' : `Watch Ad to Play ${selectedGame?.name}`}
+                  </h3>
                   <div style={{ background: '#FFFBEB', padding: '16px', borderRadius: '12px', textAlign: 'left', marginBottom: '20px', border: '1px solid #FEF3C7' }}>
                     <div style={{ display: 'flex', gap: '8px', marginBottom: '12px' }}>
                        <Info size={16} style={{ color: '#D97706', flexShrink: 0 }} />
                        <span style={{ fontSize: '12px', fontWeight: 600 }}>Instructions:</span>
                     </div>
                     <ul style={{ margin: 0, paddingLeft: '16px', fontSize: '12px', color: '#78350F', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                      <li>Watch the ad completely to unlock the game</li>
-                      <li>⚠️ You must play the game for at least 30 seconds. Exiting early will cancel your reward.</li>
+                      {selectedGame?.name === 'Video Task' ? (
+                        <>
+                          <li>Watch the ad completely to claim your daily coins</li>
+                          <li>Closing the ad early will cancel your reward.</li>
+                        </>
+                      ) : (
+                        <>
+                          <li>Watch the ad completely to unlock the game</li>
+                          <li>⚠️ You must play the game for at least 30 seconds. Exiting early will cancel your reward.</li>
+                        </>
+                      )}
                     </ul>
                   </div>
                   <div style={{ fontSize: '11px', color: '#94a3b8', marginBottom: '16px' }}>⚡ Ad duration: ~15-30 seconds</div>
@@ -254,7 +265,7 @@ export const PlayGamesScreen: React.FC<PlayGamesScreenProps> = ({ user, onBack, 
                     onClick={startAdFlow}
                     style={{ width: '100%', padding: '14px', background: '#4F46E5', color: 'white', border: 'none', borderRadius: '12px', fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
                   >
-                    🎬 Watch Ad & Play
+                    🎬 {selectedGame?.name === 'Video Task' ? 'Watch Ad & Claim' : 'Watch Ad & Play'}
                   </button>
                 </>
               )}
@@ -269,23 +280,41 @@ export const PlayGamesScreen: React.FC<PlayGamesScreenProps> = ({ user, onBack, 
 
               {modalState === 'success' && (
                 <>
-                  <h3 style={{ fontWeight: 800, fontSize: '20px', marginBottom: '16px' }}>Ad Watched 🎉</h3>
-                  <div style={{ background: '#FFFBEB', padding: '16px', borderRadius: '12px', textAlign: 'center', marginBottom: '20px', border: '1px solid #FEF3C7' }}>
-                    <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', alignItems: 'center' }}>
-                       <Info size={16} style={{ color: '#D97706' }} />
-                       <span style={{ fontSize: '13px', fontWeight: 700, color: '#92400E' }}>Do not close the game window for 30 seconds.</span>
-                    </div>
-                  </div>
-                  <button 
-                    onClick={() => {
-                      setModalState('none');
-                      // Here you would normally launch the game URL
-                      alert("Opening game: " + selectedGame?.name);
-                    }}
-                    style={{ width: '100%', padding: '14px', background: '#4F46E5', color: 'white', border: 'none', borderRadius: '12px', fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
-                  >
-                    ▶️ Play Game Now
-                  </button>
+                  <div style={{ fontSize: '50px', marginBottom: '16px' }}>🎉</div>
+                  {selectedGame?.name === 'Video Task' ? (
+                    <>
+                      <h3 style={{ fontWeight: 800, fontSize: '20px', marginBottom: '8px' }}>Reward Earned!</h3>
+                      <p style={{ fontSize: '14px', color: '#64748b', marginBottom: '20px' }}>
+                        You watched the video completely and earned <b>+{stats?.rewardPerGame || 5} Coins</b>!
+                      </p>
+                      <button 
+                        onClick={() => setModalState('none')}
+                        style={{ width: '100%', padding: '14px', background: '#10B981', color: 'white', border: 'none', borderRadius: '12px', fontWeight: 800 }}
+                      >
+                        Great!
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <h3 style={{ fontWeight: 800, fontSize: '20px', marginBottom: '16px' }}>Ad Watched 🎉</h3>
+                      <div style={{ background: '#FFFBEB', padding: '16px', borderRadius: '12px', textAlign: 'center', marginBottom: '20px', border: '1px solid #FEF3C7' }}>
+                        <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', alignItems: 'center' }}>
+                           <Info size={16} style={{ color: '#D97706' }} />
+                           <span style={{ fontSize: '13px', fontWeight: 700, color: '#92400E' }}>Do not close the game window for 30 seconds.</span>
+                        </div>
+                      </div>
+                      <button 
+                        onClick={() => {
+                          setModalState('none');
+                          // Here you would normally launch the game URL
+                          alert("Opening game: " + selectedGame?.name);
+                        }}
+                        style={{ width: '100%', padding: '14px', background: '#4F46E5', color: 'white', border: 'none', borderRadius: '12px', fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
+                      >
+                        ▶️ Play Game Now
+                      </button>
+                    </>
+                  )}
                 </>
               )}
             </motion.div>

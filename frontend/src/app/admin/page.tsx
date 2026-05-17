@@ -1325,8 +1325,31 @@ export default function AdminPanel() {
           {/* ──── VIEW: CHECK-IN REWARDS ──── */}
           {activeView === 'daily_rewards' && (
             <div className={styles.lteCard} style={{ maxWidth: '650px' }}>
-              <div className={styles.lteCardHeader}>
+              <div className={styles.lteCardHeader} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <h3 className={styles.lteCardTitle}>Daily Check-in Reward Progression</h3>
+                <button 
+                  className={`${styles.lteBtn} ${styles.lteBtnDanger}`}
+                  style={{ padding: '6px 12px', fontSize: '12px', fontWeight: 'bold' }}
+                  onClick={async () => {
+                    if (!confirm("Are you sure you want to reset all user daily check-in streaks to Day 0? This action is irreversible!")) return;
+                    try {
+                      const res = await fetch(`${API_URL}/api/admin/reset-streaks`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'x-admin-secret': secret },
+                        credentials: 'include'
+                      });
+                      if (res.ok) {
+                        showToast("All user daily check-in streaks have been reset successfully!");
+                      } else {
+                        showToast("Failed to reset streaks", "error");
+                      }
+                    } catch (err) {
+                      showToast("Error resetting streaks", "error");
+                    }
+                  }}
+                >
+                  🔄 Reset User Streaks
+                </button>
               </div>
               <div className={styles.lteCardBody}>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>

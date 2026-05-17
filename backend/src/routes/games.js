@@ -92,23 +92,11 @@ router.post('/reward', async (req, res) => {
 
     // Update User
     const rewardAmount = settings.game_reward_coins;
-    user.balance += rewardAmount;
     user.daily_games_played += 1;
     await user.save();
 
-    // Log Transaction
-    await Transaction.create({
-      telegram_id: user.telegram_id,
-      reference_id: generateTransactionId('GAME'),
-      type: 'game',
-      amount: rewardAmount,
-      description: 'Reward for Play & Earn ad',
-      status: 'completed'
-    });
-
-    // Update Contest Activity (Earning Contest)
-    await trackContestActivity(user.telegram_id, 'earnings', rewardAmount);
-    await validateReferral(user.telegram_id);
+    // Reload user to catch the updated balance credited by the AdsGram S2S postback!
+    await user.reload();
 
     res.json({
       success: true,

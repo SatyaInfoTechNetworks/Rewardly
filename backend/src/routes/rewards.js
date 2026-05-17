@@ -90,7 +90,7 @@ router.get('/check-in/status', async (req, res) => {
       }
     });
 
-    const canClaim = !todayTransaction;
+    const canClaim = !user.last_check_in || !todayTransaction;
 
     // Compute streak state
     const { currentStreak, nextDay, missedDay } = calculateStreakState(user);
@@ -147,7 +147,7 @@ router.post('/check-in/claim', async (req, res) => {
       }
     });
 
-    if (todayTransaction) {
+    if (todayTransaction && user.last_check_in) {
       return res.status(400).json({ error: 'Already claimed today' });
     }
 
@@ -235,7 +235,7 @@ router.get('/adsgram-checkin-postback', async (req, res) => {
       }
     });
 
-    if (todayTransaction) {
+    if (todayTransaction && user.last_check_in) {
       console.log(`[AdsGram CheckIn] Duplicate postback for user ${user_id}. Ignoring.`);
       return res.send('OK'); // Acknowledge to AdsGram
     }

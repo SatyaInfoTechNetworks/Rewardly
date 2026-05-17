@@ -38,13 +38,16 @@ export const DailyCheckInScreen: React.FC<DailyCheckInScreenProps> = ({ user, on
       if (res.ok) {
         const data = await res.json();
         setStatus(data);
+        if (data.streak !== user?.streak) {
+          onReward();
+        }
       }
     } catch (err) {
       console.error('[CheckIn Status Error]', err);
     } finally {
       setLoading(false);
     }
-  }, [API_URL]);
+  }, [API_URL, user?.streak, onReward]);
 
   useEffect(() => { fetchStatus(); }, [fetchStatus]);
 

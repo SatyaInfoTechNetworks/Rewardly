@@ -634,7 +634,8 @@ app.post('/api/user/verify-onboarding', async (req, res) => {
       }
     } catch (apiError) {
       console.error('Telegram API Error:', apiError.response?.data || apiError.message);
-      // If channel ID is wrong or bot is not admin, we might need a fallback or keep false
+      // If channel ID is wrong or bot is not admin, default to false
+      user.is_channel_joined = false;
     }
     
     await user.save();

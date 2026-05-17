@@ -71,12 +71,14 @@ export default function AppDashboard() {
             setUser(data.user);
             
             // PostHog Identification
-            analytics.identify(data.user.telegram_id.toString(), {
-              name: data.user.first_name,
-              username: data.user.username,
-              balance: data.user.balance,
-              is_verified: data.user.is_phone_verified
-            });
+            if (data.user && data.user.id) {
+              analytics.identify(data.user.id.toString(), {
+                name: data.user.firstName,
+                username: data.user.username,
+                balance: data.user.balance,
+                is_verified: data.user.isPhoneVerified
+              });
+            }
             analytics.track(analytics.events.AUTH.LOGIN, { method: 'telegram' });
 
             if (data.settings) {

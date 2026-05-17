@@ -11,15 +11,21 @@ export default function AdScripts() {
         const settings = await res.json();
         
         if ((window as any).Adsgram) {
-          (window as any).AdsgramController = (window as any).Adsgram.init({ blockId: settings.adsgram_block_id || "29726" });
-          (window as any).__ADSGRAM_CHECKIN_BLOCK_ID__ = settings.adsgram_checkin_block_id || "30393";
-          (window as any).__ADSGRAM_DRAW_BLOCK_ID__ = settings.adsgram_draw_block_id || "30394";
-          (window as any).__ADSGRAM_VISIT_BLOCK_ID__ = settings.adsgram_visit_block_id || "int 30395";
+          const gameId = (settings.adsgram_block_id || "29726").toString().replace(/\D/g, '');
+          const checkinId = (settings.adsgram_checkin_block_id || "30393").toString().replace(/\D/g, '');
+          const drawId = (settings.adsgram_draw_block_id || "30394").toString().replace(/\D/g, '');
+          const visitId = (settings.adsgram_visit_block_id || "int 30395").toString().replace(/\D/g, '');
+
+          (window as any).AdsgramController = (window as any).Adsgram.init({ blockId: gameId });
+          (window as any).__ADSGRAM_CHECKIN_BLOCK_ID__ = checkinId;
+          (window as any).__ADSGRAM_DRAW_BLOCK_ID__ = drawId;
+          (window as any).__ADSGRAM_VISIT_BLOCK_ID__ = visitId;
+
           console.log("✅ AdsGram Configured:", {
-            game: settings.adsgram_block_id || "29726",
-            checkin: settings.adsgram_checkin_block_id || "30393",
-            draw: settings.adsgram_draw_block_id || "30394",
-            visit: settings.adsgram_visit_block_id || "int 30395"
+            game: gameId,
+            checkin: checkinId,
+            draw: drawId,
+            visit: visitId
           });
         }
       } catch (err) {

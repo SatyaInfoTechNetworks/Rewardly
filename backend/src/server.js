@@ -348,6 +348,8 @@ app.get('/api/settings', async (req, res) => {
 app.use('/api/surveys', require('./routes/surveys'));
 app.use('/api/games', require('./routes/games'));
 app.use('/api/postbacks', require('./routes/postbacks'));
+app.use('/api/admin', require('./routes/adminContests'));
+app.use('/api/admin', require('./routes/adminLuckyDraws'));
 app.use('/api/admin', require('./routes/admin'));
 app.use('/api/payouts', require('./routes/payouts'));
 app.use('/api/referrals', require('./routes/referrals'));

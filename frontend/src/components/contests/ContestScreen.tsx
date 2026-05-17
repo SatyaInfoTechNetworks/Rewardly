@@ -7,6 +7,7 @@ import {
   TrendingUp, Info, Users, Zap, Ticket, Calendar, Play, Gift, AlertCircle 
 } from "lucide-react";
 import { analytics } from "@/modules/analytics/tracker";
+import { motion, AnimatePresence } from "framer-motion";
 
 interface Contest {
   id: number;
@@ -93,6 +94,7 @@ export function ContestScreen({ user, onPlay }: ContestScreenProps) {
   const [selectedDraw, setSelectedDraw] = useState<Draw | null>(null);
   const [drawDetail, setDrawDetail] = useState<any>(null);
   const [userCoins, setUserCoins] = useState<number>(user?.balance || 0);
+  const [ticketSuccessModal, setTicketSuccessModal] = useState(false);
 
   // Loaders
   const [loading, setLoading] = useState(true);
@@ -237,6 +239,32 @@ export function ContestScreen({ user, onPlay }: ContestScreenProps) {
     }
   };
 
+  const fetchDrawDetailSilently = async (slug: string) => {
+    try {
+      const tg = (window as any).Telegram?.WebApp;
+      const initData = tg?.initData || '';
+
+      const res = await fetch(`${API_URL}/api/lucky-draws/${slug}`, {
+        headers: { 'x-telegram-init-data': initData }
+      });
+      
+      if (res.ok) {
+        const data = await res.json();
+        setDrawDetail(data);
+        setSelectedDraw(data.draw);
+        if (data.userStats && data.userStats.cooldownRemaining > 0) {
+          setDrawCooldown(data.userStats.cooldownRemaining);
+        } else {
+          setDrawCooldown(0);
+        }
+        return data;
+      }
+    } catch (err) {
+      console.error("Fetch draw detail silently error:", err);
+    }
+    return null;
+  };
+
   const handleJoinContest = async (contestId: number) => {
     try {
       setJoining(true);
@@ -332,21 +360,31 @@ export function ContestScreen({ user, onPlay }: ContestScreenProps) {
           onReward: async () => {
             adSuccess = true;
             console.log('[AdsGram LuckyDraw] onReward callback success');
-            // Highly Secure: Reward is processed S2S via the new adsgram-draw postback.
-            // We wait 1.8s for the postback to register, then trigger a refresh!
-            setTimeout(async () => {
-              try {
-                if (selectedDraw) {
-                  await fetchDrawDetail(selectedDraw.slug);
+            
+            // Capture current ad entry count
+            const currentAdEntries = drawDetail?.userStats?.ad || 0;
+            let pollSuccess = false;
+
+            // Poll the backend up to 6 times (9 seconds total) to find the new ticket
+            for (let i = 0; i < 6; i++) {
+              await new Promise(r => setTimeout(r, 1500));
+              if (selectedDraw) {
+                const data = await fetchDrawDetailSilently(selectedDraw.slug);
+                if (data && data.userStats && data.userStats.ad > currentAdEntries) {
+                  pollSuccess = true;
+                  break;
                 }
-                await fetchLuckyDraws();
-                alert("🎟️ Ticket registered successfully!");
-              } catch (err) {
-                console.error(err);
-              } finally {
-                setEnteringDraw(false);
               }
-            }, 1800);
+            }
+
+            await fetchLuckyDraws();
+            setEnteringDraw(false);
+
+            if (pollSuccess) {
+              setTicketSuccessModal(true);
+            } else {
+              alert("🎟️ Ticket registered! Your dashboard will refresh with the new counts shortly.");
+            }
           },
           onError: (err: any) => {
             console.error('[AdsGram LuckyDraw] SDK error:', err);
@@ -920,6 +958,141 @@ export function ContestScreen({ user, onPlay }: ContestScreenProps) {
           </div>
         </>
       )}
+
+      {/* ─── Ticket Success Modal ─── */}
+      <AnimatePresence>
+        {ticketSuccessModal && (
+          <div 
+            style={{
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              width: '100%',
+              height: '100%',
+              background: 'rgba(0, 0, 0, 0.75)',
+              backdropFilter: 'blur(8px)',
+              zIndex: 99999,
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center',
+              padding: '24px'
+            }}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              transition={{ type: 'spring', damping: 22 }}
+              style={{
+                background: '#ffffff',
+                borderRadius: '28px',
+                padding: '28px 24px',
+                width: '100%',
+                maxWidth: '360px',
+                textAlign: 'center',
+                boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.3)',
+                border: '1px solid rgba(255, 255, 255, 0.9)',
+                position: 'relative',
+                overflow: 'hidden'
+              }}
+            >
+              {/* Confetti Accent Gradients */}
+              <div 
+                style={{
+                  position: 'absolute',
+                  top: '-40px',
+                  left: '-40px',
+                  width: '130px',
+                  height: '130px',
+                  background: 'radial-gradient(circle, rgba(254,243,199,0.9) 0%, rgba(255,255,255,0) 70%)',
+                  pointerEvents: 'none'
+                }}
+              />
+              <div 
+                style={{
+                  position: 'absolute',
+                  bottom: '-40px',
+                  right: '-40px',
+                  width: '130px',
+                  height: '130px',
+                  background: 'radial-gradient(circle, rgba(239,246,255,0.9) 0%, rgba(255,255,255,0) 70%)',
+                  pointerEvents: 'none'
+                }}
+              />
+
+              {/* Gold Animated Icon Wrapper */}
+              <motion.div
+                initial={{ rotate: -12, scale: 0.8 }}
+                animate={{ rotate: 0, scale: 1 }}
+                transition={{ delay: 0.1, type: 'spring', stiffness: 120 }}
+                style={{
+                  width: '80px',
+                  height: '80px',
+                  background: 'linear-gradient(135deg, #fef08a 0%, #fde047 100%)',
+                  borderRadius: '22px',
+                  display: 'flex',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  margin: '0 auto 18px',
+                  boxShadow: '0 8px 16px rgba(253, 224, 71, 0.4)'
+                }}
+              >
+                <Ticket size={40} color="#854d0e" />
+              </motion.div>
+
+              <h2 style={{ fontSize: '22px', fontWeight: '900', color: '#0f172a', marginBottom: '8px', fontFamily: '"Outfit", sans-serif' }}>
+                Ticket Generated! 🎉
+              </h2>
+              <p style={{ fontSize: '14px', color: '#475569', lineHeight: '1.5', marginBottom: '22px', padding: '0 6px' }}>
+                Your ad-based entry is fully confirmed! Your Lucky Draw ticket is active and registered on the blockchain dashboard.
+              </p>
+
+              {/* Info Pill */}
+              <div 
+                style={{
+                  background: '#f8fafc',
+                  border: '1px solid #e2e8f0',
+                  borderRadius: '14px',
+                  padding: '10px 14px',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  marginBottom: '24px'
+                }}
+              >
+                <span style={{ fontSize: '12px', color: '#64748b', fontWeight: '600' }}>Registered Entry:</span>
+                <span style={{ fontSize: '13px', color: '#0f172a', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  🎫 Ad Ticket +1
+                </span>
+              </div>
+
+              {/* Premium Close Button */}
+              <button
+                onClick={() => {
+                  setTicketSuccessModal(false);
+                  const tg = (window as any).Telegram?.WebApp;
+                  if (tg?.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+                }}
+                style={{
+                  width: '100%',
+                  background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                  color: '#ffffff',
+                  fontWeight: '800',
+                  fontSize: '14.5px',
+                  padding: '13px',
+                  borderRadius: '14px',
+                  border: 'none',
+                  boxShadow: '0 6px 16px rgba(16, 185, 129, 0.3)',
+                  cursor: 'pointer',
+                  outline: 'none'
+                }}
+              >
+                Awesome!
+              </button>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

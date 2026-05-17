@@ -24,12 +24,27 @@ export const PlayGamesScreen: React.FC<PlayGamesScreenProps> = ({ user, onBack, 
   const [loading, setLoading] = useState(true);
   const [modalState, setModalState] = useState<'none' | 'instruction' | 'validating' | 'success'>('none');
   const [selectedGame, setSelectedGame] = useState<any>(null);
+  const [activeCooldown, setActiveCooldown] = useState<number>(0);
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://rewardlyapi.satyainfotechnetworks.com';
 
   useEffect(() => {
     fetchStats();
   }, []);
+
+  useEffect(() => {
+    if (activeCooldown <= 0) return;
+    const timer = setInterval(() => {
+      setActiveCooldown((prev) => {
+        if (prev <= 1) {
+          clearInterval(timer);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [activeCooldown]);
 
   const fetchStats = async () => {
     try {
@@ -43,6 +58,9 @@ export const PlayGamesScreen: React.FC<PlayGamesScreenProps> = ({ user, onBack, 
       if (res.ok) {
         const data = await res.json();
         setStats(data);
+        if (data.cooldownRemaining > 0) {
+          setActiveCooldown(data.cooldownRemaining);
+        }
       }
     } catch (err) {
       console.error(err);
@@ -60,7 +78,7 @@ export const PlayGamesScreen: React.FC<PlayGamesScreenProps> = ({ user, onBack, 
     setModalState('instruction');
   };
 
-  const startAdFlow = () => {
+  const startAdFlow = async () => {
     // 0. Respect Admin Panel Settings
     if (stats && stats.adsgramEnabled === false && stats.monetagEnabled === false) {
       setModalState('none');
@@ -69,33 +87,42 @@ export const PlayGamesScreen: React.FC<PlayGamesScreenProps> = ({ user, onBack, 
     }
 
     // 1. Show Ad
-    const adsgram = (window as any).AdsgramController;
-    
-    if (adsgram) {
-      adsgram.show().then((result: any) => {
-        if (result.done) {
-          // 2. Show Validating
-          setModalState('validating');
-          setTimeout(() => {
-            // 3. Show Success & Claim
-            claimReward();
-          }, 2000);
-        } else {
-          setModalState('none');
-          alert("Ad was closed early. No reward earned.");
-        }
-      }).catch((err: any) => {
-        console.error("Ad failed:", err);
-        setModalState('none');
-        alert("Failed to load ad.");
-      });
+    const blockId = (window as any).__ADSGRAM_GAME_BLOCK_ID__ || '4376';
+    if ((window as any).Adsgram) {
+      try {
+        setModalState('validating');
+        const controller = await (window as any).Adsgram.init({
+          blockId,
+          onReward: async () => {
+            console.log('[AdsGram Game] onReward callback success');
+          },
+          onError: (err: any) => {
+            console.error('[AdsGram Game] SDK error:', err);
+            alert("❌ Ad is not available right now. Falling back to trial mode.");
+            triggerFallbackClaim();
+          }
+        });
+        
+        await controller.show();
+        // Wait 1.5s to let S2S register before claiming
+        setTimeout(() => {
+          claimReward();
+        }, 1500);
+      } catch (err) {
+        console.error('[AdsGram Game Error]', err);
+        triggerFallbackClaim();
+      }
     } else {
       // Fallback for non-telegram browser testing
-      setModalState('validating');
-      setTimeout(() => {
-        claimReward();
-      }, 2000);
+      triggerFallbackClaim();
     }
+  };
+
+  const triggerFallbackClaim = () => {
+    setModalState('validating');
+    setTimeout(() => {
+      claimReward();
+    }, 2000);
   };
 
   const claimReward = async () => {
@@ -118,6 +145,9 @@ export const PlayGamesScreen: React.FC<PlayGamesScreenProps> = ({ user, onBack, 
           todayPlays: data.todayPlays,
           remainingPlays: data.remainingPlays
         });
+        if (data.cooldownRemaining > 0) {
+          setActiveCooldown(data.cooldownRemaining);
+        }
         setModalState('success');
         onReward();
       }
@@ -182,22 +212,35 @@ export const PlayGamesScreen: React.FC<PlayGamesScreenProps> = ({ user, onBack, 
             </div>
             <button 
               onClick={() => {
+                if (activeCooldown > 0) return;
                 setSelectedGame({ name: 'Video Task' });
                 setModalState('instruction');
               }}
-              disabled={loading || (stats && stats.remainingPlays <= 0)}
+              disabled={loading || activeCooldown > 0 || (stats && stats.remainingPlays <= 0)}
               style={{ 
                 width: '100%', 
                 padding: '12px', 
-                background: '#4F46E5', 
+                background: activeCooldown > 0 ? '#64748b' : '#4F46E5', 
                 color: 'white', 
                 border: 'none', 
                 borderRadius: '12px', 
                 fontWeight: 700,
-                opacity: (loading || (stats && stats.remainingPlays <= 0)) ? 0.6 : 1
+                cursor: (loading || activeCooldown > 0 || (stats && stats.remainingPlays <= 0)) ? 'not-allowed' : 'pointer',
+                opacity: (loading || (stats && stats.remainingPlays <= 0)) ? 0.6 : 1,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px'
               }}
             >
-              Start Watching
+              {activeCooldown > 0 ? (
+                <>
+                  <Clock size={16} />
+                  <span>Next Ad in {activeCooldown}s</span>
+                </>
+              ) : (
+                <span>Start Watching</span>
+              )}
             </button>
           </div>
         </div>

@@ -103,8 +103,23 @@ export function ContestScreen({ user, onPlay }: ContestScreenProps) {
 
   // Time tick for active countdowns
   const [timeTick, setTimeTick] = useState<number>(Date.now());
+  const [drawCooldown, setDrawCooldown] = useState<number>(0);
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://rewardlyapi.satyainfotechnetworks.com';
+
+  useEffect(() => {
+    if (drawCooldown <= 0) return;
+    const timer = setInterval(() => {
+      setDrawCooldown((prev) => {
+        if (prev <= 1) {
+          clearInterval(timer);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [drawCooldown]);
 
   // Tick the countdown timer every second
   useEffect(() => {
@@ -209,6 +224,11 @@ export function ContestScreen({ user, onPlay }: ContestScreenProps) {
         const data = await res.json();
         setDrawDetail(data);
         setSelectedDraw(data.draw);
+        if (data.userStats && data.userStats.cooldownRemaining > 0) {
+          setDrawCooldown(data.userStats.cooldownRemaining);
+        } else {
+          setDrawCooldown(0);
+        }
       }
     } catch (err) {
       console.error("Fetch draw detail error:", err);
@@ -654,12 +674,24 @@ export function ContestScreen({ user, onPlay }: ContestScreenProps) {
             {/* 2. Watch Ad Entry */}
             {draw.ad_entries_enabled && (
               <button
-                className={`${styles.adEntryBtn} ${(maxAdsReached || globalCapReached || enteringDraw || simulatingAd) ? styles.luckyActionBtnDisabled : ''}`}
-                disabled={maxAdsReached || globalCapReached || enteringDraw || simulatingAd}
-                onClick={() => handleWatchAdForEntry(draw.id)}
+                className={`${styles.adEntryBtn} ${(maxAdsReached || globalCapReached || enteringDraw || simulatingAd || drawCooldown > 0) ? styles.luckyActionBtnDisabled : ''}`}
+                disabled={maxAdsReached || globalCapReached || enteringDraw || simulatingAd || drawCooldown > 0}
+                onClick={() => {
+                  if (drawCooldown > 0) return;
+                  handleWatchAdForEntry(draw.id);
+                }}
               >
-                <Play size={16} fill="white" />
-                {maxAdsReached ? 'Ad Limit Reached Today' : `Watch Ad (+1 Ticket) [${userStats.ad}/${draw.max_ad_entries}]`}
+                {drawCooldown > 0 ? (
+                  <>
+                    <Clock size={16} />
+                    <span>Next Ad in {drawCooldown}s</span>
+                  </>
+                ) : (
+                  <>
+                    <Play size={16} fill="white" />
+                    <span>{maxAdsReached ? 'Ad Limit Reached Today' : `Watch Ad (+1 Ticket) [${userStats.ad}/${draw.max_ad_entries}]`}</span>
+                  </>
+                )}
               </button>
             )}
 

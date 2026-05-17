@@ -301,7 +301,9 @@ router.post('/:id/enter', async (req, res) => {
     res.json({
       success: true,
       message: 'Ticket entry registered successfully!',
-      entry
+      entry,
+      cooldownRemaining: cooldownPeriod,
+      cooldownPeriod
     });
 
   } catch (err) {

@@ -138,7 +138,9 @@ router.post('/reward', async (req, res) => {
       reward: rewardAmount,
       newBalance: user.balance,
       todayPlays: user.daily_games_played,
-      remainingPlays: Math.max(0, settings.game_limit_per_day - user.daily_games_played)
+      remainingPlays: Math.max(0, settings.game_limit_per_day - user.daily_games_played),
+      cooldownRemaining: settings.watch_earn_cooldown,
+      cooldownPeriod: settings.watch_earn_cooldown
     });
   } catch (err) {
     res.status(500).json({ error: err.message });

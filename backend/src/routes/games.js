@@ -113,33 +113,43 @@ router.post('/reward', async (req, res) => {
       }
     }
 
-    const today = new Date().toISOString().split('T')[0];
+    // We will poll the database for up to 6 seconds to see if the S2S transaction was created
+    let success = false;
+    let userRecord = user;
 
-    // Reset daily count if it's a new day
-    if (user.last_game_date !== today) {
-      user.daily_games_played = 0;
-      user.last_game_date = today;
+    for (let i = 0; i < 4; i++) {
+      const recentTx = await Transaction.findOne({
+        where: {
+          telegram_id: tgUser.id,
+          type: 'game',
+          description: 'Watch Ads Reward',
+          created_at: {
+            [require('sequelize').Op.gt]: new Date(Date.now() - 20 * 1000)
+          }
+        }
+      });
+
+      if (recentTx) {
+        success = true;
+        await user.reload();
+        userRecord = user;
+        break;
+      }
+
+      // Wait 1.5 seconds before polling again
+      await new Promise(r => setTimeout(r, 1500));
     }
 
-    // Check Limit
-    if (user.daily_games_played >= settings.game_limit_per_day) {
-      return res.status(400).json({ error: 'Daily play limit reached. Come back tomorrow!' });
+    if (!success) {
+      return res.status(400).json({ error: 'Ad view verification is still pending. Please try again in a moment.' });
     }
-
-    // Update User
-    const rewardAmount = settings.game_reward_coins;
-    user.daily_games_played += 1;
-    await user.save();
-
-    // Reload user to catch the updated balance credited by the AdsGram S2S postback!
-    await user.reload();
 
     res.json({
       success: true,
-      reward: rewardAmount,
-      newBalance: user.balance,
-      todayPlays: user.daily_games_played,
-      remainingPlays: Math.max(0, settings.game_limit_per_day - user.daily_games_played),
+      reward: settings.game_reward_coins,
+      newBalance: userRecord.balance,
+      todayPlays: userRecord.daily_games_played,
+      remainingPlays: Math.max(0, settings.game_limit_per_day - userRecord.daily_games_played),
       cooldownRemaining: settings.watch_earn_cooldown,
       cooldownPeriod: settings.watch_earn_cooldown
     });

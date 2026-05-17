@@ -171,10 +171,26 @@ router.get('/adsgram', async (req, res) => {
       }
     }
 
+    const today = new Date().toISOString().split('T')[0];
+    let dailyGamesPlayed = user.daily_games_played;
+    if (user.last_game_date !== today) {
+      dailyGamesPlayed = 0;
+    }
+
+    if (dailyGamesPlayed >= settings.game_limit_per_day) {
+      console.warn(`⚠️ [AdsGram Postback] User ${user_id} reached daily game play limit`);
+      await t.rollback();
+      return res.status(400).send('Daily limit reached');
+    }
+
     const rewardAmount = settings.game_reward_coins; 
     
-    // Update Balance
-    await user.update({ balance: user.balance + rewardAmount }, { transaction: t });
+    // Update Balance & Play Count in one safe transaction
+    await user.update({ 
+      balance: user.balance + rewardAmount,
+      daily_games_played: dailyGamesPlayed + 1,
+      last_game_date: today
+    }, { transaction: t });
 
     // Record Transaction
     await Transaction.create({

@@ -1761,8 +1761,8 @@ export default function AdminPanel() {
                     <label className={styles.lteFormLabel}>AdsGram Lucky Draw Block ID</label>
                     <input 
                       className={styles.lteFormControl}
-                      placeholder="e.g. 30393"
-                      value={appSettings.adsgram_draw_block_id || '30393'}
+                      placeholder="e.g. 30394"
+                      value={appSettings.adsgram_draw_block_id || '30394'}
                       onChange={(e) => setAppSettings({...appSettings, adsgram_draw_block_id: e.target.value})}
                     />
                   </div>

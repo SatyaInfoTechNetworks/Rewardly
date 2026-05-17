@@ -11,18 +11,7 @@ const Transaction = require('../models/Transaction');
 const AppSetting = require('../models/AppSetting');
 const { sequelize } = require('../config/database');
 
-/**
- * Admin Middleware
- * Simple token-based check
- */
-const adminAuth = (req, res, next) => {
-  const secret = req.headers['x-admin-secret'];
-  if (secret === process.env.ADMIN_SECRET) {
-    next();
-  } else {
-    res.status(403).json({ error: 'Unauthorized access' });
-  }
-};
+const { adminAuth } = require('../middlewares/adminAuth');
 
 /**
  * GET /api/admin/stats

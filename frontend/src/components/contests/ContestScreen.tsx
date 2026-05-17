@@ -301,7 +301,7 @@ export function ContestScreen({ user, onPlay }: ContestScreenProps) {
   const handleWatchAdForEntry = async (drawId: number) => {
     const tg = (window as any).Telegram?.WebApp;
     // Retrieve the dedicated admin-configured AdsGram block ID for Lucky Draws
-    const blockId = (window as any).__ADSGRAM_DRAW_BLOCK_ID__ || '30393';
+    const blockId = (window as any).__ADSGRAM_DRAW_BLOCK_ID__ || '30394';
 
     if ((window as any).Adsgram) {
       try {

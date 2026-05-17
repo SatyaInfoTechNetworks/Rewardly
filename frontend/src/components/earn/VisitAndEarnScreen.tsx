@@ -46,52 +46,73 @@ export const VisitAndEarnScreen: React.FC<VisitAndEarnScreenProps> = ({ user, on
     }
   };
 
-  const handleVisit = async (task: any) => {
-    if (completedIds.includes(task.id)) return;
+  const [showAdModal, setShowAdModal] = useState(false);
+  const [modalTask, setModalTask] = useState<any>(null);
+  const [adCompleted, setAdCompleted] = useState(false);
+  const [isAdLoading, setIsAdLoading] = useState(false);
 
-    setVisitingTask(task);
-    setTimerStarted(false); // Do not start the timer until the ad finishes!
+  const handleVisit = (task: any) => {
+    if (completedIds.includes(task.id)) return;
+    setModalTask(task);
+    setAdCompleted(false);
+    setIsAdLoading(false);
+    setShowAdModal(true);
+  };
+
+  const startAdPlayback = async () => {
+    if (!modalTask) return;
+    setIsAdLoading(true);
 
     const rawBlockId = (window as any).__ADSGRAM_VISIT_BLOCK_ID__ || '30395';
     const blockId = `int-${rawBlockId.toString().replace(/\D/g, '')}`;
-
-    // Helper to proceed to task after ad
-    const startTaskTimerAndRedirect = () => {
-      setTimeLeft(task.timer_seconds);
-      setTimerStarted(true);
-      
-      const tg = (window as any).Telegram?.WebApp;
-      if (tg) {
-        tg.openLink(task.url);
-      } else {
-        window.open(task.url, '_blank');
-      }
-    };
 
     if ((window as any).Adsgram) {
       try {
         const controller = await (window as any).Adsgram.init({ blockId });
         controller.show().then(() => {
-          // Ad played successfully -> start task
-          startTaskTimerAndRedirect();
+          // Ad played successfully
+          setAdCompleted(true);
+          setIsAdLoading(false);
+          const tg = (window as any).Telegram?.WebApp;
+          if (tg?.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
         }).catch((err: any) => {
           console.error('[AdsGram Interstitial Show Error]', err);
-          alert("⚠️ You must watch the complete ad to start the visit task.");
-          setVisitingTask(null);
-          setTimerStarted(false);
+          alert("⚠️ You must watch the complete ad to unlock the visit link.");
+          setIsAdLoading(false);
         });
       } catch (err) {
         console.error('[AdsGram Interstitial Init Error]', err);
         alert("⚠️ Failed to load ad. Please try again.");
-        setVisitingTask(null);
-        setTimerStarted(false);
+        setIsAdLoading(false);
       }
     } else {
       // Dev / Simulated Ad
       console.log('🎬 [Mock Interstitial Ad Playing]');
       setTimeout(() => {
-        startTaskTimerAndRedirect();
+        setAdCompleted(true);
+        setIsAdLoading(false);
       }, 2000); // 2 second simulated ad
+    }
+  };
+
+  const completeTaskAndRedirect = () => {
+    if (!modalTask) return;
+
+    const task = modalTask;
+    setVisitingTask(task);
+    setTimeLeft(task.timer_seconds);
+    setTimerStarted(true);
+
+    // Close Modal
+    setShowAdModal(false);
+    setModalTask(null);
+
+    // Redirect to URL (Synchronous User Click Event -> Bypass sandbox block!)
+    const tg = (window as any).Telegram?.WebApp;
+    if (tg) {
+      tg.openLink(task.url);
+    } else {
+      window.open(task.url, '_blank');
     }
   };
 
@@ -248,6 +269,159 @@ export const VisitAndEarnScreen: React.FC<VisitAndEarnScreenProps> = ({ user, on
           </div>
         )}
       </div>
+
+      {showAdModal && modalTask && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(15, 23, 42, 0.65)',
+          backdropFilter: 'blur(8px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '20px',
+          zIndex: 1000,
+        }}>
+          <div style={{
+            background: 'white',
+            borderRadius: '28px',
+            width: '100%',
+            maxWidth: '360px',
+            padding: '24px',
+            boxShadow: '0 20px 40px rgba(0,0,0,0.15)',
+            border: '1px solid rgba(255,255,255,0.8)',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            textAlign: 'center',
+            position: 'relative'
+          }}>
+            {/* Close Button */}
+            {!isAdLoading && (
+              <button 
+                onClick={() => {
+                  setShowAdModal(false);
+                  setModalTask(null);
+                }}
+                style={{
+                  position: 'absolute',
+                  top: '16px',
+                  right: '16px',
+                  background: '#f1f5f9',
+                  border: 'none',
+                  borderRadius: '50%',
+                  width: '32px',
+                  height: '32px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: '#64748b',
+                  cursor: 'pointer',
+                  fontSize: '12px',
+                  fontWeight: 'bold'
+                }}
+              >
+                ✕
+              </button>
+            )}
+
+            {!adCompleted ? (
+              <>
+                <div style={{
+                  width: '64px',
+                  height: '64px',
+                  background: 'rgba(59, 130, 246, 0.1)',
+                  borderRadius: '20px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: '#3b82f6',
+                  marginBottom: '20px',
+                }}>
+                  <Zap size={32} />
+                </div>
+                <h3 style={{ fontSize: '18px', fontWeight: 800, color: '#1e293b', marginBottom: '8px' }}>Watch Ad to Visit</h3>
+                <p style={{ fontSize: '13px', color: '#64748b', lineHeight: 1.5, marginBottom: '24px' }}>
+                  To complete this task, you need to watch a short sponsored ad. Click below to start the ad!
+                </p>
+                <button
+                  onClick={startAdPlayback}
+                  disabled={isAdLoading}
+                  style={{
+                    width: '100%',
+                    padding: '14px 20px',
+                    borderRadius: '16px',
+                    background: isAdLoading ? '#94a3b8' : 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)',
+                    color: 'white',
+                    border: 'none',
+                    fontWeight: 700,
+                    fontSize: '15px',
+                    boxShadow: '0 4px 12px rgba(37, 99, 235, 0.2)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '8px',
+                    cursor: 'pointer'
+                  }}
+                >
+                  {isAdLoading ? (
+                    <>
+                      <div style={{ width: '16px', height: '16px', border: '2px solid rgba(255,255,255,0.3)', borderTopColor: 'white', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+                      Preparing Ad...
+                    </>
+                  ) : (
+                    '🎬 Watch Ad & Visit'
+                  )}
+                </button>
+              </>
+            ) : (
+              <>
+                <div style={{
+                  width: '64px',
+                  height: '64px',
+                  background: 'rgba(16, 185, 129, 0.1)',
+                  borderRadius: '20px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: '#10b981',
+                  marginBottom: '20px',
+                }}>
+                  <CheckCircle2 size={32} />
+                </div>
+                <h3 style={{ fontSize: '18px', fontWeight: 800, color: '#1e293b', marginBottom: '8px' }}>Ad Completed! 🎉</h3>
+                <p style={{ fontSize: '13px', color: '#64748b', lineHeight: 1.5, marginBottom: '24px' }}>
+                  Sponsored ad verified successfully! Click below to visit the link and earn your <b>{modalTask.reward_amount} coins</b>. Keep the website open for <b>{modalTask.timer_seconds}s</b>.
+                </p>
+                <button
+                  onClick={completeTaskAndRedirect}
+                  style={{
+                    width: '100%',
+                    padding: '14px 20px',
+                    borderRadius: '16px',
+                    background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                    color: 'white',
+                    border: 'none',
+                    fontWeight: 700,
+                    fontSize: '15px',
+                    boxShadow: '0 4px 12px rgba(16, 185, 129, 0.2)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '8px',
+                    cursor: 'pointer'
+                  }}
+                >
+                  🚀 Go to Link
+                </button>
+              </>
+            )}
+          </div>
+        </div>
+      )}
 
       <style dangerouslySetInnerHTML={{ __html: `
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }

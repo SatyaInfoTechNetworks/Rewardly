@@ -326,29 +326,43 @@ export function ContestScreen({ user, onPlay }: ContestScreenProps) {
     if ((window as any).Adsgram) {
       try {
         setEnteringDraw(true);
+        let adSuccess = false;
         const controller = await (window as any).Adsgram.init({
           blockId,
           onReward: async () => {
+            adSuccess = true;
+            console.log('[AdsGram LuckyDraw] onReward callback success');
             // Highly Secure: Reward is processed S2S via the new adsgram-draw postback.
-            // We wait 1.5s for the postback to register, then trigger a refresh!
-            setTimeout(() => {
-              if (selectedDraw) {
-                fetchDrawDetail(selectedDraw.slug);
+            // We wait 1.8s for the postback to register, then trigger a refresh!
+            setTimeout(async () => {
+              try {
+                if (selectedDraw) {
+                  await fetchDrawDetail(selectedDraw.slug);
+                }
+                await fetchLuckyDraws();
+                alert("🎟️ Ticket registered successfully!");
+              } catch (err) {
+                console.error(err);
+              } finally {
+                setEnteringDraw(false);
               }
-              fetchLuckyDraws();
-              alert("🎟️ Ticket registered");
-            }, 1500);
+            }, 1800);
           },
           onError: (err: any) => {
             console.error('[AdsGram LuckyDraw] SDK error:', err);
             alert('❌ Ad is not available right now or failed to play. No ticket registered.');
+            setEnteringDraw(false);
           }
         });
         await controller.show();
+
+        if (!adSuccess) {
+          // If ad was closed early or didn't complete
+          setEnteringDraw(false);
+        }
       } catch (err) {
         console.error('[AdsGram Init Error]', err);
         alert('❌ Failed to play ad.');
-      } finally {
         setEnteringDraw(false);
       }
     } else {

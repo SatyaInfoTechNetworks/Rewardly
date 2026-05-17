@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { ChevronLeft, Calendar, Gift, Zap, CheckCircle2, Lock, ArrowRight, Trophy, Play, AlertTriangle, Flame } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import styles from '@/app/page.module.css';
@@ -23,6 +23,7 @@ export const DailyCheckInScreen: React.FC<DailyCheckInScreenProps> = ({ user, on
   const [adReady, setAdReady] = useState(false);
   const [adError, setAdError] = useState<string | null>(null);
   const [countdown, setCountdown] = useState<string>('');
+  const adSuccessRef = useRef(false);
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://rewardlyapi.satyainfotechnetworks.com';
 
@@ -83,6 +84,7 @@ export const DailyCheckInScreen: React.FC<DailyCheckInScreenProps> = ({ user, on
             // AdsGram confirmed the ad; the S2S postback will credit the user.
             // Here we just poll for the updated status.
             console.log('[AdsGram CheckIn] onReward fired — waiting for S2S postback');
+            adSuccessRef.current = true;
           },
           onError: (err: any) => {
             console.error('[AdsGram CheckIn] SDK Error:', err);
@@ -119,20 +121,35 @@ export const DailyCheckInScreen: React.FC<DailyCheckInScreenProps> = ({ user, on
     // If AdsGram is ready, show the ad and wait for S2S postback
     if (adReady && adController) {
       setClaimState('ad_watching');
+      adSuccessRef.current = false; // reset flag
       try {
         await adController.show();
-        // Ad shown successfully; poll the backend to confirm the postback landed
-        setClaimState('claiming');
-        await pollForReward();
+        // Wait a small moment to let the event loop process onReward callback
+        setTimeout(async () => {
+          if (adSuccessRef.current) {
+            setClaimState('claiming');
+            await pollForReward();
+          } else {
+            setClaimState('idle');
+            setAdError('❌ Ad was closed early. You must watch the complete ad to claim.');
+          }
+        }, 800);
       } catch (err: any) {
         console.error('[AdsGram CheckIn] show() failed:', err);
         setAdError('Ad could not be shown. Please try again.');
         setClaimState('idle');
       }
     } else {
-      // Fallback: direct claim (no ad required)
-      setClaimState('claiming');
-      await directClaim();
+      // Fallback for non-telegram browser testing in dev mode only
+      const isDev = process.env.NODE_ENV !== 'production';
+      const isTelegram = typeof window !== 'undefined' && (window as any).Telegram?.WebApp?.initData;
+      if (isDev && !isTelegram) {
+        setClaimState('claiming');
+        await directClaim();
+      } else {
+        setClaimState('idle');
+        setAdError('❌ Ads are only available inside Telegram Mini App.');
+      }
     }
   };
 
@@ -166,9 +183,17 @@ export const DailyCheckInScreen: React.FC<DailyCheckInScreenProps> = ({ user, on
       }
     }
 
-    // Postback didn't land in time → fall back to direct claim
-    console.warn('[CheckIn] Postback timed out — falling back to direct claim');
-    await directClaim();
+    // Postback didn't land in time
+    const isDev = process.env.NODE_ENV !== 'production';
+    const isTelegram = typeof window !== 'undefined' && (window as any).Telegram?.WebApp?.initData;
+    if (isDev && !isTelegram) {
+      console.warn('[CheckIn] Postback timed out — falling back to direct claim');
+      await directClaim();
+    } else {
+      console.warn('[CheckIn] Postback timed out. Ad view could not be verified.');
+      setAdError('❌ Ad view could not be verified by the server. Please watch the ad fully and try again.');
+      setClaimState('idle');
+    }
   };
 
   // ─── Direct claim (fallback / development) ────────────────────────────────

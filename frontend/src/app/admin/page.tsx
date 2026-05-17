@@ -5,7 +5,7 @@ import styles from "./admin.module.css";
 import { 
   Users, Coins, Activity, ShieldCheck, Search, 
   LayoutDashboard, History, Settings, LogOut, 
-  Edit3, Trash2, Ban, CheckCircle2, X, Gift, ArrowUpRight, Menu, Trophy, Calendar, Globe, Plus, Filter, Save, Key
+  Edit3, Trash2, Ban, CheckCircle2, X, Gift, ArrowUpRight, Menu, Trophy, Calendar, Globe, Plus, Filter, Save, Key, Ticket
 } from "lucide-react";
 
 export default function AdminPanel() {
@@ -31,6 +31,35 @@ export default function AdminPanel() {
   
   // Daily Rewards State
   const [dailyRewards, setDailyRewards] = useState<any[]>([]);
+
+  // Lucky Draw States
+  const [luckyDraws, setLuckyDraws] = useState<any[]>([]);
+  const [luckyDrawStats, setLuckyDrawStats] = useState<any>(null);
+  const [isDrawModalOpen, setIsDrawModalOpen] = useState(false);
+  const [editingDraw, setEditingDraw] = useState<any>(null);
+  const [drawForm, setDrawForm] = useState({
+    title: '',
+    slug: '',
+    description: '',
+    banner_image: '',
+    type: 'daily_free',
+    prize_type: 'cash',
+    prize_amount: '',
+    prize_value: 0,
+    status: 'active',
+    start_time: new Date().toISOString().slice(0, 16),
+    end_time: new Date(Date.now() + 1 * 24 * 60 * 60 * 1000).toISOString().slice(0, 16),
+    free_entries_allowed: true,
+    ad_entries_enabled: true,
+    max_ad_entries: 5,
+    coin_entry_enabled: false,
+    coin_cost_per_entry: 100,
+    max_entries_per_user: 6,
+    winners_count: 1
+  });
+  const [selectedDrawEntries, setSelectedDrawEntries] = useState<any[]>([]);
+  const [isEntriesModalOpen, setIsEntriesModalOpen] = useState(false);
+  const [viewingDrawId, setViewingDrawId] = useState<number | null>(null);
 
   // Visit Tasks State
   const [visitTasks, setVisitTasks] = useState<any[]>([]);
@@ -122,6 +151,14 @@ export default function AdminPanel() {
         // Fetch Visit Tasks
         const visitRes = await fetch(`${API_URL}/api/admin/visit-tasks`, options);
         if (visitRes.ok) setVisitTasks(await visitRes.json());
+
+        // Fetch Lucky Draws
+        const drawsRes = await fetch(`${API_URL}/api/admin/lucky-draws`, options);
+        if (drawsRes.ok) setLuckyDraws(await drawsRes.json());
+
+        // Fetch Lucky Draw Stats
+        const drawStatsRes = await fetch(`${API_URL}/api/admin/lucky-draws/stats`, options);
+        if (drawStatsRes.ok) setLuckyDrawStats(await drawStatsRes.json());
         
         setIsAuthenticated(true);
         localStorage.setItem("admin_secret", authSecret);
@@ -351,6 +388,104 @@ export default function AdminPanel() {
     }
   };
 
+  const handleSaveDraw = async () => {
+    try {
+      const method = editingDraw ? 'PUT' : 'POST';
+      const url = editingDraw 
+        ? `${API_URL}/api/admin/lucky-draws/${editingDraw.id}`
+        : `${API_URL}/api/admin/lucky-draws`;
+
+      const res = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json', 'x-admin-secret': secret },
+        credentials: 'include',
+        body: JSON.stringify(drawForm)
+      });
+      if (res.ok) {
+        showToast("Lucky Draw event saved successfully!");
+        setIsDrawModalOpen(false);
+        fetchAllData(secret);
+      } else {
+        const d = await res.json();
+        showToast(d.error || "Failed to save Lucky Draw", "error");
+      }
+    } catch (error) {
+      showToast("Failed to save draw", "error");
+    }
+  };
+
+  const handleDeleteDraw = async (id: number) => {
+    if (!confirm("Are you sure you want to delete this draw? This will erase all entries & winners!")) return;
+    try {
+      const res = await fetch(`${API_URL}/api/admin/lucky-draws/${id}`, {
+        method: 'DELETE',
+        headers: { 'x-admin-secret': secret },
+        credentials: 'include'
+      });
+      if (res.ok) {
+        showToast("Lucky Draw deleted");
+        fetchAllData(secret);
+      }
+    } catch (error) {
+      showToast("Failed to delete draw", "error");
+    }
+  };
+
+  const handleRollWinners = async (id: number) => {
+    if (!confirm("Roll random winners now? This will award the prizes automatically!")) return;
+    try {
+      const res = await fetch(`${API_URL}/api/admin/lucky-draws/${id}/roll`, {
+        method: 'POST',
+        headers: { 'x-admin-secret': secret },
+        credentials: 'include'
+      });
+      const data = await res.json();
+      if (res.ok) {
+        showToast("🎉 Winners rolled and rewarded successfully!");
+        fetchAllData(secret);
+      } else {
+        showToast(data.error || "Failed to roll winners", "error");
+      }
+    } catch (error) {
+      showToast("Failed to complete roll", "error");
+    }
+  };
+
+  const handleViewEntries = async (id: number) => {
+    try {
+      setViewingDrawId(id);
+      const res = await fetch(`${API_URL}/api/admin/lucky-draws/${id}/entries`, {
+        headers: { 'x-admin-secret': secret },
+        credentials: 'include'
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setSelectedDrawEntries(data);
+        setIsEntriesModalOpen(true);
+      }
+    } catch (error) {
+      showToast("Failed to load participants entries", "error");
+    }
+  };
+
+  const handleMarkWinnerPaid = async (winnerId: number, currentStatus: string) => {
+    const nextStatus = currentStatus === 'pending' ? 'paid' : 'pending';
+    try {
+      const res = await fetch(`${API_URL}/api/admin/lucky-draws/winners/${winnerId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'x-admin-secret': secret },
+        credentials: 'include',
+        body: JSON.stringify({ status: nextStatus })
+      });
+      if (res.ok) {
+        showToast(`Winner status marked as ${nextStatus}!`);
+        fetchAllData(secret);
+      }
+    } catch (error) {
+      showToast("Failed to update winner status", "error");
+    }
+  };
+
   const handleAddContestReward = async (contestId: number, reward: any) => {
     try {
       const res = await fetch(`${API_URL}/api/admin/contests/${contestId}/rewards`, {
@@ -488,6 +623,7 @@ export default function AdminPanel() {
                 { id: 'withdrawals', icon: ArrowUpRight, label: 'Withdrawal Tickets' },
                 { id: 'referrals', icon: Users, label: 'Referral Engine' },
                 { id: 'contests', icon: Trophy, label: 'Tournament Panel' },
+                { id: 'lucky_draws', icon: Ticket, label: 'Lucky Draws & Jackpot' },
                 { id: 'transactions', icon: History, label: 'Global Audit Logs' },
                 { id: 'daily_rewards', icon: Calendar, label: 'Check-in Rewards' },
                 { id: 'visit_tasks', icon: Globe, label: 'Visit Tasks Manager' },
@@ -1303,6 +1439,251 @@ export default function AdminPanel() {
             </div>
           )}
 
+          {/* ──── VIEW: LUCKY DRAWS & JACKPOTS ──── */}
+          {activeView === 'lucky_draws' && (
+            <div>
+              {/* Lucky Draw Stats Widgets */}
+              <div className={styles.lteStatsGrid} style={{ marginBottom: '24px' }}>
+                <div className={`${styles.lteSmallBox}`} style={{ background: 'linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%)', color: 'white' }}>
+                  <div className={styles.lteInner}>
+                    <h3>{luckyDrawStats?.totalDraws || 0}</h3>
+                    <p>Total Draw Campaigns</p>
+                  </div>
+                  <div className={styles.lteIcon}>
+                    <Ticket size={70} opacity={0.15} />
+                  </div>
+                  <div className={styles.lteSmallBoxFooter}>Campaigns Directory</div>
+                </div>
+
+                <div className={`${styles.lteSmallBox}`} style={{ background: 'linear-gradient(135deg, #0f766e 0%, #14b8a6 100%)', color: 'white' }}>
+                  <div className={styles.lteInner}>
+                    <h3>{(luckyDrawStats?.totalEntries || 0).toLocaleString()}</h3>
+                    <p>Total Tickets Issued ({luckyDrawStats?.adEntries || 0} Ads / {luckyDrawStats?.coinEntries || 0} Coins)</p>
+                  </div>
+                  <div className={styles.lteIcon}>
+                    <Activity size={70} opacity={0.15} />
+                  </div>
+                  <div className={styles.lteSmallBoxFooter}>Ad vs Coin allocations</div>
+                </div>
+
+                <div className={`${styles.lteSmallBox}`} style={{ background: 'linear-gradient(135deg, #6d28d9 0%, #8b5cf6 100%)', color: 'white' }}>
+                  <div className={styles.lteInner}>
+                    <h3>{(luckyDrawStats?.totalParticipants || 0).toLocaleString()}</h3>
+                    <p>Unique Active Participants</p>
+                  </div>
+                  <div className={styles.lteIcon}>
+                    <Users size={70} opacity={0.15} />
+                  </div>
+                  <div className={styles.lteSmallBoxFooter}>Net player reach</div>
+                </div>
+
+                <div className={`${styles.lteSmallBox}`} style={{ background: 'linear-gradient(135deg, #b45309 0%, #f59e0b 100%)', color: 'white' }}>
+                  <div className={styles.lteInner}>
+                    <h3>${luckyDrawStats?.revenueEstimate || "0.00"}</h3>
+                    <p>Estimated Ad Revenue (eCPM $2.00)</p>
+                  </div>
+                  <div className={styles.lteIcon}>
+                    <Coins size={70} opacity={0.15} />
+                  </div>
+                  <div className={styles.lteSmallBoxFooter}>Est. Network Monetization</div>
+                </div>
+              </div>
+
+              {/* Draw Directory Card */}
+              <div className={styles.lteCard}>
+                <div className={styles.lteCardHeader} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <h3 className={styles.lteCardTitle}>Ecosystem Sweepstakes Directory</h3>
+                  <button 
+                    className={`${styles.lteBtn} ${styles.lteBtnPrimary}`}
+                    onClick={() => {
+                      setEditingDraw(null);
+                      setDrawForm({
+                        title: '',
+                        slug: '',
+                        description: '',
+                        banner_image: '',
+                        type: 'daily_free',
+                        prize_type: 'cash',
+                        prize_amount: '',
+                        prize_value: 0,
+                        status: 'active',
+                        start_time: new Date().toISOString().slice(0, 16),
+                        end_time: new Date(Date.now() + 1 * 24 * 60 * 60 * 1000).toISOString().slice(0, 16),
+                        free_entries_allowed: true,
+                        ad_entries_enabled: true,
+                        max_ad_entries: 5,
+                        coin_entry_enabled: false,
+                        coin_cost_per_entry: 100,
+                        max_entries_per_user: 6,
+                        winners_count: 1
+                      });
+                      setIsDrawModalOpen(true);
+                    }}
+                  >
+                    <Plus size={16} style={{ marginRight: '6px' }} /> Launch New Sweepstakes
+                  </button>
+                </div>
+                <div className={`${styles.lteCardBody} ${styles.lteTableResponsive}`}>
+                  <table className={`${styles.lteTable} ${styles.lteTableStriped}`}>
+                    <thead>
+                      <tr>
+                        <th>Draw Campaign Info</th>
+                        <th>Type & Cost</th>
+                        <th>Grand Prize Reward</th>
+                        <th>Tickets Issued</th>
+                        <th>Schedule Status</th>
+                        <th>Winner Status</th>
+                        <th>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {luckyDraws.map(draw => {
+                        const isExpired = new Date(draw.end_time).getTime() <= Date.now();
+                        return (
+                          <tr key={draw.id}>
+                            <td>
+                              <strong>{draw.title}</strong>
+                              <div style={{ fontSize: '11px', color: '#6c757d' }}>slug: {draw.slug}</div>
+                            </td>
+                            <td>
+                              <span className={styles.lteBadge} style={{ background: '#e0f2fe', color: '#0369a1' }}>{draw.type}</span>
+                              <div style={{ fontSize: '11px', color: '#6c757d', marginTop: '4px' }}>
+                                {draw.free_entries_allowed ? 'Free Ticket ✓' : 'No Free Ticket'} | {draw.coin_entry_enabled ? `${draw.coin_cost_per_entry}c` : 'No Coin Ticket'}
+                              </div>
+                            </td>
+                            <td>
+                              <div style={{ color: '#d97706', fontWeight: '800' }}>{draw.prize_amount}</div>
+                              <div style={{ fontSize: '11px', color: '#6c757d' }}>value: {draw.prize_value} ({draw.prize_type})</div>
+                            </td>
+                            <td>
+                              <span style={{ fontSize: '13px', fontWeight: '700' }}>{draw.totalEntries || 0} Tickets</span>
+                              <div style={{ fontSize: '11.5px', color: '#475569', marginTop: '2px' }}>
+                                ads: {draw.adEntries || 0} | coins: {draw.coinEntries || 0} ({draw.participantsCount || 0} players)
+                              </div>
+                            </td>
+                            <td>
+                              <div style={{ fontSize: '12px' }}>Starts: {new Date(draw.start_time).toLocaleString()}</div>
+                              <div style={{ fontSize: '12px', color: isExpired ? '#dc3545' : '#28a745', fontWeight: 'bold' }}>
+                                Ends: {new Date(draw.end_time).toLocaleString()} {isExpired ? '(Expired)' : ''}
+                              </div>
+                            </td>
+                            <td>
+                              <span className={`${styles.lteBadge} ${draw.status === 'active' ? styles.lteBadgeSuccess : styles.lteBadgeDanger}`}>
+                                {draw.status.toUpperCase()}
+                              </span>
+                              {draw.winners && draw.winners.length > 0 && (
+                                <div style={{ fontSize: '11px', color: '#28a745', fontWeight: 'bold', marginTop: '4px' }}>
+                                  ✓ {draw.winners.length} Winner(s) Selected
+                                </div>
+                              )}
+                            </td>
+                            <td>
+                              <div className={styles.lteBtnGroup}>
+                                <button
+                                  className={`${styles.lteBtn} ${styles.lteBtnInfo}`}
+                                  title="View Registered Tickets"
+                                  onClick={() => handleViewEntries(draw.id)}
+                                >
+                                  <Users size={14} />
+                                </button>
+                                
+                                {!draw.winners?.length && (
+                                  <button
+                                    className={`${styles.lteBtn} ${styles.lteBtnSuccess}`}
+                                    title="Manual Draw Roll Winners"
+                                    onClick={() => handleRollWinners(draw.id)}
+                                    style={{ background: '#f59e0b', borderColor: '#d97706' }}
+                                  >
+                                    <Trophy size={14} />
+                                  </button>
+                                )}
+
+                                <button
+                                  className={`${styles.lteBtn} ${styles.lteBtnWarning}`}
+                                  title="Edit Sweepstakes"
+                                  onClick={() => {
+                                    setEditingDraw(draw);
+                                    setDrawForm({
+                                      ...draw,
+                                      start_time: new Date(draw.start_time).toISOString().slice(0, 16),
+                                      end_time: new Date(draw.end_time).toISOString().slice(0, 16)
+                                    });
+                                    setIsDrawModalOpen(true);
+                                  }}
+                                >
+                                  <Edit3 size={14} />
+                                </button>
+
+                                <button
+                                  className={`${styles.lteBtn} ${styles.lteBtnDanger}`}
+                                  title="Delete Sweepstakes"
+                                  onClick={() => handleDeleteDraw(draw.id)}
+                                >
+                                  <Trash2 size={14} />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* Resolved Winners ledger */}
+              <div className={styles.lteCard} style={{ marginTop: '24px' }}>
+                <div className={styles.lteCardHeader}>
+                  <h3 className={styles.lteCardTitle} style={{ color: '#d97706' }}>Resolved Winners Prize Ledger</h3>
+                </div>
+                <div className={`${styles.lteCardBody} ${styles.lteTableResponsive}`}>
+                  <table className={`${styles.lteTable} ${styles.lteTableStriped}`}>
+                    <thead>
+                      <tr>
+                        <th>Draw ID / Title</th>
+                        <th>Winner Player info</th>
+                        <th>Rank / Prize Reward</th>
+                        <th>Status</th>
+                        <th>Action Change</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {luckyDraws.filter(d => d.winners && d.winners.length > 0).flatMap(d => d.winners.map((win: any) => (
+                        <tr key={win.id}>
+                          <td>
+                            <strong>{d.title}</strong>
+                            <div style={{ fontSize: '11px', color: '#6c757d' }}>Draw event ID: {d.id}</div>
+                          </td>
+                          <td>
+                            <div><strong>{win.User?.first_name || 'Verified Player'}</strong></div>
+                            <div style={{ fontSize: '11px', color: '#6c757d' }}>@{win.User?.username || 'no_username'} (tg_id: {win.user_id})</div>
+                          </td>
+                          <td>
+                            <strong style={{ color: '#28a745' }}>{win.prize_won}</strong>
+                            <div style={{ fontSize: '11px', color: '#6c757d' }}>Rank #{win.rank} winner slot</div>
+                          </td>
+                          <td>
+                            <span className={`${styles.lteBadge} ${win.status === 'paid' ? styles.lteBadgeSuccess : styles.lteBadgeDanger}`}>
+                              {win.status.toUpperCase()}
+                            </span>
+                          </td>
+                          <td>
+                            <button
+                              className={`${styles.lteBtn} ${win.status === 'paid' ? styles.lteBtnDanger : styles.lteBtnSuccess}`}
+                              onClick={() => handleMarkWinnerPaid(win.id, win.status)}
+                            >
+                              {win.status === 'paid' ? 'Mark Pending ⚠' : 'Mark Delivered ✓'}
+                            </button>
+                          </td>
+                        </tr>
+                      )))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* ──── VIEW: SETTINGS ──── */}
           {activeView === 'settings' && appSettings && (
             <div className={styles.lteCard}>
@@ -1810,6 +2191,289 @@ export default function AdminPanel() {
             <div className={styles.lteModalFooter}>
               <button className={`${styles.lteBtn} ${styles.lteBtnSecondary}`} onClick={() => setIsContestModalOpen(false)}>Cancel</button>
               <button className={`${styles.lteBtn} ${styles.lteBtnPrimary}`} onClick={handleSaveContest}>Save Contest Information</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ──── MODAL: EDIT LUCKY DRAW EVENT ──── */}
+      {isDrawModalOpen && (
+        <div className={styles.lteModalOverlay}>
+          <div className={styles.lteModalBox} style={{ maxWidth: '650px' }}>
+            <div className={styles.lteModalHeader}>
+              <h4 className={styles.lteModalTitle}>{editingDraw ? 'Edit Lucky Draw Event' : 'Launch New Sweepstakes Event'}</h4>
+              <button className={styles.lteModalClose} onClick={() => setIsDrawModalOpen(false)}>
+                <X size={20} />
+              </button>
+            </div>
+            <div className={styles.lteModalBody} style={{ maxHeight: '70vh', overflowY: 'auto' }}>
+              <div className={styles.lteFormGroup}>
+                <label className={styles.lteFormLabel}>Sweepstakes Campaign Title</label>
+                <input 
+                  className={styles.lteFormControl}
+                  placeholder="e.g. 💰 Daily Free Draw"
+                  value={drawForm.title}
+                  onChange={(e) => setDrawForm({...drawForm, title: e.target.value})}
+                />
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px', marginTop: '10px' }}>
+                <div className={styles.lteFormGroup}>
+                  <label className={styles.lteFormLabel}>URL Slug Parameter</label>
+                  <input 
+                    className={styles.lteFormControl}
+                    placeholder="e.g. daily-free-draw"
+                    value={drawForm.slug}
+                    onChange={(e) => setDrawForm({...drawForm, slug: e.target.value})}
+                  />
+                </div>
+                <div className={styles.lteFormGroup}>
+                  <label className={styles.lteFormLabel}>Sweepstakes Event Type</label>
+                  <select 
+                    className={styles.lteFormControl}
+                    value={drawForm.type}
+                    onChange={(e) => setDrawForm({...drawForm, type: e.target.value as any})}
+                  >
+                    <option value="daily_free">Daily Free Draw</option>
+                    <option value="weekly_mega">Weekly Mega Draw</option>
+                    <option value="coin_jackpot">Coin Jackpot Pot</option>
+                    <option value="referral_draw">Referral Draw Event</option>
+                    <option value="watch_win">Watch & Win ad Campaign</option>
+                    <option value="flash_draw">Flash Draw Event</option>
+                    <option value="special_event">Mega Giveaway Event</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className={styles.lteFormGroup} style={{ marginTop: '10px' }}>
+                <label className={styles.lteFormLabel}>Banner Display Image URL</label>
+                <input 
+                  className={styles.lteFormControl}
+                  placeholder="https://images.unsplash.com/..."
+                  value={drawForm.banner_image}
+                  onChange={(e) => setDrawForm({...drawForm, banner_image: e.target.value})}
+                />
+              </div>
+
+              <div className={styles.lteFormGroup} style={{ marginTop: '10px' }}>
+                <label className={styles.lteFormLabel}>Event Short Description</label>
+                <textarea 
+                  className={styles.lteFormControl}
+                  style={{ height: '70px', resize: 'none' }}
+                  placeholder="Rules, requirements, or terms for this draw..."
+                  value={drawForm.description}
+                  onChange={(e) => setDrawForm({...drawForm, description: e.target.value})}
+                />
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px', marginTop: '10px' }}>
+                <div className={styles.lteFormGroup}>
+                  <label className={styles.lteFormLabel}>Prize Type</label>
+                  <select 
+                    className={styles.lteFormControl}
+                    value={drawForm.prize_type}
+                    onChange={(e) => setDrawForm({...drawForm, prize_type: e.target.value})}
+                  >
+                    <option value="coins">Reward Coins</option>
+                    <option value="cash">Real Cash (Paytm/UPI)</option>
+                    <option value="gift_card">Gift Cards</option>
+                    <option value="item">Physical Item</option>
+                  </select>
+                </div>
+                <div className={styles.lteFormGroup}>
+                  <label className={styles.lteFormLabel}>Prize Text (e.g. ₹500)</label>
+                  <input 
+                    className={styles.lteFormControl}
+                    placeholder="₹500 Paytm"
+                    value={drawForm.prize_amount}
+                    onChange={(e) => setDrawForm({...drawForm, prize_amount: e.target.value})}
+                  />
+                </div>
+                <div className={styles.lteFormGroup}>
+                  <label className={styles.lteFormLabel}>Prize Integer Value</label>
+                  <input 
+                    type="number"
+                    className={styles.lteFormControl}
+                    value={drawForm.prize_value}
+                    onChange={(e) => setDrawForm({...drawForm, prize_value: parseInt(e.target.value)})}
+                  />
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px', marginTop: '10px' }}>
+                <div className={styles.lteFormGroup}>
+                  <label className={styles.lteFormLabel}>Max Tickets / User</label>
+                  <input 
+                    type="number"
+                    className={styles.lteFormControl}
+                    value={drawForm.max_entries_per_user}
+                    onChange={(e) => setDrawForm({...drawForm, max_entries_per_user: parseInt(e.target.value)})}
+                  />
+                </div>
+                <div className={styles.lteFormGroup}>
+                  <label className={styles.lteFormLabel}>Winners Slot Count</label>
+                  <input 
+                    type="number"
+                    className={styles.lteFormControl}
+                    value={drawForm.winners_count}
+                    onChange={(e) => setDrawForm({...drawForm, winners_count: parseInt(e.target.value)})}
+                  />
+                </div>
+                <div className={styles.lteFormGroup}>
+                  <label className={styles.lteFormLabel}>Draw Status Mode</label>
+                  <select 
+                    className={styles.lteFormControl}
+                    value={drawForm.status}
+                    onChange={(e) => setDrawForm({...drawForm, status: e.target.value})}
+                  >
+                    <option value="active">Active</option>
+                    <option value="upcoming">Upcoming</option>
+                    <option value="ended">Ended/Expired</option>
+                  </select>
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px', marginTop: '10px' }}>
+                <div className={styles.lteFormGroup}>
+                  <label className={styles.lteFormLabel}>Start Time (Local/UTC)</label>
+                  <input 
+                    type="datetime-local"
+                    className={styles.lteFormControl}
+                    value={drawForm.start_time}
+                    onChange={(e) => setDrawForm({...drawForm, start_time: e.target.value})}
+                  />
+                </div>
+                <div className={styles.lteFormGroup}>
+                  <label className={styles.lteFormLabel}>End Time (Local/UTC)</label>
+                  <input 
+                    type="datetime-local"
+                    className={styles.lteFormControl}
+                    value={drawForm.end_time}
+                    onChange={(e) => setDrawForm({...drawForm, end_time: e.target.value})}
+                  />
+                </div>
+              </div>
+
+              <div className={styles.lteDivider} style={{ margin: '15px 0' }}></div>
+              <h5>🎫 Entry Methods Configuration</h5>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px', marginTop: '10px' }}>
+                <div className={styles.lteToggleBox}>
+                  <span>Allow Daily Free Ticket Entry</span>
+                  <input 
+                    type="checkbox" 
+                    checked={drawForm.free_entries_allowed} 
+                    onChange={(e) => setDrawForm({...drawForm, free_entries_allowed: e.target.checked})} 
+                  />
+                </div>
+                <div className={styles.lteToggleBox}>
+                  <span>Enable AdsGram Ad Ticket Entries</span>
+                  <input 
+                    type="checkbox" 
+                    checked={drawForm.ad_entries_enabled} 
+                    onChange={(e) => setDrawForm({...drawForm, ad_entries_enabled: e.target.checked})} 
+                  />
+                </div>
+              </div>
+
+              {drawForm.ad_entries_enabled && (
+                <div className={styles.lteFormGroup} style={{ marginTop: '10px' }}>
+                  <label className={styles.lteFormLabel}>Maximum Ad Tickets Allowed Per Day</label>
+                  <input 
+                    type="number"
+                    className={styles.lteFormControl}
+                    value={drawForm.max_ad_entries}
+                    onChange={(e) => setDrawForm({...drawForm, max_ad_entries: parseInt(e.target.value)})}
+                  />
+                </div>
+              )}
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px', marginTop: '10px' }}>
+                <div className={styles.lteToggleBox}>
+                  <span>Enable Coins Purchased Tickets</span>
+                  <input 
+                    type="checkbox" 
+                    checked={drawForm.coin_entry_enabled} 
+                    onChange={(e) => setDrawForm({...drawForm, coin_entry_enabled: e.target.checked})} 
+                  />
+                </div>
+                {drawForm.coin_entry_enabled && (
+                  <div className={styles.lteFormGroup}>
+                    <label className={styles.lteFormLabel}>Coins Cost Per Ticket</label>
+                    <input 
+                      type="number"
+                      className={styles.lteFormControl}
+                      value={drawForm.coin_cost_per_entry}
+                      onChange={(e) => setDrawForm({...drawForm, coin_cost_per_entry: parseInt(e.target.value)})}
+                    />
+                  </div>
+                )}
+              </div>
+            </div>
+            <div className={styles.lteModalFooter}>
+              <button className={`${styles.lteBtn} ${styles.lteBtnSecondary}`} onClick={() => setIsDrawModalOpen(false)}>Discard</button>
+              <button className={`${styles.lteBtn} ${styles.lteBtnPrimary}`} onClick={handleSaveDraw}>Commit Sweepstakes Event</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ──── MODAL: VIEW LUCKY DRAW PARTICIPANTS / ENTRIES ──── */}
+      {isEntriesModalOpen && (
+        <div className={styles.lteModalOverlay}>
+          <div className={styles.lteModalBox} style={{ maxWidth: '600px' }}>
+            <div className={styles.lteModalHeader}>
+              <h4 className={styles.lteModalTitle}>Registered Entry Tickets List (Draw ID: {viewingDrawId})</h4>
+              <button className={styles.lteModalClose} onClick={() => setIsEntriesModalOpen(false)}>
+                <X size={20} />
+              </button>
+            </div>
+            <div className={styles.lteModalBody} style={{ maxHeight: '60vh', overflowY: 'auto' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
+                <strong>Total Tickets In Play: {selectedDrawEntries.length}</strong>
+                <span className={styles.lteBadge} style={{ background: '#fef3c7', color: '#b45309' }}>Weighted Sweepstakes active</span>
+              </div>
+              
+              <table className={styles.lteTable}>
+                <thead>
+                  <tr>
+                    <th>Ticket ID</th>
+                    <th>Participant Name</th>
+                    <th>Ticket Source</th>
+                    <th>Registered Time</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {selectedDrawEntries.length > 0 ? (
+                    selectedDrawEntries.map((e: any, index: number) => (
+                      <tr key={e.id}>
+                        <td><code>T-{e.id}</code></td>
+                        <td>
+                          <strong>{e.User?.first_name || 'Verified Player'}</strong>
+                          <div style={{ fontSize: '11px', color: '#6c757d' }}>@{e.User?.username || 'no_username'} (tg: {e.user_id})</div>
+                        </td>
+                        <td>
+                          <span className={styles.lteBadge} style={
+                            e.entry_source === 'ad' ? { background: '#dbeafe', color: '#1e40af' } :
+                            e.entry_source === 'coins' ? { background: '#f3e8ff', color: '#6b21a8' } :
+                            { background: '#d1fae5', color: '#065f46' }
+                          }>
+                            {e.entry_source.toUpperCase()}
+                          </span>
+                        </td>
+                        <td>{new Date(e.created_at || e.createdAt).toLocaleString()}</td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan={4} style={{ textAlign: 'center', color: '#94a3b8', padding: '30px' }}>No tickets registered for this draw event yet.</td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+            <div className={styles.lteModalFooter}>
+              <button className={`${styles.lteBtn} ${styles.lteBtnPrimary}`} onClick={() => setIsEntriesModalOpen(false)}>Close View</button>
             </div>
           </div>
         </div>

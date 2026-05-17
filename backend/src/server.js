@@ -25,6 +25,9 @@ const AppSetting = require('./models/AppSetting');
 const Game = require('./models/Game');
 const GameSession = require('./models/GameSession');
 const Transaction = require('./models/Transaction');
+const LuckyDraw = require('./models/LuckyDraw');
+const LuckyDrawEntry = require('./models/LuckyDrawEntry');
+const LuckyDrawWinner = require('./models/LuckyDrawWinner');
 const axios = require('axios');
 
 const app = express();
@@ -97,6 +100,17 @@ GameSession.belongsTo(Game, { foreignKey: 'game_id' });
 GameSession.belongsTo(User, { foreignKey: 'user_id', targetKey: 'telegram_id' });
 GameSession.belongsTo(Contest, { foreignKey: 'contest_id' });
 User.hasMany(GameSession, { foreignKey: 'user_id', sourceKey: 'telegram_id' });
+
+// Lucky Draw Associations
+LuckyDraw.hasMany(LuckyDrawEntry, { as: 'entries', foreignKey: 'lucky_draw_id' });
+LuckyDrawEntry.belongsTo(LuckyDraw, { foreignKey: 'lucky_draw_id' });
+LuckyDrawEntry.belongsTo(User, { foreignKey: 'user_id', targetKey: 'telegram_id' });
+User.hasMany(LuckyDrawEntry, { foreignKey: 'user_id', sourceKey: 'telegram_id' });
+
+LuckyDraw.hasMany(LuckyDrawWinner, { as: 'winners', foreignKey: 'lucky_draw_id' });
+LuckyDrawWinner.belongsTo(LuckyDraw, { foreignKey: 'lucky_draw_id' });
+LuckyDrawWinner.belongsTo(User, { foreignKey: 'user_id', targetKey: 'telegram_id' });
+User.hasMany(LuckyDrawWinner, { foreignKey: 'user_id', sourceKey: 'telegram_id' });
 
 // Start Server (Move this inside sync)
 
@@ -224,6 +238,78 @@ testConnection().then(async () => {
       await PayoutTier.findOrCreate({ where: { payout_method_id: upi.id, coins_required: 5000 }, defaults: { amount_text: '₹50' } });
       await PayoutTier.findOrCreate({ where: { payout_method_id: upi.id, coins_required: 10000 }, defaults: { amount_text: '₹100' } });
 
+      // 5. Seeds for Lucky Draws / Jackpot
+      const now = new Date();
+      const oneDayLater = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+      const threeDaysLater = new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000);
+      const sevenDaysLater = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+
+      await LuckyDraw.findOrCreate({
+        where: { slug: 'daily-free-draw' },
+        defaults: {
+          title: '💰 Daily Free Draw',
+          description: 'Claim your daily ticket, then watch up to 5 rewarded ads to get more entries! Build your chance daily.',
+          banner_image: 'https://images.unsplash.com/photo-1595853035070-59a39fe84de3?auto=format&fit=crop&q=80&w=600',
+          type: 'daily_free',
+          prize_type: 'cash',
+          prize_amount: '₹50 Paytm Cash',
+          prize_value: 50,
+          status: 'active',
+          start_time: now,
+          end_time: oneDayLater,
+          free_entries_allowed: true,
+          ad_entries_enabled: true,
+          max_ad_entries: 5,
+          max_entries_per_user: 6,
+          winners_count: 1
+        }
+      });
+
+      await LuckyDraw.findOrCreate({
+        where: { slug: 'weekly-mega-jackpot' },
+        defaults: {
+          title: '🏆 Weekly Mega Jackpot',
+          description: 'Our ultimate draw event! Buy tickets using coins or unlock slots by playing ads to maximize entry chance.',
+          banner_image: 'https://images.unsplash.com/photo-1518173946687-a4c8a383392c?auto=format&fit=crop&q=80&w=600',
+          type: 'weekly_mega',
+          prize_type: 'cash',
+          prize_amount: '₹1000 Paytm + 50,000 Coins',
+          prize_value: 1000,
+          status: 'active',
+          start_time: now,
+          end_time: sevenDaysLater,
+          free_entries_allowed: true,
+          ad_entries_enabled: true,
+          max_ad_entries: 20,
+          coin_entry_enabled: true,
+          coin_cost_per_entry: 500,
+          max_entries_per_user: 25,
+          winners_count: 3
+        }
+      });
+
+      await LuckyDraw.findOrCreate({
+        where: { slug: 'bronze-coin-pot' },
+        defaults: {
+          title: '🥉 Bronze Coin Pot',
+          description: 'Spend coins to qualify for the pool! Standard random sweepstakes selection with direct coin payouts.',
+          banner_image: 'https://images.unsplash.com/photo-1621506289937-a8e4df240d0b?auto=format&fit=crop&q=80&w=600',
+          type: 'coin_jackpot',
+          prize_type: 'coins',
+          prize_amount: '10,000 Coins',
+          prize_value: 10000,
+          status: 'active',
+          start_time: now,
+          end_time: threeDaysLater,
+          free_entries_allowed: false,
+          ad_entries_enabled: false,
+          coin_entry_enabled: true,
+          coin_cost_per_entry: 100,
+          max_entries_per_user: 10,
+          winners_count: 1
+        }
+      });
+
       console.log('✅ Default settings and seeds initialized.');
     } catch (e) {
       console.log('ℹ️ Seed/Init Note:', e.message);
@@ -235,6 +321,13 @@ testConnection().then(async () => {
     setInterval(processEndedContests, 10 * 60 * 1000);
     // Also run once on startup
     processEndedContests();
+
+    // --- LUCKY DRAW AUTOMATION ---
+    const { processEndedDraws } = require('./utils/luckyDrawManager');
+    // Run every 5 minutes to resolve draws and declare winners
+    setInterval(processEndedDraws, 5 * 60 * 1000);
+    // Also run once on startup
+    processEndedDraws();
 
   }).catch(err => {
     console.error('❌ Database Sync Error:', err);
@@ -258,10 +351,11 @@ app.use('/api/postbacks', require('./routes/postbacks'));
 app.use('/api/admin', require('./routes/admin'));
 app.use('/api/payouts', require('./routes/payouts'));
 app.use('/api/referrals', require('./routes/referrals'));
-app.use('/api/contests', require('./routes/contests'));
+  app.use('/api/contests', require('./routes/contests'));
 app.use('/api/rewards', require('./routes/rewards'));
 app.use('/api/game-system', require('./routes/gameSystem'));
 app.use('/api/opinion-universe', require('./routes/opinionUniverse'));
+app.use('/api/lucky-draws', require('./routes/luckyDraws'));
 
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });

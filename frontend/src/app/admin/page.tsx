@@ -5,17 +5,19 @@ import styles from "./admin.module.css";
 import { 
   Users, Coins, Activity, ShieldCheck, Search, 
   LayoutDashboard, History, Settings, LogOut, 
-  Edit3, Trash2, Ban, CheckCircle2, X, Gift, ArrowUpRight, Menu, Trophy, Calendar, Globe
+  Edit3, Trash2, Ban, CheckCircle2, X, Gift, ArrowUpRight, Menu, Trophy, Calendar, Globe, Plus, Filter, Save, Key
 } from "lucide-react";
 
 export default function AdminPanel() {
   const [activeView, setActiveView] = useState("dashboard");
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [secret, setSecret] = useState("");
   const [stats, setStats] = useState<any>(null);
   const [activeTab, setActiveTab] = useState<'users' | 'withdrawals' | 'payouts'>('users');
   const [users, setUsers] = useState<any[]>([]);
+  const [filteredUsers, setFilteredUsers] = useState<any[]>([]);
+  const [searchQuery, setSearchQuery] = useState("");
   const [payoutMethods, setPayoutMethods] = useState<any[]>([]);
   const [withdrawals, setWithdrawals] = useState<any[]>([]);
   const [transactions, setTransactions] = useState<any[]>([]);
@@ -100,8 +102,10 @@ export default function AdminPanel() {
       ]);
  
       if (statsRes.ok && usersRes.ok && payoutsRes.ok && withdrawalsRes.ok && transRes.ok) {
-        setStats(await statsRes.json());
-        setUsers(await usersRes.json());
+        setStats(await statsRes.ok ? await statsRes.json() : null);
+        const usersData = await usersRes.json();
+        setUsers(usersData);
+        setFilteredUsers(usersData);
         setPayoutMethods(await payoutsRes.json());
         setWithdrawals(await withdrawalsRes.json());
         setTransactions(await transRes.json());
@@ -179,8 +183,6 @@ export default function AdminPanel() {
       setLoading(false);
     }
   }, []);
-
-  if (loading) return <div className={styles.adminContainer} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>Loading Rewardly Admin...</div>;
 
   const handleUpdateWithdrawal = async (id: number, status: string) => {
     try {
@@ -366,228 +368,317 @@ export default function AdminPanel() {
     }
   };
 
+  const handleSearchUsers = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const query = e.target.value;
+    setSearchQuery(query);
+    if (!query) {
+      setFilteredUsers(users);
+      return;
+    }
+    const filtered = users.filter(u => 
+      u.telegram_id.toString().includes(query) || 
+      (u.first_name && u.first_name.toLowerCase().includes(query.toLowerCase())) ||
+      (u.username && u.username.toLowerCase().includes(query.toLowerCase()))
+    );
+    setFilteredUsers(filtered);
+  };
+
+  if (loading) {
+    return (
+      <div className={styles.lteLoadingScreen}>
+        <div className={styles.lteSpinner}></div>
+        <h4>Loading Rewardly AdminLTE Console...</h4>
+      </div>
+    );
+  }
+
   if (!isAuthenticated) {
     return (
-      <div className={styles.loginOverlay}>
-        <div className={styles.loginBox}>
-          <ShieldCheck size={64} color="#38bdf8" style={{ marginBottom: '1.5rem', filter: 'drop-shadow(0 0 10px rgba(56,189,248,0.4))' }} />
-          <h2 style={{ fontSize: '2rem', fontWeight: 700, marginBottom: '0.75rem', letterSpacing: '-0.02em' }}>Admin Access</h2>
-          <p style={{ color: '#94a3b8', fontSize: '1rem', marginBottom: '2.5rem' }}>Secure access to Rewardly Dashboard</p>
-          <div className={styles.formGroup}>
-            <input 
-              type="password" 
-              className={styles.formInput} 
-              placeholder="Enter Secret Key"
-              value={secret}
-              onChange={(e) => setSecret(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && fetchAllData(secret)}
-              style={{ textAlign: 'center', letterSpacing: '4px' }}
-            />
+      <div className={styles.lteLoginContainer}>
+        <div className={styles.lteLoginCard}>
+          <div className={styles.lteLoginLogo}>
+            <b>Rewardly</b>LTE
           </div>
-          <button className={styles.btnPrimary} style={{ width: '100%', marginTop: '1rem' }} onClick={() => fetchAllData(secret)}>
-            Authorize Session
-          </button>
+          <div className={styles.lteLoginCardBody}>
+            <p className={styles.lteLoginBoxMsg}>Sign in to start your administrator session</p>
+            <div className={styles.lteInputGroup}>
+              <input 
+                type="password" 
+                className={styles.lteFormControl} 
+                placeholder="Admin Authorization Key"
+                value={secret}
+                onChange={(e) => setSecret(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && fetchAllData(secret)}
+              />
+              <span className={styles.lteInputGroupText}>
+                <Key size={16} />
+              </span>
+            </div>
+            <div className={styles.lteLoginActions}>
+              <button className={styles.lteBtnPrimaryBlock} onClick={() => fetchAllData(secret)}>
+                Sign In
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className={styles.adminContainer}>
-      {/* Toast Notification */}
+    <div className={`${styles.lteWrapper} ${isSidebarOpen ? '' : styles.lteSidebarCollapse}`}>
+      {/* Toast System */}
       {toast && (
-        <div style={{
-          position: 'fixed',
-          top: '2rem',
-          right: '2rem',
-          padding: '1rem 2rem',
-          background: toast.type === 'success' ? '#10b981' : '#ef4444',
-          color: '#fff',
-          borderRadius: '1rem',
-          zIndex: 3000,
-          boxShadow: '0 10px 25px rgba(0,0,0,0.3)',
-          fontWeight: 600,
-          animation: 'modalAppear 0.3s ease'
-        }}>
-          {toast.message}
+        <div className={`${styles.lteAlert} ${toast.type === 'success' ? styles.lteAlertSuccess : styles.lteAlertDanger}`}>
+          <h5>{toast.type === 'success' ? '✓ Success' : '⚠ Error'}</h5>
+          <p>{toast.message}</p>
         </div>
       )}
 
-      {/* Sidebar Navigation */}
-      <aside className={`${styles.sidebar} ${isSidebarOpen ? styles.sidebarOpen : ''}`}>
-        <div className={styles.sidebarBrand}>
-          <div className={styles.brandIcon}>R</div>
-          <span style={{ fontWeight: 700, fontSize: '1.5rem', letterSpacing: '-0.03em' }}>Rewardly</span>
+      {/* Navbar */}
+      <nav className={styles.lteNavbar}>
+        <ul className={styles.lteNavbarNav}>
+          <li className={styles.lteNavItem}>
+            <button className={styles.lteNavToggle} onClick={() => setIsSidebarOpen(!isSidebarOpen)}>
+              <Menu size={20} />
+            </button>
+          </li>
+          <li className={`${styles.lteNavItem} ${styles.lteDNoneSm}`}>
+            <span className={styles.lteNavLink}>Admin Control Console v3.1</span>
+          </li>
+        </ul>
+        <ul className={`${styles.lteNavbarNav} ${styles.lteMlAuto}`}>
+          <li className={styles.lteNavItem}>
+            <button className={styles.lteBtnLogout} onClick={() => {
+              localStorage.removeItem("admin_secret");
+              setIsAuthenticated(false);
+            }}>
+              <LogOut size={16} style={{ marginRight: '6px' }} /> Log Out
+            </button>
+          </li>
+        </ul>
+      </nav>
+
+      {/* Main Sidebar */}
+      <aside className={styles.lteMainSidebar}>
+        <div className={styles.lteBrandLink}>
+          <div className={styles.lteBrandIcon}>R</div>
+          <span className={styles.lteBrandText}>Rewardly<b>LTE</b></span>
         </div>
 
-        <nav className={styles.navMenu}>
-          {[
-            { id: 'dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-            { id: 'users', icon: Users, label: 'User Management' },
-            { id: 'payouts', icon: Gift, label: 'Payout Methods' },
-            { id: 'referrals', icon: Users, label: 'Referral System' },
-            { id: 'contests', icon: Trophy, label: 'Contest System' },
-            { id: 'withdrawals', icon: ArrowUpRight, label: 'Withdrawals' },
-            { id: 'transactions', icon: History, label: 'Audit Log' },
-            { id: 'daily_rewards', icon: Calendar, label: 'Check-in Rewards' },
-            { id: 'visit_tasks', icon: Globe, label: 'Visit Tasks' },
-            { id: 'settings', icon: Settings, label: 'Settings' },
-          ].map((item) => (
-            <div 
-              key={item.id}
-              className={`${styles.navItem} ${activeView === item.id ? styles.navItemActive : ''}`}
-              onClick={() => {
-                setActiveView(item.id);
-                setIsSidebarOpen(false);
-              }}
-            >
-              <item.icon size={22} /> {item.label}
+        <div className={styles.lteSidebar}>
+          {/* User Profile Info */}
+          <div className={styles.lteUserPanel}>
+            <div className={styles.lteUserImage}>
+              <ShieldCheck size={32} color="#28a745" />
             </div>
-          ))}
-        </nav>
+            <div className={styles.lteUserInfo}>
+              <span className={styles.lteUserTitle}>Super Administrator</span>
+              <span className={styles.lteUserSub}><span className={styles.lteOnlineDot}></span> Online</span>
+            </div>
+          </div>
 
-        <div 
-          className={styles.navItem} 
-          style={{ 
-            marginTop: 'auto', 
-            color: '#f87171',
-            background: 'rgba(248, 113, 113, 0.05)',
-            border: '1px solid rgba(248, 113, 113, 0.1)'
-          }}
-          onClick={() => {
-            localStorage.removeItem("admin_secret");
-            setIsAuthenticated(false);
-          }}
-        >
-          <LogOut size={22} /> Logout Session
+          {/* Navigation Links */}
+          <nav className={styles.lteSidebarNav}>
+            <ul className={styles.lteNavList}>
+              {[
+                { id: 'dashboard', icon: LayoutDashboard, label: 'Dashboard Overview' },
+                { id: 'users', icon: Users, label: 'User Database' },
+                { id: 'payouts', icon: Gift, label: 'Payout Gateways' },
+                { id: 'withdrawals', icon: ArrowUpRight, label: 'Withdrawal Tickets' },
+                { id: 'referrals', icon: Users, label: 'Referral Engine' },
+                { id: 'contests', icon: Trophy, label: 'Tournament Panel' },
+                { id: 'transactions', icon: History, label: 'Global Audit Logs' },
+                { id: 'daily_rewards', icon: Calendar, label: 'Check-in Rewards' },
+                { id: 'visit_tasks', icon: Globe, label: 'Visit Tasks Manager' },
+                { id: 'settings', icon: Settings, label: 'Global Settings' },
+              ].map((item) => (
+                <li key={item.id} className={styles.lteNavListItem}>
+                  <button 
+                    className={`${styles.lteNavLinkButton} ${activeView === item.id ? styles.lteNavLinkActive : ''}`}
+                    onClick={() => setActiveView(item.id)}
+                  >
+                    <item.icon size={18} className={styles.lteNavIcon} />
+                    <p>{item.label}</p>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </nav>
         </div>
       </aside>
 
-      {/* Main Content */}
-      <main className={styles.mainContent}>
-        {activeView === 'dashboard' && (
-          <section>
-            <div className={styles.sectionHeader}>
-              <h2 className={styles.sectionTitle}>Dashboard Overview</h2>
-              <p className={styles.sectionDesc}>Real-time performance and ecosystem growth</p>
+      {/* Content Wrapper */}
+      <div className={styles.lteContentWrapper}>
+        {/* Content Header */}
+        <div className={styles.lteContentHeader}>
+          <div className={styles.lteRow}>
+            <div>
+              <h1 className={styles.lteM0}>
+                {activeView.toUpperCase().replace('_', ' ')}
+              </h1>
             </div>
+            <div className={styles.lteBreadcrumb}>
+              <span className={styles.lteBreadcrumbItem}>Home</span>
+              <span className={`${styles.lteBreadcrumbItem} ${styles.lteActive}`}>{activeView}</span>
+            </div>
+          </div>
+        </div>
 
-            <div className={styles.statsGrid}>
-              <div className={styles.statCard}>
-                <div className={styles.statHeader}>
-                  <div className={styles.statLabel}>Active Users</div>
-                  <Users className={styles.statIcon} size={24} />
+        {/* Content Body */}
+        <section className={styles.lteContent}>
+          {/* ──── VIEW: DASHBOARD ──── */}
+          {activeView === 'dashboard' && stats && (
+            <div>
+              {/* Stats Cards */}
+              <div className={styles.lteStatsGrid}>
+                <div className={`${styles.lteSmallBox} ${styles.lteBgInfo}`}>
+                  <div className={styles.lteInner}>
+                    <h3>{stats.totalUsers?.toLocaleString() || 0}</h3>
+                    <p>Total Registered Users</p>
+                  </div>
+                  <div className={styles.lteIcon}>
+                    <Users size={70} />
+                  </div>
+                  <button className={styles.lteSmallBoxFooter} onClick={() => setActiveView('users')}>
+                    More Info <ArrowUpRight size={14} style={{ marginLeft: '4px' }} />
+                  </button>
                 </div>
-                <div className={styles.statValue}>{stats?.totalUsers?.toLocaleString()}</div>
+
+                <div className={`${styles.lteSmallBox} ${styles.lteBgSuccess}`}>
+                  <div className={styles.lteInner}>
+                    <h3>{stats.totalBalance?.toLocaleString() || 0}</h3>
+                    <p>Total User Coins Circulation</p>
+                  </div>
+                  <div className={styles.lteIcon}>
+                    <Coins size={70} />
+                  </div>
+                  <button className={styles.lteSmallBoxFooter} onClick={() => setActiveView('transactions')}>
+                    Audit Distribution <ArrowUpRight size={14} style={{ marginLeft: '4px' }} />
+                  </button>
+                </div>
+
+                <div className={`${styles.lteSmallBox} ${styles.lteBgWarning}`}>
+                  <div className={styles.lteInner}>
+                    <h3>{stats.totalTransactions?.toLocaleString() || 0}</h3>
+                    <p>Total Events Logged</p>
+                  </div>
+                  <div className={styles.lteIcon}>
+                    <Activity size={70} />
+                  </div>
+                  <button className={styles.lteSmallBoxFooter} onClick={() => setActiveView('transactions')}>
+                    Audit Logs <ArrowUpRight size={14} style={{ marginLeft: '4px' }} />
+                  </button>
+                </div>
               </div>
-              <div className={styles.statCard}>
-                <div className={styles.statHeader}>
-                  <div className={styles.statLabel}>Platform Circulation</div>
-                  <Coins className={styles.statIcon} size={24} />
+
+              {/* Main row */}
+              <div className={styles.lteCard}>
+                <div className={`${styles.lteCardHeader} ${styles.lteBorderPrimary}`}>
+                  <h3 className={styles.lteCardTitle}>System Performance Matrix</h3>
                 </div>
-                <div className={styles.statValue}>{stats?.totalBalance?.toLocaleString()} <span style={{ fontSize: '1rem', color: '#94a3b8' }}>coins</span></div>
-              </div>
-              <div className={styles.statCard}>
-                <div className={styles.statHeader}>
-                  <div className={styles.statLabel}>Processed Events</div>
-                  <Activity className={styles.statIcon} size={24} />
+                <div className={styles.lteCardBody}>
+                  <p>Welcome to Rewardly AdminLTE Dashboard Panel. Use the left navigation sidebar to control and monitor database tables, gate payouts, and configure global variables.</p>
                 </div>
-                <div className={styles.statValue}>{stats?.totalTransactions?.toLocaleString()}</div>
               </div>
             </div>
-          </section>
-        )}
+          )}
 
-        {activeView === 'users' && (
-          <section>
-            <div className={styles.sectionHeader}>
-              <h2 className={styles.sectionTitle}>User Management</h2>
-              <p className={styles.sectionDesc}>Administer accounts, security status, and balances</p>
-            </div>
-
-            <div className={styles.tableCard}>
-              <div className={styles.tableActions}>
-                <div className={styles.searchBox}>
-                  <Search size={20} color="#38bdf8" />
-                  <input className={styles.searchInput} placeholder="Search user ID or name..." />
+          {/* ──── VIEW: USERS ──── */}
+          {activeView === 'users' && (
+            <div className={styles.lteCard}>
+              <div className={styles.lteCardHeader}>
+                <h3 className={styles.lteCardTitle}>System User Directory</h3>
+                <div className={styles.lteCardTools}>
+                  <div className={styles.lteSearchBox}>
+                    <Search size={16} style={{ color: '#adb5bd', marginRight: '8px' }} />
+                    <input 
+                      type="text" 
+                      placeholder="Search ID, Name or Username..." 
+                      value={searchQuery}
+                      onChange={handleSearchUsers}
+                      className={styles.lteSearchInput}
+                    />
+                  </div>
                 </div>
               </div>
-
-              <div style={{ overflowX: 'auto' }}>
-                <table className={styles.adminTable}>
+              <div className={`${styles.lteCardBody} ${styles.lteTableResponsive}`}>
+                <table className={`${styles.lteTable} ${styles.lteTableStriped}`}>
                   <thead>
                     <tr>
-                      <th>Identity</th>
+                      <th>Avatar / User</th>
                       <th>Account Info</th>
-                      <th>Social Sync</th>
-                      <th>Assets</th>
-                      <th>Access</th>
-                      <th style={{ textAlign: 'right' }}>Actions</th>
+                      <th>Social Status</th>
+                      <th>Wallet Balance</th>
+                      <th>Account Access</th>
+                      <th>Actions</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {users.map(user => (
+                    {filteredUsers.map(user => (
                       <tr key={user.telegram_id}>
                         <td>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                          <div className={styles.lteUserMeta}>
                             {user.photo_url ? (
-                              <img src={user.photo_url} alt="Avatar" style={{ width: '42px', height: '42px', borderRadius: '12px', objectFit: 'cover', border: '1px solid var(--border-subtle)', background: 'var(--bg-input)' }} />
+                              <img src={user.photo_url} alt="Avatar" className={styles.lteAvatar} />
                             ) : (
-                              <div style={{ width: '42px', height: '42px', borderRadius: '12px', background: 'linear-gradient(135deg, #38bdf8, #0ea5e9)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: '1rem', boxShadow: '0 4px 12px rgba(56, 189, 248, 0.2)' }}>
-                                {(user.first_name || 'U')[0]}
+                              <div className={styles.lteAvatarPlaceholder}>
+                                {(user.first_name || 'U')[0].toUpperCase()}
                               </div>
                             )}
                             <div>
-                              <div style={{ fontWeight: 600, color: '#fff', fontSize: '0.9375rem' }}>{user.first_name} {user.last_name}</div>
-                              <div style={{ fontSize: '0.8125rem', color: '#38bdf8', fontWeight: 600, letterSpacing: '0.01em' }}>@{user.username || 'no_username'}</div>
+                              <div className={styles.lteUserFullName}>{user.first_name} {user.last_name || ''}</div>
+                              <div className={styles.lteUserTag}>@{user.username || 'no_username'}</div>
                             </div>
                           </div>
                         </td>
                         <td>
-                          <div style={{ fontSize: '0.875rem' }}>
-                            <div style={{ color: '#fff', fontWeight: 500 }}>ID: {user.telegram_id}</div>
-                            <div style={{ color: '#64748b' }}>Tel: {user.phone_number || 'No Phone'}</div>
+                          <div><strong>ID:</strong> {user.telegram_id}</div>
+                          <div style={{ color: '#6c757d', fontSize: '12px' }}><strong>Phone:</strong> {user.phone_number || 'N/A'}</div>
+                        </td>
+                        <td>
+                          <div style={{ display: 'flex', gap: '8px' }}>
+                            <span className={`${styles.lteBadge} ${user.is_phone_verified ? styles.lteBadgeSuccess : styles.lteBadgeSecondary}`} title="Phone verified status">
+                              Phone
+                            </span>
+                            <span className={`${styles.lteBadge} ${user.is_channel_joined ? styles.lteBadgeInfo : styles.lteBadgeSecondary}`} title="Channel status">
+                              Channel
+                            </span>
                           </div>
                         </td>
                         <td>
-                          <div style={{ display: 'flex', gap: '10px' }}>
-                            <div title="Phone Verified" style={{ opacity: user.is_phone_verified ? 1 : 0.2 }}>
-                              <ShieldCheck size={20} color="#4ade80" />
-                            </div>
-                            <div title="Channel Joined" style={{ opacity: user.is_channel_joined ? 1 : 0.2 }}>
-                              <Users size={20} color="#38bdf8" />
-                            </div>
-                          </div>
+                          <div className={styles.lteUserBalance}>{user.balance?.toLocaleString()} <span className={styles.lteCoinText}>Coins</span></div>
+                          {user.pending_balance > 0 && (
+                            <div className={styles.ltePendingBalance}>+ {user.pending_balance?.toLocaleString()} pending</div>
+                          )}
                         </td>
                         <td>
-                          <div>
-                            <div style={{ fontWeight: 700, color: '#4ade80', fontSize: '1rem' }}>{user.balance?.toLocaleString()} <span style={{ fontSize: '0.75rem' }}>Coins</span></div>
-                            {user.pending_balance > 0 && <div style={{ fontSize: '0.75rem', color: '#fbbf24' }}>+ {user.pending_balance?.toLocaleString()} pending</div>}
-                          </div>
-                        </td>
-                        <td>
-                          <span className={`${styles.badge} ${user.is_banned ? styles.badgeBanned : styles.badgeActive}`}>
-                            {user.is_banned ? <Ban size={14} /> : <CheckCircle2 size={14} />}
-                            {user.is_banned ? 'Restricted' : 'Authorized'}
+                          <span className={`${styles.lteBadge} ${user.is_banned ? styles.lteBadgeDanger : styles.lteBadgeSuccess}`}>
+                            {user.is_banned ? 'Banned' : 'Active'}
                           </span>
                         </td>
                         <td>
-                          <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
-                            <button className={styles.actionBtn} title="Edit User" onClick={() => {
-                              setEditingUser(user);
-                              setNewBalance(user.balance.toString());
-                            }}>
-                              <Edit3 size={18} />
+                          <div className={styles.lteBtnGroup}>
+                            <button 
+                              className={`${styles.lteBtn} ${styles.lteBtnInfo}`} 
+                              onClick={() => {
+                                setEditingUser(user);
+                                setNewBalance(user.balance.toString());
+                              }}
+                            >
+                              <Edit3 size={14} />
                             </button>
                             <button 
-                              className={`${styles.actionBtn} ${user.is_banned ? '' : styles.btnDanger}`}
-                              title={user.is_banned ? "Unban" : "Ban User"}
+                              className={`${styles.lteBtn} ${user.is_banned ? styles.lteBtnSuccess : styles.lteBtnWarning}`}
                               onClick={() => handleUpdateUser(user.telegram_id, { is_banned: !user.is_banned })}
                             >
-                              <Ban size={18} />
+                              <Ban size={14} />
                             </button>
-                            <button className={`${styles.actionBtn} ${styles.btnDanger}`} title="Delete User" onClick={() => handleDeleteUser(user.telegram_id)}>
-                              <Trash2 size={18} />
+                            <button 
+                              className={`${styles.lteBtn} ${styles.lteBtnDanger}`}
+                              onClick={() => handleDeleteUser(user.telegram_id)}
+                            >
+                              <Trash2 size={14} />
                             </button>
                           </div>
                         </td>
@@ -597,1075 +688,519 @@ export default function AdminPanel() {
                 </table>
               </div>
             </div>
-          </section>
-        )}
+          )}
 
-        {activeView === 'payouts' && (
-          <section>
-            <div className={styles.sectionHeader} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
-              <div>
-                <h2 className={styles.sectionTitle}>Payout Methods</h2>
-                <p className={styles.sectionDesc}>Configure withdrawal gateways and reward tiers</p>
-              </div>
-              <button 
-                className={styles.addBtn} 
-                onClick={() => {
-                  setEditingPayout(null);
-                  setPayoutForm({ 
-                    name: '', 
-                    logo_url: '', 
-                    order_index: payoutMethods.length + 1, 
-                    status: 'active',
-                    conversion_rate: '₹1 = 100 Coins',
-                    fee_text: '0% Fees',
-                    disclaimer: '',
-                    custom_inputs: []
-                  });
-                  setTiersForm([]);
-                  setIsPayoutModalOpen(true);
-                }}
-              >
-                + Create New Method
-              </button>
-            </div>
-
-            <div className={styles.tableCard}>
-              <table className={styles.adminTable}>
-                <thead>
-                  <tr>
-                    <th>Gateway</th>
-                    <th>Redemption Tiers</th>
-                    <th>System Order</th>
-                    <th>Status</th>
-                    <th style={{ textAlign: 'right' }}>Management</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {payoutMethods.map(method => (
-                    <tr key={method.id}>
-                      <td>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-                          <div style={{ width: '40px', height: '40px', background: '#fff', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '6px' }}>
-                            {method.logo_url && <img src={method.logo_url} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />}
-                          </div>
-                          <div>
-                            <div style={{ fontWeight: 600, color: '#fff' }}>{method.name}</div>
-                            <div style={{ fontSize: '0.75rem', color: '#64748b' }}>{method.conversion_rate}</div>
-                          </div>
-                        </div>
-                      </td>
-                      <td>
-                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                          {method.tiers?.map((t: any) => (
-                            <span key={t.id} style={{ background: 'rgba(56,189,248,0.1)', color: '#38bdf8', padding: '4px 10px', borderRadius: '8px', fontSize: '0.75rem', fontWeight: 600, border: '1px solid rgba(56,189,248,0.1)' }}>
-                              {t.amount_text} <span style={{ color: '#64748b', fontWeight: 400 }}>({t.coins_required})</span>
-                            </span>
-                          ))}
-                        </div>
-                      </td>
-                      <td>
-                        <div style={{ fontWeight: 600, color: '#94a3b8' }}>Priority: {method.order_index}</div>
-                      </td>
-                      <td>
-                        <span className={`${styles.badge} ${method.status === 'active' ? styles.badgeActive : styles.badgeBanned}`}>
-                          {method.status === 'active' ? 'Operational' : 'Disabled'}
-                        </span>
-                      </td>
-                      <td>
-                        <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
-                          <button 
-                            className={styles.actionBtn}
-                            onClick={() => {
-                              setEditingPayout(method);
-                              setPayoutForm({ 
-                                name: method.name, 
-                                logo_url: method.logo_url || '', 
-                                order_index: method.order_index, 
-                                status: method.status,
-                                conversion_rate: method.conversion_rate || '₹1 = 100 Coins',
-                                fee_text: method.fee_text || '0% Fees',
-                                disclaimer: method.disclaimer || '',
-                                custom_inputs: method.custom_inputs || []
-                              });
-                              setTiersForm(method.tiers || []);
-                              setIsPayoutModalOpen(true);
-                            }}
-                          >
-                            <Edit3 size={18} />
-                          </button>
-                          <button className={`${styles.actionBtn} ${styles.btnDanger}`}>
-                            <Trash2 size={18} />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </section>
-        )}
-
-        {activeView === 'withdrawals' && (
-          <section>
-            <div className={styles.sectionHeader}>
-              <h2 className={styles.sectionTitle}>Withdrawal Requests</h2>
-              <p className={styles.sectionDesc}>Process and manage user payout requests</p>
-            </div>
-
-            <div className={styles.tableCard}>
-              <table className={styles.adminTable}>
-                <thead>
-                  <tr>
-                    <th>Requester</th>
-                    <th>Method</th>
-                    <th>Payment Value</th>
-                    <th>Recipient Details</th>
-                    <th>State</th>
-                    <th style={{ textAlign: 'right' }}>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {withdrawals.map(req => (
-                    <tr key={req.id}>
-                      <td>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                           <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'rgba(56,189,248,0.1)', color: '#38bdf8', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700 }}>
-                              {(req.User?.first_name || 'U')[0]}
-                           </div>
-                           <div>
-                              <div style={{ fontWeight: 600, color: '#fff' }}>{req.User?.first_name}</div>
-                              <div style={{ fontSize: '0.75rem', color: '#64748b' }}>@{req.User?.username}</div>
-                           </div>
-                        </div>
-                      </td>
-                      <td>
-                        <div style={{ fontWeight: 500 }}>{req.PayoutMethod?.name}</div>
-                      </td>
-                      <td>
-                        <div>
-                          <div style={{ fontWeight: 700, color: '#fff' }}>{req.amount_text}</div>
-                          <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>{req.coins_used} coins used</div>
-                        </div>
-                      </td>
-                      <td>
-                        <div style={{ background: 'var(--bg-input)', padding: '6px 12px', borderRadius: '8px', border: '1px solid var(--border-subtle)', fontSize: '0.8125rem', fontFamily: 'monospace', color: '#38bdf8' }}>
-                          {req.payout_details}
-                        </div>
-                      </td>
-                      <td>
-                        <span className={`${styles.badge} ${
-                          req.status === 'approved' ? styles.badgeActive : 
-                          req.status === 'pending' ? styles.badgeBanned.replace('Banned', 'Pending') : styles.badgeBanned
-                        }`} style={req.status === 'pending' ? { background: 'rgba(251,191,36,0.1)', color: '#fbbf24' } : {}}>
-                          {req.status.toUpperCase()}
-                        </span>
-                      </td>
-                      <td>
-                        <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
-                          {req.status === 'pending' && (
-                            <>
-                              <button 
-                                className={styles.actionBtn}
-                                style={{ background: 'rgba(16,185,129,0.1)', color: '#10b981' }}
-                                onClick={() => handleUpdateWithdrawal(req.id, 'approved')}
-                              >
-                                <CheckCircle2 size={18} />
-                              </button>
-                              <button 
-                                className={styles.actionBtn}
-                                style={{ background: 'rgba(239,68,68,0.1)', color: '#ef4444' }}
-                                onClick={() => handleUpdateWithdrawal(req.id, 'rejected')}
-                              >
-                                <X size={18} />
-                              </button>
-                            </>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </section>
-        )}
-
-        {activeView === 'contests' && (
-          <section>
-            <div className={styles.sectionHeader} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
-              <div>
-                <h2 className={styles.sectionTitle}>Contest System</h2>
-                <p className={styles.sectionDesc}>Create and manage platform-wide challenges</p>
-              </div>
-              <button 
-                className={styles.addBtn} 
-                onClick={() => {
-                  setEditingContest(null);
-                  setContestForm({
-                    name: '',
-                    slug: '',
-                    type: 'earning',
-                    status: 'active',
-                    start_time: new Date().toISOString().slice(0, 16),
-                    end_time: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 16),
-                    description: '',
-                    rules: '',
-                    min_qualification: 0,
-                    prize_pool_text: '₹0',
-                    is_auto_distribute: false
-                  });
-                  setIsContestModalOpen(true);
-                }}
-              >
-                + Start New Contest
-              </button>
-            </div>
-
-            <div className={styles.tableCard}>
-              <table className={styles.adminTable}>
-                <thead>
-                  <tr>
-                    <th>Challenge</th>
-                    <th>Type</th>
-                    <th>Timing</th>
-                    <th>Prize Pool</th>
-                    <th>Status</th>
-                    <th style={{ textAlign: 'right' }}>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {contests.map(contest => (
-                    <tr key={contest.id}>
-                      <td>
-                        <div style={{ fontWeight: 600, color: '#fff' }}>{contest.name}</div>
-                        <div style={{ fontSize: '0.75rem', color: '#64748b' }}>/{contest.slug}</div>
-                      </td>
-                      <td>
-                        <span style={{ textTransform: 'uppercase', fontSize: '0.75rem', fontWeight: 700, color: '#38bdf8' }}>{contest.type}</span>
-                      </td>
-                      <td>
-                        <div style={{ fontSize: '0.8125rem', color: '#cbd5e1' }}>
-                          Ends: {new Date(contest.end_time).toLocaleDateString()}
-                        </div>
-                      </td>
-                      <td>
-                        <div style={{ fontWeight: 700, color: '#10b981' }}>{contest.prize_pool_text}</div>
-                        <div style={{ fontSize: '0.75rem', color: '#64748b' }}>{contest.rewards?.length || 0} Reward Tiers</div>
-                      </td>
-                      <td>
-                        <span className={`${styles.badge} ${contest.status === 'active' ? styles.badgeActive : styles.badgeBanned}`}>
-                          {contest.status.toUpperCase()}
-                        </span>
-                      </td>
-                      <td>
-                        <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
-                          <button className={styles.actionBtn} onClick={() => {
-                            setEditingContest(contest);
-                            setContestForm({
-                              ...contest,
-                              start_time: new Date(contest.start_time).toISOString().slice(0, 16),
-                              end_time: new Date(contest.end_time).toISOString().slice(0, 16)
-                            });
-                            setIsContestModalOpen(true);
-                          }}>
-                            <Edit3 size={18} />
-                          </button>
-                          <button className={`${styles.actionBtn} ${styles.btnDanger}`} onClick={() => handleDeleteContest(contest.id)}>
-                            <Trash2 size={18} />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </section>
-        )}
-
-        {activeView === 'transactions' && (
-          <section>
-            <div className={styles.sectionHeader}>
-              <h2 className={styles.sectionTitle}>System Audit Log</h2>
-              <p className={styles.sectionDesc}>View all coin distributions and user activities</p>
-            </div>
-
-            <div className={styles.tableCard}>
-              <table className={styles.adminTable}>
-                <thead>
-                  <tr>
-                    <th>Ref ID</th>
-                    <th>User ID</th>
-                    <th>Type</th>
-                    <th>Amount</th>
-                    <th>Date & Time</th>
-                    <th>Description</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {transactions.map(txn => (
-                    <tr key={txn.id}>
-                      <td style={{ fontFamily: 'monospace', color: '#38bdf8', fontSize: '0.8125rem' }}>{txn.reference_id || `ID-${txn.id}`}</td>
-                      <td style={{ fontSize: '0.8125rem' }}>{txn.telegram_id}</td>
-                      <td>
-                        <span style={{ 
-                          padding: '4px 8px', 
-                          borderRadius: '6px', 
-                          fontSize: '0.75rem', 
-                          fontWeight: 600,
-                          background: txn.type === 'withdrawal' ? 'rgba(248,113,113,0.1)' : 'rgba(74,222,128,0.1)',
-                          color: txn.type === 'withdrawal' ? '#f87171' : '#4ade80',
-                          textTransform: 'uppercase'
-                        }}>
-                          {txn.type}
-                        </span>
-                      </td>
-                      <td style={{ fontWeight: 700, color: txn.type === 'withdrawal' ? '#f87171' : '#4ade80' }}>
-                        {txn.type === 'withdrawal' ? '-' : '+'}{txn.amount}
-                      </td>
-                      <td style={{ fontSize: '0.8125rem', color: '#64748b' }}>
-                        {txn.created_at ? new Date(txn.created_at).toLocaleString() : (txn.createdAt ? new Date(txn.createdAt).toLocaleString() : 'N/A')}
-                      </td>
-                      <td style={{ fontSize: '0.8125rem', color: '#94a3b8' }}>{txn.description}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </section>
-        )}
-
-        {activeView === 'referrals' && (
-          <section>
-            <div className={styles.sectionHeader}>
-              <h2 className={styles.sectionTitle}>Referral System</h2>
-              <p className={styles.sectionDesc}>Configure invitation rewards, welcome bonuses, and milestones</p>
-            </div>
-
-            <div className={styles.statsGrid} style={{ marginBottom: '2rem' }}>
-              <div className={styles.statCard}>
-                <div className={styles.statHeader}>
-                   <div className={styles.statLabel}>Total Invitations</div>
-                   <Users size={20} className={styles.statIcon} />
-                </div>
-                <div className={styles.statValue}>{referralStats?.totalInvites || 0}</div>
-              </div>
-              <div className={styles.statCard}>
-                <div className={styles.statHeader}>
-                   <div className={styles.statLabel}>Qualified Referrals</div>
-                   <CheckCircle2 size={20} className={styles.statIcon} />
-                </div>
-                <div className={styles.statValue}>{referralStats?.rewardedInvites || 0}</div>
-              </div>
-              <div className={styles.statCard}>
-                <div className={styles.statHeader}>
-                   <div className={styles.statLabel}>Conversion Rate</div>
-                   <Activity size={20} className={styles.statIcon} />
-                </div>
-                <div className={styles.statValue}>{referralStats?.conversionRate || 0}%</div>
-              </div>
-            </div>
-
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.5fr', gap: '2rem' }}>
-              {/* Settings Column */}
-              <div className={styles.tableCard} style={{ padding: '2rem' }}>
-                <h3 style={{ marginBottom: '1.5rem', fontWeight: 700, color: '#38bdf8' }}>General Settings</h3>
-                <div className={styles.formGroup}>
-                  <label className={styles.formLabel}>Welcome Bonus (Invitee)</label>
-                  <input 
-                    type="number" className={styles.formInput} 
-                    value={referralSettings?.welcome_bonus} 
-                    onChange={(e) => setReferralSettings({...referralSettings, welcome_bonus: parseInt(e.target.value)})}
-                  />
-                </div>
-                <div className={styles.formGroup}>
-                  <label className={styles.formLabel}>Referrer Reward (Inviter)</label>
-                  <input 
-                    type="number" className={styles.formInput} 
-                    value={referralSettings?.referral_reward} 
-                    onChange={(e) => setReferralSettings({...referralSettings, referral_reward: parseInt(e.target.value)})}
-                  />
-                </div>
-                <div className={styles.formGroup}>
-                  <label className={styles.formLabel}>Reward Trigger</label>
-                  <select 
-                    className={styles.formInput}
-                    value={referralSettings?.reward_trigger}
-                    onChange={(e) => setReferralSettings({...referralSettings, reward_trigger: e.target.value})}
-                  >
-                    <option value="signup">Immediate Signup</option>
-                    <option value="earning">Minimum Earnings Met</option>
-                    <option value="redeem_request">First Redeem Requested</option>
-                    <option value="redeem_approved">First Redeem Approved (Best)</option>
-                  </select>
-                </div>
-                <div className={styles.formGroup}>
-                  <label className={styles.formLabel}>Min Redeem for Reward (₹)</label>
-                  <input 
-                    type="number" className={styles.formInput} 
-                    value={referralSettings?.min_redeem_amount} 
-                    onChange={(e) => setReferralSettings({...referralSettings, min_redeem_amount: parseInt(e.target.value)})}
-                  />
-                </div>
-                
-                <div style={{ marginTop: '2rem', padding: '1.5rem', background: 'rgba(239,68,68,0.05)', borderRadius: '1rem', border: '1px solid rgba(239,68,68,0.1)' }}>
-                   <h4 style={{ color: '#f87171', fontWeight: 600, fontSize: '0.875rem', marginBottom: '1rem' }}>Fraud Protection</h4>
-                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
-                      <span style={{ fontSize: '0.875rem' }}>Block Same Device</span>
-                      <input type="checkbox" checked={referralSettings?.same_device_block} onChange={(e) => setReferralSettings({...referralSettings, same_device_block: e.target.checked})} />
-                   </div>
-                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                      <span style={{ fontSize: '0.875rem' }}>VPN/Proxy Detection</span>
-                      <input type="checkbox" checked={referralSettings?.vpn_detection} onChange={(e) => setReferralSettings({...referralSettings, vpn_detection: e.target.checked})} />
-                   </div>
-                </div>
-
-                <button className={styles.btnPrimary} style={{ width: '100%', marginTop: '2rem' }} onClick={handleUpdateReferralSettings}>
-                   Save Configuration
+          {/* ──── VIEW: PAYOUT METHODS ──── */}
+          {activeView === 'payouts' && (
+            <div className={styles.lteCard}>
+              <div className={styles.lteCardHeader} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <h3 className={styles.lteCardTitle}>Payout Gateways</h3>
+                <button 
+                  className={`${styles.lteBtn} ${styles.lteBtnPrimary}`}
+                  onClick={() => {
+                    setEditingPayout(null);
+                    setPayoutForm({ 
+                      name: '', 
+                      logo_url: '', 
+                      order_index: payoutMethods.length + 1, 
+                      status: 'active',
+                      conversion_rate: '₹1 = 100 Coins',
+                      fee_text: '0% Fees',
+                      disclaimer: '',
+                      custom_inputs: []
+                    });
+                    setTiersForm([]);
+                    setIsPayoutModalOpen(true);
+                  }}
+                >
+                  <Plus size={16} style={{ marginRight: '6px' }} /> Add Payout Gateway
                 </button>
               </div>
+              <div className={`${styles.lteCardBody} ${styles.lteTableResponsive}`}>
+                <table className={styles.lteTable}>
+                  <thead>
+                    <tr>
+                      <th>Gateway</th>
+                      <th>Redemption Tiers</th>
+                      <th>Priority Index</th>
+                      <th>Status</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {payoutMethods.map(method => (
+                      <tr key={method.id}>
+                        <td>
+                          <div className={styles.ltePayoutMeta}>
+                            <div className={styles.ltePayoutLogoContainer}>
+                              {method.logo_url && <img src={method.logo_url} className={styles.ltePayoutLogo} />}
+                            </div>
+                            <div>
+                              <div className={styles.ltePayoutTitle}>{method.name}</div>
+                              <div className={styles.ltePayoutSub}>{method.conversion_rate}</div>
+                            </div>
+                          </div>
+                        </td>
+                        <td>
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                            {method.tiers?.map((t: any) => (
+                              <span key={t.id} className={styles.lteTierTag}>
+                                {t.amount_text} ({t.coins_required} c)
+                              </span>
+                            ))}
+                          </div>
+                        </td>
+                        <td>
+                          <span style={{ fontWeight: 600 }}>{method.order_index}</span>
+                        </td>
+                        <td>
+                          <span className={`${styles.lteBadge} ${method.status === 'active' ? styles.lteBadgeSuccess : styles.lteBadgeDanger}`}>
+                            {method.status === 'active' ? 'Operational' : 'Disabled'}
+                          </span>
+                        </td>
+                        <td>
+                          <div className={styles.lteBtnGroup}>
+                            <button 
+                              className={`${styles.lteBtn} ${styles.lteBtnInfo}`}
+                              onClick={() => {
+                                setEditingPayout(method);
+                                setPayoutForm({ 
+                                  name: method.name, 
+                                  logo_url: method.logo_url || '', 
+                                  order_index: method.order_index, 
+                                  status: method.status,
+                                  conversion_rate: method.conversion_rate || '₹1 = 100 Coins',
+                                  fee_text: method.fee_text || '0% Fees',
+                                  disclaimer: method.disclaimer || '',
+                                  custom_inputs: method.custom_inputs || []
+                                });
+                                setTiersForm(method.tiers || []);
+                                setIsPayoutModalOpen(true);
+                              }}
+                            >
+                              <Edit3 size={14} />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
 
-              {/* Milestones Column */}
-              <div className={styles.tableCard} style={{ padding: '2rem' }}>
-                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-                    <h3 style={{ fontWeight: 700, color: '#4ade80' }}>Volume Milestones</h3>
-                    <button className={styles.addBtn} style={{ fontSize: '0.75rem', padding: '6px 12px' }} onClick={() => handleSaveMilestone({ required_referrals: 0, reward_coins: 0 })}>+ Add Milestone</button>
-                 </div>
-                 
-                 <table className={styles.adminTable}>
-                    <thead>
-                       <tr>
-                          <th>Invites Req.</th>
+          {/* ──── VIEW: WITHDRAWALS ──── */}
+          {activeView === 'withdrawals' && (
+            <div className={styles.lteCard}>
+              <div className={styles.lteCardHeader}>
+                <h3 className={styles.lteCardTitle}>Withdrawal Tickets</h3>
+              </div>
+              <div className={`${styles.lteCardBody} ${styles.lteTableResponsive}`}>
+                <table className={styles.lteTable}>
+                  <thead>
+                    <tr>
+                      <th>User</th>
+                      <th>Method</th>
+                      <th>Value</th>
+                      <th>Recipient details</th>
+                      <th>Ticket status</th>
+                      <th>Approval actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {withdrawals.map(req => (
+                      <tr key={req.id}>
+                        <td>
+                          <div className={styles.lteUserMeta}>
+                            <div className={styles.lteAvatarPlaceholder}>
+                              {(req.User?.first_name || 'U')[0].toUpperCase()}
+                            </div>
+                            <div>
+                              <div>{req.User?.first_name} {req.User?.last_name || ''}</div>
+                              <div className={styles.lteUserTag}>@{req.User?.username}</div>
+                            </div>
+                          </div>
+                        </td>
+                        <td>
+                          <strong>{req.PayoutMethod?.name}</strong>
+                        </td>
+                        <td>
+                          <div><strong>{req.amount_text}</strong></div>
+                          <div style={{ color: '#6c757d', fontSize: '11px' }}>{req.coins_used} coins used</div>
+                        </td>
+                        <td>
+                          <div className={styles.lteCodeField}>
+                            {req.payout_details}
+                          </div>
+                        </td>
+                        <td>
+                          <span className={`${styles.lteBadge} ${
+                            req.status === 'approved' ? styles.lteBadgeSuccess : 
+                            req.status === 'pending' ? styles.lteBadgeWarning : styles.lteBadgeDanger
+                          }`}>
+                            {req.status}
+                          </span>
+                        </td>
+                        <td>
+                          {req.status === 'pending' && (
+                            <div className={styles.lteBtnGroup}>
+                              <button 
+                                className={`${styles.lteBtn} ${styles.lteBtnSuccess}`}
+                                onClick={() => handleUpdateWithdrawal(req.id, 'approved')}
+                              >
+                                Approve
+                              </button>
+                              <button 
+                                className={`${styles.lteBtn} ${styles.lteBtnDanger}`}
+                                onClick={() => handleUpdateWithdrawal(req.id, 'rejected')}
+                              >
+                                Reject
+                              </button>
+                            </div>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {/* ──── VIEW: REFERRALS ──── */}
+          {activeView === 'referrals' && referralSettings && (
+            <div>
+              {/* Referral Stats Box */}
+              <div className={styles.lteStatsGrid}>
+                <div className={`${styles.lteSmallBox} ${styles.lteBgInfo}`}>
+                  <div className={styles.lteInner}>
+                    <h3>{referralStats?.totalInvites || 0}</h3>
+                    <p>Total Invited Users</p>
+                  </div>
+                  <div className={styles.lteIcon}>
+                    <Users size={70} />
+                  </div>
+                </div>
+
+                <div className={`${styles.lteSmallBox} ${styles.lteBgSuccess}`}>
+                  <div className={styles.lteInner}>
+                    <h3>{referralStats?.rewardedInvites || 0}</h3>
+                    <p>Qualified Conversions</p>
+                  </div>
+                  <div className={styles.lteIcon}>
+                    <CheckCircle2 size={70} />
+                  </div>
+                </div>
+
+                <div className={`${styles.lteSmallBox} ${styles.lteBgWarning}`}>
+                  <div className={styles.lteInner}>
+                    <h3>{referralStats?.conversionRate || 0}%</h3>
+                    <p>Conversion Success Rate</p>
+                  </div>
+                  <div className={styles.lteIcon}>
+                    <Activity size={70} />
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+                {/* General Settings */}
+                <div className={styles.lteCard}>
+                  <div className={styles.lteCardHeader}>
+                    <h3 className={styles.lteCardTitle}>Referral Engine Config</h3>
+                  </div>
+                  <div className={styles.lteCardBody}>
+                    <div className={styles.lteFormGroup}>
+                      <label className={styles.lteFormLabel}>Welcome Bonus (For Invitee)</label>
+                      <input 
+                        type="number" 
+                        className={styles.lteFormControl}
+                        value={referralSettings.welcome_bonus} 
+                        onChange={(e) => setReferralSettings({...referralSettings, welcome_bonus: parseInt(e.target.value)})}
+                      />
+                    </div>
+                    <div className={styles.lteFormGroup}>
+                      <label className={styles.lteFormLabel}>Referrer Reward (For Inviter)</label>
+                      <input 
+                        type="number" 
+                        className={styles.lteFormControl}
+                        value={referralSettings.referral_reward} 
+                        onChange={(e) => setReferralSettings({...referralSettings, referral_reward: parseInt(e.target.value)})}
+                      />
+                    </div>
+                    <div className={styles.lteFormGroup}>
+                      <label className={styles.lteFormLabel}>Ecosystem Reward Trigger</label>
+                      <select 
+                        className={styles.lteFormControl}
+                        value={referralSettings.reward_trigger}
+                        onChange={(e) => setReferralSettings({...referralSettings, reward_trigger: e.target.value})}
+                      >
+                        <option value="signup">Immediate Signup</option>
+                        <option value="earning">Minimum Earnings Met</option>
+                        <option value="redeem_request">First Redeem Requested</option>
+                        <option value="redeem_approved">First Redeem Approved</option>
+                      </select>
+                    </div>
+                    <div className={styles.lteFormGroup}>
+                      <label className={styles.lteFormLabel}>Min Redeem For Reward Eligibility (₹)</label>
+                      <input 
+                        type="number" 
+                        className={styles.lteFormControl}
+                        value={referralSettings.min_redeem_amount} 
+                        onChange={(e) => setReferralSettings({...referralSettings, min_redeem_amount: parseInt(e.target.value)})}
+                      />
+                    </div>
+
+                    <div className={styles.lteFraudBox}>
+                      <h5>Anti-Fraud Protection</h5>
+                      <div className={styles.lteFlexRowBetween}>
+                        <span>Block Invitation from Same Device</span>
+                        <input type="checkbox" checked={referralSettings.same_device_block} onChange={(e) => setReferralSettings({...referralSettings, same_device_block: e.target.checked})} />
+                      </div>
+                      <div className={styles.lteFlexRowBetween} style={{ marginTop: '10px' }}>
+                        <span>VPN & Proxy Intercept Security</span>
+                        <input type="checkbox" checked={referralSettings.vpn_detection} onChange={(e) => setReferralSettings({...referralSettings, vpn_detection: e.target.checked})} />
+                      </div>
+                    </div>
+
+                    <button className={`${styles.lteBtn} ${styles.lteBtnPrimary} ${styles.lteBtnBlock}`} onClick={handleUpdateReferralSettings}>
+                      Save Configuration
+                    </button>
+                  </div>
+                </div>
+
+                {/* Volume Milestones */}
+                <div className={styles.lteCard}>
+                  <div className={styles.lteCardHeader} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <h3 className={styles.lteCardTitle}>Volume Milestones</h3>
+                    <button 
+                      className={`${styles.lteBtn} ${styles.lteBtnSuccess}`}
+                      onClick={() => handleSaveMilestone({ required_referrals: 0, reward_coins: 0 })}
+                    >
+                      + Add
+                    </button>
+                  </div>
+                  <div className={styles.lteCardBody}>
+                    <table className={styles.lteTable}>
+                      <thead>
+                        <tr>
+                          <th>Invites Required</th>
                           <th>Bonus Coins</th>
-                          <th style={{ textAlign: 'right' }}>Actions</th>
-                       </tr>
-                    </thead>
-                    <tbody>
-                       {referralMilestones.map(m => (
-                         <tr key={m.id}>
+                          <th>Save / Delete</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {referralMilestones.map(m => (
+                          <tr key={m.id}>
                             <td>
-                               <input 
-                                 type="number" className={styles.formInput} 
-                                 style={{ padding: '4px 8px', width: '80px' }} 
-                                 value={m.required_referrals} 
-                                 onChange={(e) => {
-                                    const newM = [...referralMilestones];
-                                    const item = newM.find(it => it.id === m.id);
-                                    if (item) item.required_referrals = parseInt(e.target.value);
-                                    setReferralMilestones(newM);
-                                 }}
-                               />
+                              <input 
+                                type="number" 
+                                className={styles.lteFormControl}
+                                style={{ width: '90px', padding: '4px 8px' }} 
+                                value={m.required_referrals} 
+                                onChange={(e) => {
+                                  const newM = [...referralMilestones];
+                                  const item = newM.find(it => it.id === m.id);
+                                  if (item) item.required_referrals = parseInt(e.target.value);
+                                  setReferralMilestones(newM);
+                                }}
+                              />
                             </td>
                             <td>
-                               <input 
-                                 type="number" className={styles.formInput} 
-                                 style={{ padding: '4px 8px', width: '100px', fontWeight: 700, color: '#4ade80' }} 
-                                 value={m.reward_coins} 
-                                 onChange={(e) => {
-                                    const newM = [...referralMilestones];
-                                    const item = newM.find(it => it.id === m.id);
-                                    if (item) item.reward_coins = parseInt(e.target.value);
-                                    setReferralMilestones(newM);
-                                 }}
-                               />
+                              <input 
+                                type="number" 
+                                className={styles.lteFormControl}
+                                style={{ width: '110px', padding: '4px 8px', color: '#28a745', fontWeight: 'bold' }} 
+                                value={m.reward_coins} 
+                                onChange={(e) => {
+                                  const newM = [...referralMilestones];
+                                  const item = newM.find(it => it.id === m.id);
+                                  if (item) item.reward_coins = parseInt(e.target.value);
+                                  setReferralMilestones(newM);
+                                }}
+                              />
                             </td>
                             <td>
-                               <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
-                                  <button className={styles.actionBtn} title="Save" onClick={() => handleSaveMilestone(m)}><CheckCircle2 size={16} color="#10b981" /></button>
-                                  <button className={styles.actionBtn} title="Delete" style={{ color: '#f87171' }} onClick={() => handleDeleteMilestone(m.id)}><Trash2 size={16} /></button>
-                               </div>
+                              <div className={styles.lteBtnGroup}>
+                                <button className={`${styles.lteBtn} ${styles.lteBtnSuccess}`} onClick={() => handleSaveMilestone(m)}>
+                                  ✓
+                                </button>
+                                <button className={`${styles.lteBtn} ${styles.lteBtnDanger}`} onClick={() => handleDeleteMilestone(m.id)}>
+                                  ✕
+                                </button>
+                              </div>
                             </td>
-                         </tr>
-                       ))}
-                    </tbody>
-                 </table>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
               </div>
             </div>
-          </section>
-        )}
-      </main>
+          )}
 
-      {/* Edit User Modal */}
-      {editingUser && (
-        <div className={styles.modalOverlay}>
-          <div className={styles.modalBox}>
-            <div className={styles.modalHeader}>
-              <h3 style={{ fontSize: '1.5rem', fontWeight: 700 }}>Profile Settings: {editingUser.first_name}</h3>
-              <X className={styles.actionBtn} onClick={() => setEditingUser(null)} />
-            </div>
-            
-            <div className={styles.modalContent}>
-              <div className={styles.formGroup}>
-                <label className={styles.formLabel}>Wallet Balance (Coins)</label>
-                <input 
-                  type="number" 
-                  className={styles.formInput}
-                  value={newBalance}
-                  onChange={(e) => setNewBalance(e.target.value)}
-                  style={{ fontSize: '1.25rem', fontWeight: 700, color: '#4ade80' }}
-                />
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem', marginBottom: '2rem' }}>
-                <div 
-                  style={{ 
-                    padding: '1.25rem', 
-                    background: 'var(--bg-input)', 
-                    borderRadius: '1.25rem',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    gap: '12px',
-                    cursor: 'pointer',
-                    border: '2px solid',
-                    borderColor: editingUser.is_phone_verified ? '#4ade80' : 'var(--border-subtle)',
-                    transition: 'var(--transition-fast)'
+          {/* ──── VIEW: TOURNAMENTS (CONTESTS) ──── */}
+          {activeView === 'contests' && (
+            <div className={styles.lteCard}>
+              <div className={styles.lteCardHeader} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <h3 className={styles.lteCardTitle}>Active Contests & Tournaments</h3>
+                <button 
+                  className={`${styles.lteBtn} ${styles.lteBtnPrimary}`}
+                  onClick={() => {
+                    setEditingContest(null);
+                    setContestForm({
+                      name: '',
+                      slug: '',
+                      type: 'earning',
+                      status: 'active',
+                      start_time: new Date().toISOString().slice(0, 16),
+                      end_time: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 16),
+                      description: '',
+                      rules: '',
+                      min_qualification: 0,
+                      prize_pool_text: '₹0',
+                      is_auto_distribute: false
+                    });
+                    setIsContestModalOpen(true);
                   }}
-                  onClick={() => setEditingUser({...editingUser, is_phone_verified: !editingUser.is_phone_verified})}
                 >
-                  <ShieldCheck size={28} color={editingUser.is_phone_verified ? "#4ade80" : "#475569"} />
-                  <span style={{ fontSize: '0.875rem', fontWeight: 600 }}>Phone Verified</span>
-                </div>
-
-                <div 
-                  style={{ 
-                    padding: '1.25rem', 
-                    background: 'var(--bg-input)', 
-                    borderRadius: '1.25rem',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    gap: '12px',
-                    cursor: 'pointer',
-                    border: '2px solid',
-                    borderColor: editingUser.is_channel_joined ? '#38bdf8' : 'var(--border-subtle)',
-                    transition: 'var(--transition-fast)'
-                  }}
-                  onClick={() => setEditingUser({...editingUser, is_channel_joined: !editingUser.is_channel_joined})}
-                >
-                  <Users size={28} color={editingUser.is_channel_joined ? "#38bdf8" : "#475569"} />
-                  <span style={{ fontSize: '0.875rem', fontWeight: 600 }}>Social Synced</span>
-                </div>
+                  <Plus size={16} style={{ marginRight: '6px' }} /> Start New Contest
+                </button>
+              </div>
+              <div className={`${styles.lteCardBody} ${styles.lteTableResponsive}`}>
+                <table className={styles.lteTable}>
+                  <thead>
+                    <tr>
+                      <th>Challenge info</th>
+                      <th>Tournament Type</th>
+                      <th>Time Frame</th>
+                      <th>Prize Pool</th>
+                      <th>Status</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {contests.map(contest => (
+                      <tr key={contest.id}>
+                        <td>
+                          <div><strong>{contest.name}</strong></div>
+                          <div style={{ color: '#6c757d', fontSize: '11px' }}>/{contest.slug}</div>
+                        </td>
+                        <td>
+                          <span style={{ textTransform: 'uppercase', fontWeight: 'bold', color: '#17a2b8' }}>
+                            {contest.type}
+                          </span>
+                        </td>
+                        <td>
+                          Ends: {new Date(contest.end_time).toLocaleDateString()}
+                        </td>
+                        <td>
+                          <div style={{ color: '#28a745', fontWeight: 'bold' }}>{contest.prize_pool_text}</div>
+                          <div style={{ fontSize: '11px', color: '#6c757d' }}>{contest.rewards?.length || 0} distribution tiers</div>
+                        </td>
+                        <td>
+                          <span className={`${styles.lteBadge} ${contest.status === 'active' ? styles.lteBadgeSuccess : styles.lteBadgeDanger}`}>
+                            {contest.status.toUpperCase()}
+                          </span>
+                        </td>
+                        <td>
+                          <div className={styles.lteBtnGroup}>
+                            <button 
+                              className={`${styles.lteBtn} ${styles.lteBtnInfo}`} 
+                              onClick={() => {
+                                setEditingContest(contest);
+                                setContestForm({
+                                  ...contest,
+                                  start_time: new Date(contest.start_time).toISOString().slice(0, 16),
+                                  end_time: new Date(contest.end_time).toISOString().slice(0, 16)
+                                });
+                                setIsContestModalOpen(true);
+                              }}
+                            >
+                              <Edit3 size={14} />
+                            </button>
+                            <button 
+                              className={`${styles.lteBtn} ${styles.lteBtnDanger}`}
+                              onClick={() => handleDeleteContest(contest.id)}
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
             </div>
+          )}
 
-            <div className={styles.modalActions}>
-              <button className={styles.btnSecondary} onClick={() => setEditingUser(null)}>Dismiss</button>
-              <button 
-                className={styles.btnPrimary}
-                onClick={() => handleUpdateUser(editingUser.telegram_id, { 
-                  balance: parseInt(newBalance),
-                  is_phone_verified: editingUser.is_phone_verified,
-                  is_channel_joined: editingUser.is_channel_joined
-                })}
-              >
-                Update Identity
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Payout Editor Modal */}
-      {isPayoutModalOpen && (
-        <div className={styles.modalOverlay}>
-          <div className={styles.modalBox}>
-            <div className={styles.modalHeader}>
-              <h3 style={{ fontSize: '1.5rem', fontWeight: 700 }}>
-                {editingPayout ? 'Configure Gateway' : 'New Gateway'}
-              </h3>
-              <X className={styles.actionBtn} onClick={() => setIsPayoutModalOpen(false)} />
-            </div>
-
-            <div className={styles.modalContent}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem', marginBottom: '1.5rem' }}>
-                <div className={styles.formGroup}>
-                  <label className={styles.formLabel}>Gateway Name</label>
-                  <input 
-                    className={styles.formInput}
-                    placeholder="e.g. UPI, Amazon Pay"
-                    value={payoutForm.name}
-                    onChange={(e) => setPayoutForm({...payoutForm, name: e.target.value})}
-                  />
-                </div>
-                <div className={styles.formGroup}>
-                  <label className={styles.formLabel}>Branding (Logo URI)</label>
-                  <input 
-                    className={styles.formInput}
-                    placeholder="https://..."
-                    value={payoutForm.logo_url}
-                    onChange={(e) => setPayoutForm({...payoutForm, logo_url: e.target.value})}
-                  />
-                </div>
+          {/* ──── VIEW: AUDIT LOGS ──── */}
+          {activeView === 'transactions' && (
+            <div className={styles.lteCard}>
+              <div className={styles.lteCardHeader}>
+                <h3 className={styles.lteCardTitle}>System Audit Ledger</h3>
               </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem', marginBottom: '1.5rem' }}>
-                <div className={styles.formGroup}>
-                  <label className={styles.formLabel}>Display Priority</label>
-                  <input 
-                    type="number"
-                    className={styles.formInput}
-                    value={payoutForm.order_index}
-                    onChange={(e) => setPayoutForm({...payoutForm, order_index: parseInt(e.target.value)})}
-                  />
-                </div>
-                <div className={styles.formGroup}>
-                  <label className={styles.formLabel}>Operational Status</label>
-                  <select 
-                    className={styles.formInput}
-                    value={payoutForm.status}
-                    onChange={(e) => setPayoutForm({...payoutForm, status: e.target.value})}
-                  >
-                    <option value="active">Operational</option>
-                    <option value="inactive">Disabled</option>
-                  </select>
-                </div>
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem', marginBottom: '1.5rem' }}>
-                <div className={styles.formGroup}>
-                  <label className={styles.formLabel}>Conversion Reference</label>
-                  <input 
-                    className={styles.formInput}
-                    placeholder="₹1 = 100 Coins"
-                    value={payoutForm.conversion_rate}
-                    onChange={(e) => setPayoutForm({...payoutForm, conversion_rate: e.target.value})}
-                  />
-                </div>
-                <div className={styles.formGroup}>
-                  <label className={styles.formLabel}>Transaction Surcharge</label>
-                  <input 
-                    className={styles.formInput}
-                    placeholder="0% Fees"
-                    value={payoutForm.fee_text}
-                    onChange={(e) => setPayoutForm({...payoutForm, fee_text: e.target.value})}
-                  />
-                </div>
-              </div>
-
-              <div className={styles.formGroup} style={{ marginBottom: '2rem' }}>
-                <label className={styles.formLabel}>Redemption Policy / Disclaimer</label>
-                <textarea 
-                  className={styles.formInput}
-                  style={{ height: '100px', resize: 'none' }}
-                  placeholder="Legal requirements or payout timelines..."
-                  value={payoutForm.disclaimer}
-                  onChange={(e) => setPayoutForm({...payoutForm, disclaimer: e.target.value})}
-                />
-              </div>
-
-              {/* Dynamic Inputs Builder */}
-              <div style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: '2rem', marginBottom: '2rem' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-                  <h4 style={{ fontWeight: 600, color: '#38bdf8', fontSize: '1.1rem' }}>Required User Inputs</h4>
-                  <button 
-                    className={styles.addBtn} 
-                    style={{ fontSize: '0.8125rem' }}
-                    onClick={() => setPayoutForm({
-                      ...payoutForm, 
-                      custom_inputs: [...payoutForm.custom_inputs, { name: '', placeholder: '' }]
-                    })}
-                  >
-                    + Add Field
-                  </button>
-                </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                  {payoutForm.custom_inputs.map((input, idx) => (
-                    <div key={idx} className={styles.fieldCard}>
-                      <input 
-                        className={styles.formInput}
-                        placeholder="Label (e.g. Account Number)"
-                        value={input.name}
-                        onChange={(e) => {
-                          const newInputs = [...payoutForm.custom_inputs];
-                          newInputs[idx].name = e.target.value;
-                          setPayoutForm({ ...payoutForm, custom_inputs: newInputs });
-                        }}
-                      />
-                      <input 
-                        className={styles.formInput}
-                        placeholder="Placeholder Text"
-                        value={input.placeholder}
-                        onChange={(e) => {
-                          const newInputs = [...payoutForm.custom_inputs];
-                          newInputs[idx].placeholder = e.target.value;
-                          setPayoutForm({ ...payoutForm, custom_inputs: newInputs });
-                        }}
-                      />
-                      <button 
-                        className={styles.actionBtn}
-                        style={{ color: '#f87171' }}
-                        onClick={() => {
-                          const newInputs = payoutForm.custom_inputs.filter((_, i) => i !== idx);
-                          setPayoutForm({ ...payoutForm, custom_inputs: newInputs });
-                        }}
-                      >
-                        <Trash2 size={20} />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Tiers Builder */}
-              <div style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: '2rem', marginBottom: '1rem' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-                  <h4 style={{ fontWeight: 600, color: '#4ade80', fontSize: '1.1rem' }}>Redemption Tiers</h4>
-                  <button 
-                    className={styles.addBtn} 
-                    style={{ fontSize: '0.8125rem', borderColor: '#4ade80', color: '#4ade80', background: 'rgba(74,222,128,0.1)' }}
-                    onClick={() => setTiersForm([...tiersForm, { amount_text: '', coins_required: 0 }])}
-                  >
-                    + Add Reward Tier
-                  </button>
-                </div>
-                <div className={styles.tierGrid}>
-                  {tiersForm.map((tier, idx) => (
-                    <div key={idx} className={styles.tierCard}>
-                      <button 
-                        className={styles.actionBtn}
-                        style={{ position: 'absolute', top: '0.5rem', right: '0.5rem', color: '#f87171', padding: '4px' }}
-                        onClick={() => {
-                          const newTiers = tiersForm.filter((_, i) => i !== idx);
-                          setTiersForm(newTiers);
-                        }}
-                      >
-                        <Trash2 size={14} />
-                      </button>
-                      <div className={styles.formGroup} style={{ marginBottom: '0.75rem' }}>
-                        <label className={styles.formLabel} style={{ fontSize: '0.75rem' }}>Reward Value</label>
-                        <input 
-                          className={styles.formInput}
-                          style={{ padding: '0.5rem 0.75rem', fontSize: '0.875rem' }}
-                          placeholder="e.g. ₹50"
-                          value={tier.amount_text}
-                          onChange={(e) => {
-                            const newTiers = [...tiersForm];
-                            newTiers[idx].amount_text = e.target.value;
-                            setTiersForm(newTiers);
-                          }}
-                        />
-                      </div>
-                      <div className={styles.formGroup} style={{ marginBottom: 0 }}>
-                        <label className={styles.formLabel} style={{ fontSize: '0.75rem' }}>Coin Cost</label>
-                        <input 
-                          type="number"
-                          className={styles.formInput}
-                          style={{ padding: '0.5rem 0.75rem', fontSize: '0.875rem', fontWeight: 700 }}
-                          placeholder="5000"
-                          value={tier.coins_required}
-                          onChange={(e) => {
-                            const newTiers = [...tiersForm];
-                            newTiers[idx].coins_required = parseInt(e.target.value);
-                            setTiersForm(newTiers);
-                          }}
-                        />
-                      </div>
-                    </div>
-                  ))}
-                </div>
+              <div className={`${styles.lteCardBody} ${styles.lteTableResponsive}`}>
+                <table className={`${styles.lteTable} ${styles.lteTableStriped}`}>
+                  <thead>
+                    <tr>
+                      <th>Reference ID</th>
+                      <th>Telegram ID</th>
+                      <th>Transaction Type</th>
+                      <th>Token Value</th>
+                      <th>Time UTC</th>
+                      <th>ledger memo</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {transactions.map(txn => (
+                      <tr key={txn.id}>
+                        <td>
+                          <code className={styles.lteCode}>{txn.reference_id || `ID-${txn.id}`}</code>
+                        </td>
+                        <td>{txn.telegram_id}</td>
+                        <td>
+                          <span className={`${styles.lteBadge} ${txn.type === 'withdrawal' ? styles.lteBadgeDanger : styles.lteBadgeSuccess}`}>
+                            {txn.type}
+                          </span>
+                        </td>
+                        <td>
+                          <strong style={txn.type === 'withdrawal' ? { color: '#dc3545' } : { color: '#28a745' }}>
+                            {txn.type === 'withdrawal' ? '-' : '+'}{txn.amount}
+                          </strong>
+                        </td>
+                        <td>
+                          {txn.created_at ? new Date(txn.created_at).toLocaleString() : (txn.createdAt ? new Date(txn.createdAt).toLocaleString() : 'N/A')}
+                        </td>
+                        <td>
+                          {txn.description}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
             </div>
+          )}
 
-            <div className={styles.modalActions}>
-              <button className={styles.btnSecondary} onClick={() => setIsPayoutModalOpen(false)}>Discard</button>
-              <button className={styles.btnPrimary} onClick={handleSavePayout}>Commit Gateway Changes</button>
-            </div>
-          </div>
-        </div>
-      )}
-      {/* Contest Editor Modal */}
-      {isContestModalOpen && (
-        <div className={styles.modalOverlay}>
-          <div className={styles.modalBox}>
-            <div className={styles.modalHeader}>
-              <h3 style={{ fontSize: '1.5rem', fontWeight: 700 }}>
-                {editingContest ? 'Edit Contest' : 'New Contest'}
-              </h3>
-              <X className={styles.actionBtn} onClick={() => setIsContestModalOpen(false)} />
-            </div>
-
-            <div className={styles.modalContent}>
-              <div className={styles.formGroup}>
-                <label className={styles.formLabel}>Contest Name</label>
-                <input 
-                  className={styles.formInput}
-                  placeholder="Weekly Earning Challenge"
-                  value={contestForm.name}
-                  onChange={(e) => setContestForm({...contestForm, name: e.target.value})}
-                />
+          {/* ──── VIEW: CHECK-IN REWARDS ──── */}
+          {activeView === 'daily_rewards' && (
+            <div className={styles.lteCard} style={{ maxWidth: '650px' }}>
+              <div className={styles.lteCardHeader}>
+                <h3 className={styles.lteCardTitle}>Daily Check-in Reward Progression</h3>
               </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem', marginBottom: '1.5rem' }}>
-                <div className={styles.formGroup}>
-                  <label className={styles.formLabel}>URL Slug</label>
-                  <input 
-                    className={styles.formInput}
-                    placeholder="weekly-earning"
-                    value={contestForm.slug}
-                    onChange={(e) => setContestForm({...contestForm, slug: e.target.value})}
-                  />
-                </div>
-                <div className={styles.formGroup}>
-                  <label className={styles.formLabel}>Tracking Type</label>
-                  <select 
-                    className={styles.formInput}
-                    value={contestForm.type}
-                    onChange={(e) => setContestForm({...contestForm, type: e.target.value as any})}
-                  >
-                    <option value="earning">Earning (Coins)</option>
-                    <option value="referral">Referral (Invites)</option>
-                    <option value="streak">Streak (Daily Logins)</option>
-                  </select>
-                </div>
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem', marginBottom: '1.5rem' }}>
-                <div className={styles.formGroup}>
-                  <label className={styles.formLabel}>Start Time</label>
-                  <input 
-                    type="datetime-local"
-                    className={styles.formInput}
-                    value={contestForm.start_time}
-                    onChange={(e) => setContestForm({...contestForm, start_time: e.target.value})}
-                  />
-                </div>
-                <div className={styles.formGroup}>
-                  <label className={styles.formLabel}>End Time</label>
-                  <input 
-                    type="datetime-local"
-                    className={styles.formInput}
-                    value={contestForm.end_time}
-                    onChange={(e) => setContestForm({...contestForm, end_time: e.target.value})}
-                  />
-                </div>
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem', marginBottom: '1.5rem' }}>
-                <div className={styles.formGroup}>
-                  <label className={styles.formLabel}>Prize Pool Text</label>
-                  <input 
-                    className={styles.formInput}
-                    placeholder="₹5000"
-                    value={contestForm.prize_pool_text}
-                    onChange={(e) => setContestForm({...contestForm, prize_pool_text: e.target.value})}
-                  />
-                </div>
-                <div className={styles.formGroup}>
-                  <label className={styles.formLabel}>Status</label>
-                  <select 
-                    className={styles.formInput}
-                    value={contestForm.status}
-                    onChange={(e) => setContestForm({...contestForm, status: e.target.value as any})}
-                  >
-                    <option value="upcoming">Upcoming</option>
-                    <option value="active">Active</option>
-                    <option value="ended">Ended</option>
-                  </select>
-                </div>
-              </div>
-
-              {editingContest && (
-                <div style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: '1.5rem', marginBottom: '1.5rem' }}>
-                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                      <h4 style={{ fontWeight: 600, color: '#10b981' }}>Reward Tiers</h4>
-                      <button 
-                        className={styles.addBtn}
-                        onClick={() => {
-                          const rank = prompt("Enter Rank From:");
-                          const value = prompt("Enter Reward Coins:");
-                          const text = prompt("Enter Display Text (e.g. ₹500):");
-                          if (rank && value) {
-                            handleAddContestReward(editingContest.id, {
-                              rank_from: parseInt(rank),
-                              rank_to: parseInt(rank),
-                              reward_value: parseInt(value),
-                              reward_text: text || `${value} Coins`
-                            });
-                          }
-                        }}
-                      >
-                        + Add Reward
-                      </button>
-                   </div>
-                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
-                      {editingContest.rewards?.map((r: any) => (
-                        <div key={r.id} style={{ background: 'rgba(16,185,129,0.1)', color: '#10b981', padding: '8px 12px', borderRadius: '12px', display: 'flex', alignItems: 'center', gap: '10px', fontSize: '0.875rem' }}>
-                           <span>Rank {r.rank_from}: <strong>{r.reward_text}</strong></span>
-                        </div>
-                      ))}
-                   </div>
-                </div>
-              )}
-            </div>
-
-            <div className={styles.modalActions}>
-              <button className={styles.btnSecondary} onClick={() => setIsContestModalOpen(false)}>Cancel</button>
-              <button className={styles.btnPrimary} onClick={handleSaveContest}>Save Contest</button>
-            </div>
-          </div>
-        </div>
-      )}
-        {activeView === 'settings' && (
-          <section>
-            <div className={styles.sectionHeader}>
-              <h2 className={styles.sectionTitle}>Global Application Settings</h2>
-              <p className={styles.sectionDesc}>Configure game rewards, ad networks, and platform-wide parameters</p>
-            </div>
- 
-            <div className={styles.card} style={{ padding: '2rem', background: 'var(--bg-card)', border: '1px solid var(--border-subtle)', borderRadius: '1.5rem' }}>
-               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem', marginBottom: '2rem' }}>
-                  <div className={styles.formGroup}>
-                     <label className={styles.formLabel}>Game Reward Amount (Coins)</label>
-                     <input 
-                        type="number"
-                        className={styles.formInput}
-                        value={appSettings?.game_reward_coins || 0}
-                        onChange={(e) => setAppSettings({...appSettings, game_reward_coins: parseInt(e.target.value)})}
-                     />
-                     <p style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '0.5rem' }}>Coins awarded to user for each completed ad/game.</p>
-                  </div>
-                  <div className={styles.formGroup}>
-                     <label className={styles.formLabel}>Daily Play Limit (Per User)</label>
-                     <input 
-                        type="number"
-                        className={styles.formInput}
-                        value={appSettings?.game_limit_per_day || 0}
-                        onChange={(e) => setAppSettings({...appSettings, game_limit_per_day: parseInt(e.target.value)})}
-                     />
-                     <p style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '0.5rem' }}>Maximum number of reward-eligible ads a user can watch per day.</p>
-                  </div>
-               </div>
- 
-               <div style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: '2rem', marginBottom: '2rem' }}>
-                  <h4 style={{ fontWeight: 600, color: '#38bdf8', fontSize: '1.1rem', marginBottom: '1.5rem' }}>Ad Network Configuration</h4>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem', marginBottom: '2rem' }}>
-                     <div className={styles.formGroup}>
-                        <label className={styles.formLabel}>AdsGram Block ID</label>
-                        <input 
-                           className={styles.formInput}
-                           placeholder="e.g. 4376"
-                           value={appSettings?.adsgram_block_id || ''}
-                           onChange={(e) => setAppSettings({...appSettings, adsgram_block_id: e.target.value})}
-                        />
-                     </div>
-                     <div className={styles.formGroup}>
-                        <label className={styles.formLabel}>Monetag Zone ID</label>
-                        <input 
-                           className={styles.formInput}
-                           placeholder="e.g. 10977311"
-                           value={appSettings?.monetag_zone_id || ''}
-                           onChange={(e) => setAppSettings({...appSettings, monetag_zone_id: e.target.value})}
-                        />
-                     </div>
-                  </div>
-
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem', marginBottom: '2rem' }}>
-                     <div className={styles.formGroup}>
-                        <label className={styles.formLabel}>PubScale App ID</label>
-                        <input 
-                           className={styles.formInput}
-                           placeholder="e.g. 26048184"
-                           value={appSettings?.pubscale_app_id || ''}
-                           onChange={(e) => setAppSettings({...appSettings, pubscale_app_id: e.target.value})}
-                        />
-                     </div>
-                     <div className={styles.formGroup}>
-                        <label className={styles.formLabel}>Opinion Universe URL</label>
-                        <input 
-                           className={styles.formInput}
-                           placeholder="https://..."
-                           value={appSettings?.opinion_universe_url || ''}
-                           onChange={(e) => setAppSettings({...appSettings, opinion_universe_url: e.target.value})}
-                        />
-                     </div>
-                  </div>
-
-                  <h4 style={{ fontWeight: 600, color: '#f59e0b', fontSize: '1.1rem', marginBottom: '1.5rem' }}>Toggle Networks & System</h4>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1.25rem', background: 'rgba(255,255,255,0.02)', borderRadius: '16px', border: '1px solid var(--border-subtle)' }}>
-                      <div style={{ fontWeight: 600, color: '#fff' }}>Enable AdsGram</div>
-                      <input 
-                        type="checkbox" 
-                        checked={appSettings?.adsgram_enabled ?? true} 
-                        onChange={(e) => setAppSettings({...appSettings, adsgram_enabled: e.target.checked})}
-                        style={{ width: '22px', height: '22px', cursor: 'pointer' }}
-                      />
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1.25rem', background: 'rgba(255,255,255,0.02)', borderRadius: '16px', border: '1px solid var(--border-subtle)' }}>
-                      <div style={{ fontWeight: 600, color: '#fff' }}>Enable Monetag</div>
-                      <input 
-                        type="checkbox" 
-                        checked={appSettings?.monetag_enabled ?? true} 
-                        onChange={(e) => setAppSettings({...appSettings, monetag_enabled: e.target.checked})}
-                        style={{ width: '22px', height: '22px', cursor: 'pointer' }}
-                      />
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1.25rem', background: 'rgba(255,255,255,0.02)', borderRadius: '16px', border: '1px solid var(--border-subtle)' }}>
-                      <div style={{ fontWeight: 600, color: '#fff' }}>Enable PubScale</div>
-                      <input 
-                        type="checkbox" 
-                        checked={appSettings?.pubscale_enabled ?? true} 
-                        onChange={(e) => setAppSettings({...appSettings, pubscale_enabled: e.target.checked})}
-                        style={{ width: '22px', height: '22px', cursor: 'pointer' }}
-                      />
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1.25rem', background: 'rgba(255,255,255,0.02)', borderRadius: '16px', border: '1px solid var(--border-subtle)' }}>
-                      <div style={{ fontWeight: 600, color: '#fbbf24' }}>PubScale Sandbox Mode</div>
-                      <input 
-                        type="checkbox" 
-                        checked={appSettings?.pubscale_sandbox ?? false} 
-                        onChange={(e) => setAppSettings({...appSettings, pubscale_sandbox: e.target.checked})}
-                        style={{ width: '22px', height: '22px', cursor: 'pointer' }}
-                      />
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1.25rem', background: 'rgba(255,255,255,0.02)', borderRadius: '16px', border: '1px solid var(--border-subtle)' }}>
-                      <div style={{ fontWeight: 600, color: '#fff' }}>Enable Opinion Universe</div>
-                      <input 
-                        type="checkbox" 
-                        checked={appSettings?.opinion_universe_enabled ?? true} 
-                        onChange={(e) => setAppSettings({...appSettings, opinion_universe_enabled: e.target.checked})}
-                        style={{ width: '22px', height: '22px', cursor: 'pointer' }}
-                      />
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1.25rem', background: 'rgba(255,255,255,0.02)', borderRadius: '16px', border: '1px solid var(--border-subtle)' }}>
-                      <div style={{ fontWeight: 600, color: '#fff' }}>Onboarding Overlay</div>
-                      <input 
-                        type="checkbox" 
-                        checked={appSettings?.onboarding_verification_enabled ?? true} 
-                        onChange={(e) => setAppSettings({...appSettings, onboarding_verification_enabled: e.target.checked})}
-                        style={{ width: '22px', height: '22px', cursor: 'pointer' }}
-                      />
-                    </div>
-                  </div>
-               </div>
- 
-               <div style={{ display: 'flex', justifyContent: 'flex-end', borderTop: '1px solid var(--border-subtle)', paddingTop: '2rem' }}>
-                  <button className={styles.btnPrimary} onClick={handleUpdateAppSettings} style={{ padding: '1rem 3rem' }}>
-                     Save Global Changes
-                  </button>
-               </div>
-            </div>
-          </section>
-        )}
-
-        {activeView === 'daily_rewards' && (
-          <section>
-            <div className={styles.sectionHeader}>
-              <h2 className={styles.sectionTitle}>Daily Check-in Rewards</h2>
-              <p className={styles.sectionDesc}>Configure rewards for the 7-day streak system</p>
-            </div>
-
-            <div className={styles.card} style={{ padding: '2rem', background: 'var(--bg-card)', border: '1px solid var(--border-subtle)', borderRadius: '1.5rem', maxWidth: '600px' }}>
-               <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+              <div className={styles.lteCardBody}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
                   {dailyRewards.map((reward, idx) => (
-                    <div key={reward.day} style={{ display: 'grid', gridTemplateColumns: '100px 1fr', alignItems: 'center', gap: '1rem', padding: '1rem', background: 'rgba(255,255,255,0.02)', borderRadius: '12px', border: '1px solid var(--border-subtle)' }}>
-                      <div style={{ fontWeight: 700, color: '#38bdf8' }}>Day {reward.day}</div>
-                      <div className={styles.formGroup} style={{ marginBottom: 0 }}>
+                    <div key={reward.day} className={styles.lteRewardRowItem}>
+                      <div className={styles.lteDayText}>Day {reward.day} Streak</div>
+                      <div className={styles.lteInputGroup} style={{ marginBottom: 0 }}>
                         <input 
                           type="number"
-                          className={styles.formInput}
+                          className={styles.lteFormControl}
                           value={reward.reward_amount}
                           onChange={(e) => {
                             const newRewards = [...dailyRewards];
@@ -1673,14 +1208,15 @@ export default function AdminPanel() {
                             setDailyRewards(newRewards);
                           }}
                         />
+                        <span className={styles.lteInputGroupText}>Coins Reward</span>
                       </div>
                     </div>
                   ))}
-               </div>
+                </div>
 
-               <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '2rem', borderTop: '1px solid var(--border-subtle)', paddingTop: '2rem' }}>
+                <div style={{ marginTop: '20px', borderTop: '1px solid #dee2e6', paddingTop: '20px', display: 'flex', justifyContent: 'flex-end' }}>
                   <button 
-                    className={styles.btnPrimary} 
+                    className={`${styles.lteBtn} ${styles.lteBtnPrimary}`} 
                     onClick={async () => {
                       try {
                         const res = await fetch(`${API_URL}/api/admin/rewards`, {
@@ -1696,49 +1232,50 @@ export default function AdminPanel() {
                         showToast("Failed to update rewards", "error");
                       }
                     }}
-                    style={{ padding: '1rem 3rem' }}
                   >
-                    Update Reward Values
+                    <Save size={16} style={{ marginRight: '6px' }} /> Update Streak Rewards
                   </button>
-               </div>
-            </div>
-          </section>
-        )}
-
-        {activeView === 'visit_tasks' && (
-          <section>
-            <div className={styles.sectionHeader} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
-              <div>
-                <h2 className={styles.sectionTitle}>Visit & Earn Tasks</h2>
-                <p className={styles.sectionDesc}>Create external link tasks for users to earn coins</p>
+                </div>
               </div>
-              <button className={styles.addBtn} onClick={() => setIsVisitModalOpen(true)}>
-                + Add Visit Task
-              </button>
             </div>
+          )}
 
-            <div className={styles.tableCard}>
-              <table className={styles.adminTable}>
-                <thead>
-                  <tr>
-                    <th>Task Title</th>
-                    <th>Target URL</th>
-                    <th>Reward</th>
-                    <th>Timer</th>
-                    <th style={{ textAlign: 'right' }}>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {visitTasks.map(task => (
-                    <tr key={task.id}>
-                      <td style={{ fontWeight: 600, color: '#fff' }}>{task.title}</td>
-                      <td style={{ fontSize: '0.8125rem', color: '#64748b', maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis' }}>{task.url}</td>
-                      <td style={{ color: '#4ade80', fontWeight: 700 }}>{task.reward_amount} Coins</td>
-                      <td>{task.timer_seconds}s</td>
-                      <td>
-                        <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+          {/* ──── VIEW: VISIT TASKS ──── */}
+          {activeView === 'visit_tasks' && (
+            <div className={styles.lteCard}>
+              <div className={styles.lteCardHeader} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <h3 className={styles.lteCardTitle}>External Visit & Earn Campaign Links</h3>
+                <button className={`${styles.lteBtn} ${styles.lteBtnPrimary}`} onClick={() => setIsVisitModalOpen(true)}>
+                  <Plus size={16} style={{ marginRight: '6px' }} /> Add Visit Task
+                </button>
+              </div>
+              <div className={`${styles.lteCardBody} ${styles.lteTableResponsive}`}>
+                <table className={styles.lteTable}>
+                  <thead>
+                    <tr>
+                      <th>Campaign Title</th>
+                      <th>Target Link Url</th>
+                      <th>Payout Coins</th>
+                      <th>Timer Requirement</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {visitTasks.map(task => (
+                      <tr key={task.id}>
+                        <td><strong>{task.title}</strong></td>
+                        <td>
+                          <a href={task.url} target="_blank" rel="noreferrer" style={{ color: '#007bff', wordBreak: 'break-all' }}>{task.url}</a>
+                        </td>
+                        <td>
+                          <span className={styles.lteCoinTag}>{task.reward_amount} Coins</span>
+                        </td>
+                        <td>
+                          <span className={`${styles.lteBadge} ${styles.lteBadgeInfo}`}>{task.timer_seconds}s</span>
+                        </td>
+                        <td>
                           <button 
-                            className={`${styles.actionBtn} ${styles.btnDanger}`}
+                            className={`${styles.lteBtn} ${styles.lteBtnDanger}`}
                             onClick={async () => {
                               if (confirm("Delete this task?")) {
                                 try {
@@ -1755,69 +1292,580 @@ export default function AdminPanel() {
                               }
                             }}
                           >
-                            <Trash2 size={18} />
+                            <Trash2 size={14} />
                           </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
-          </section>
-        )}
+          )}
 
-        {/* Visit Task Modal */}
-        {isVisitModalOpen && (
-          <div className={styles.modalOverlay}>
-            <div className={styles.modalBox} style={{ maxWidth: '400px' }}>
-              <div className={styles.modalHeader}>
-                <h3>New Visit Task</h3>
-                <X className={styles.actionBtn} onClick={() => setIsVisitModalOpen(false)} />
+          {/* ──── VIEW: SETTINGS ──── */}
+          {activeView === 'settings' && appSettings && (
+            <div className={styles.lteCard}>
+              <div className={styles.lteCardHeader}>
+                <h3 className={styles.lteCardTitle}>Global Ecosystem Variables</h3>
               </div>
-              <div className={styles.modalContent}>
-                <div className={styles.formGroup}>
-                  <label className={styles.formLabel}>Task Title</label>
-                  <input className={styles.formInput} value={visitForm.title} onChange={e => setVisitForm({...visitForm, title: e.target.value})} placeholder="e.g. Visit Our Website" />
-                </div>
-                <div className={styles.formGroup}>
-                  <label className={styles.formLabel}>URL</label>
-                  <input className={styles.formInput} value={visitForm.url} onChange={e => setVisitForm({...visitForm, url: e.target.value})} placeholder="https://..." />
-                </div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                  <div className={styles.formGroup}>
-                    <label className={styles.formLabel}>Reward (Coins)</label>
-                    <input type="number" className={styles.formInput} value={visitForm.reward_amount} onChange={e => setVisitForm({...visitForm, reward_amount: parseInt(e.target.value)})} />
+              <div className={styles.lteCardBody}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+                  <div className={styles.lteFormGroup}>
+                    <label className={styles.lteFormLabel}>Game Completion Reward (Coins)</label>
+                    <input 
+                      type="number"
+                      className={styles.lteFormControl}
+                      value={appSettings.game_reward_coins || 0}
+                      onChange={(e) => setAppSettings({...appSettings, game_reward_coins: parseInt(e.target.value)})}
+                    />
                   </div>
-                  <div className={styles.formGroup}>
-                    <label className={styles.formLabel}>Timer (Seconds)</label>
-                    <input type="number" className={styles.formInput} value={visitForm.timer_seconds} onChange={e => setVisitForm({...visitForm, timer_seconds: parseInt(e.target.value)})} />
+                  <div className={styles.lteFormGroup}>
+                    <label className={styles.lteFormLabel}>Daily Game Payout Cap</label>
+                    <input 
+                      type="number"
+                      className={styles.lteFormControl}
+                      value={appSettings.game_limit_per_day || 0}
+                      onChange={(e) => setAppSettings({...appSettings, game_limit_per_day: parseInt(e.target.value)})}
+                    />
                   </div>
                 </div>
+
+                <div className={styles.lteDivider}></div>
+                <h4>Ad Network Integration Credentials</h4>
+                
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginTop: '15px' }}>
+                  <div className={styles.lteFormGroup}>
+                    <label className={styles.lteFormLabel}>AdsGram Game Placement Block ID</label>
+                    <input 
+                      className={styles.lteFormControl}
+                      placeholder="e.g. 4376"
+                      value={appSettings.adsgram_block_id || ''}
+                      onChange={(e) => setAppSettings({...appSettings, adsgram_block_id: e.target.value})}
+                    />
+                  </div>
+                  <div className={styles.lteFormGroup}>
+                    <label className={styles.lteFormLabel}>AdsGram Daily Streak Block ID</label>
+                    <input 
+                      className={styles.lteFormControl}
+                      placeholder="e.g. 30393"
+                      value={appSettings.adsgram_checkin_block_id || '30393'}
+                      onChange={(e) => setAppSettings({...appSettings, adsgram_checkin_block_id: e.target.value})}
+                    />
+                  </div>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginTop: '15px' }}>
+                  <div className={styles.lteFormGroup}>
+                    <label className={styles.lteFormLabel}>Monetag Integration Zone ID</label>
+                    <input 
+                      className={styles.lteFormControl}
+                      placeholder="e.g. 10977311"
+                      value={appSettings.monetag_zone_id || ''}
+                      onChange={(e) => setAppSettings({...appSettings, monetag_zone_id: e.target.value})}
+                    />
+                  </div>
+                  <div className={styles.lteFormGroup}>
+                    <label className={styles.lteFormLabel}>PubScale App Hash ID</label>
+                    <input 
+                      className={styles.lteFormControl}
+                      placeholder="e.g. 78594689"
+                      value={appSettings.pubscale_app_id || ''}
+                      onChange={(e) => setAppSettings({...appSettings, pubscale_app_id: e.target.value})}
+                    />
+                  </div>
+                </div>
+
+                <div className={styles.lteFormGroup} style={{ marginTop: '15px' }}>
+                  <label className={styles.lteFormLabel}>Opinion Universe Custom Offerwall Link</label>
+                  <input 
+                    className={styles.lteFormControl}
+                    placeholder="https://..."
+                    value={appSettings.opinion_universe_url || ''}
+                    onChange={(e) => setAppSettings({...appSettings, opinion_universe_url: e.target.value})}
+                  />
+                </div>
+
+                <div className={styles.lteDivider}></div>
+                <h4>Global Feature Toggles</h4>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '15px', marginTop: '15px' }}>
+                  <div className={styles.lteToggleBox}>
+                    <span>Enable AdsGram Monetization</span>
+                    <input type="checkbox" checked={appSettings.adsgram_enabled ?? true} onChange={(e) => setAppSettings({...appSettings, adsgram_enabled: e.target.checked})} />
+                  </div>
+                  <div className={styles.lteToggleBox}>
+                    <span>Enable Monetag SDK ads</span>
+                    <input type="checkbox" checked={appSettings.monetag_enabled ?? true} onChange={(e) => setAppSettings({...appSettings, monetag_enabled: e.target.checked})} />
+                  </div>
+                  <div className={styles.lteToggleBox}>
+                    <span>Enable PubScale Offerwalls</span>
+                    <input type="checkbox" checked={appSettings.pubscale_enabled ?? true} onChange={(e) => setAppSettings({...appSettings, pubscale_enabled: e.target.checked})} />
+                  </div>
+                  <div className={styles.lteToggleBox}>
+                    <span>PubScale Sandbox Mode (Staging)</span>
+                    <input type="checkbox" checked={appSettings.pubscale_sandbox ?? false} onChange={(e) => setAppSettings({...appSettings, pubscale_sandbox: e.target.checked})} />
+                  </div>
+                  <div className={styles.lteToggleBox}>
+                    <span>Enable Opinion Universe Offerwalls</span>
+                    <input type="checkbox" checked={appSettings.opinion_universe_enabled ?? true} onChange={(e) => setAppSettings({...appSettings, opinion_universe_enabled: e.target.checked})} />
+                  </div>
+                  <div className={styles.lteToggleBox}>
+                    <span>Onboarding Membership Overlay</span>
+                    <input type="checkbox" checked={appSettings.onboarding_verification_enabled ?? true} onChange={(e) => setAppSettings({...appSettings, onboarding_verification_enabled: e.target.checked})} />
+                  </div>
+                </div>
+
+                <div style={{ marginTop: '30px', borderTop: '1px solid #dee2e6', paddingTop: '20px', display: 'flex', justifyContent: 'flex-end' }}>
+                  <button className={`${styles.lteBtn} ${styles.lteBtnPrimary}`} onClick={handleUpdateAppSettings}>
+                    <Save size={16} style={{ marginRight: '6px' }} /> Save System Configurations
+                  </button>
+                </div>
               </div>
-              <div className={styles.modalActions}>
-                <button className={styles.btnSecondary} onClick={() => setIsVisitModalOpen(false)}>Cancel</button>
-                <button className={styles.btnPrimary} onClick={async () => {
-                  try {
-                    const res = await fetch(`${API_URL}/api/admin/visit-tasks`, {
-                      method: 'POST',
-                      headers: { 'Content-Type': 'application/json', 'x-admin-secret': secret },
-                      credentials: 'include',
-                      body: JSON.stringify(visitForm)
-                    });
-                    if (res.ok) {
-                      showToast("Task created");
-                      setIsVisitModalOpen(false);
-                      fetchAllData(secret);
-                    }
-                  } catch (err) { showToast("Error creating", "error"); }
-                }}>Create Task</button>
+            </div>
+          )}
+        </section>
+      </div>
+
+      {/* ──── MODAL: EDIT USER ──── */}
+      {editingUser && (
+        <div className={styles.lteModalOverlay}>
+          <div className={styles.lteModalBox}>
+            <div className={styles.lteModalHeader}>
+              <h4 className={styles.lteModalTitle}>Modify Profile Settings: {editingUser.first_name}</h4>
+              <button className={styles.lteModalClose} onClick={() => setEditingUser(null)}>
+                <X size={20} />
+              </button>
+            </div>
+            <div className={styles.lteModalBody}>
+              <div className={styles.lteFormGroup}>
+                <label className={styles.lteFormLabel}>User Account Wallet Balance (Coins)</label>
+                <input 
+                  type="number" 
+                  className={styles.lteFormControl}
+                  value={newBalance}
+                  onChange={(e) => setNewBalance(e.target.value)}
+                />
               </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px', marginTop: '15px' }}>
+                <div 
+                  className={`${styles.lteSelectableBox} ${editingUser.is_phone_verified ? styles.lteSelectableBoxActive : ''}`}
+                  onClick={() => setEditingUser({...editingUser, is_phone_verified: !editingUser.is_phone_verified})}
+                >
+                  <ShieldCheck size={24} color={editingUser.is_phone_verified ? '#28a745' : '#6c757d'} />
+                  <span>Phone Verified</span>
+                </div>
+                <div 
+                  className={`${styles.lteSelectableBox} ${editingUser.is_channel_joined ? styles.lteSelectableBoxActive : ''}`}
+                  onClick={() => setEditingUser({...editingUser, is_channel_joined: !editingUser.is_channel_joined})}
+                >
+                  <Users size={24} color={editingUser.is_channel_joined ? '#17a2b8' : '#6c757d'} />
+                  <span>Social Synced</span>
+                </div>
+              </div>
+            </div>
+            <div className={styles.lteModalFooter}>
+              <button className={`${styles.lteBtn} ${styles.lteBtnSecondary}`} onClick={() => setEditingUser(null)}>Dismiss</button>
+              <button 
+                className={`${styles.lteBtn} ${styles.lteBtnPrimary}`}
+                onClick={() => handleUpdateUser(editingUser.telegram_id, { 
+                  balance: parseInt(newBalance),
+                  is_phone_verified: editingUser.is_phone_verified,
+                  is_channel_joined: editingUser.is_channel_joined
+                })}
+              >
+                Apply Changes
+              </button>
             </div>
           </div>
-        )}
+        </div>
+      )}
 
+      {/* ──── MODAL: EDIT PAYOUT GATEWAY ──── */}
+      {isPayoutModalOpen && (
+        <div className={styles.lteModalOverlay}>
+          <div className={styles.lteModalBox}>
+            <div className={styles.lteModalHeader}>
+              <h4 className={styles.lteModalTitle}>{editingPayout ? 'Configure Gateway' : 'New Gateway'}</h4>
+              <button className={styles.lteModalClose} onClick={() => setIsPayoutModalOpen(false)}>
+                <X size={20} />
+              </button>
+            </div>
+            <div className={styles.lteModalBody}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
+                <div className={styles.lteFormGroup}>
+                  <label className={styles.lteFormLabel}>Gateway Title</label>
+                  <input 
+                    className={styles.lteFormControl}
+                    placeholder="e.g. UPI, Amazon Pay"
+                    value={payoutForm.name}
+                    onChange={(e) => setPayoutForm({...payoutForm, name: e.target.value})}
+                  />
+                </div>
+                <div className={styles.lteFormGroup}>
+                  <label className={styles.lteFormLabel}>Gateway Brand Image URI</label>
+                  <input 
+                    className={styles.lteFormControl}
+                    placeholder="https://..."
+                    value={payoutForm.logo_url}
+                    onChange={(e) => setPayoutForm({...payoutForm, logo_url: e.target.value})}
+                  />
+                </div>
+              </div>
 
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px', marginTop: '10px' }}>
+                <div className={styles.lteFormGroup}>
+                  <label className={styles.lteFormLabel}>Gateway Display Priority</label>
+                  <input 
+                    type="number"
+                    className={styles.lteFormControl}
+                    value={payoutForm.order_index}
+                    onChange={(e) => setPayoutForm({...payoutForm, order_index: parseInt(e.target.value)})}
+                  />
+                </div>
+                <div className={styles.lteFormGroup}>
+                  <label className={styles.lteFormLabel}>Operation Mode</label>
+                  <select 
+                    className={styles.lteFormControl}
+                    value={payoutForm.status}
+                    onChange={(e) => setPayoutForm({...payoutForm, status: e.target.value})}
+                  >
+                    <option value="active">Operational</option>
+                    <option value="inactive">Disabled</option>
+                  </select>
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px', marginTop: '10px' }}>
+                <div className={styles.lteFormGroup}>
+                  <label className={styles.lteFormLabel}>Coins Payout Conversion Ratio</label>
+                  <input 
+                    className={styles.lteFormControl}
+                    placeholder="₹1 = 100 Coins"
+                    value={payoutForm.conversion_rate}
+                    onChange={(e) => setPayoutForm({...payoutForm, conversion_rate: e.target.value})}
+                  />
+                </div>
+                <div className={styles.lteFormGroup}>
+                  <label className={styles.lteFormLabel}>Service / Gateway Surcharges</label>
+                  <input 
+                    className={styles.lteFormControl}
+                    placeholder="0% Fees"
+                    value={payoutForm.fee_text}
+                    onChange={(e) => setPayoutForm({...payoutForm, fee_text: e.target.value})}
+                  />
+                </div>
+              </div>
+
+              <div className={styles.lteFormGroup} style={{ marginTop: '10px' }}>
+                <label className={styles.lteFormLabel}>Redemption Policy Disclaimer</label>
+                <textarea 
+                  className={styles.lteFormControl}
+                  style={{ height: '70px', resize: 'none' }}
+                  placeholder="Gateway settlement timelines or limits..."
+                  value={payoutForm.disclaimer}
+                  onChange={(e) => setPayoutForm({...payoutForm, disclaimer: e.target.value})}
+                />
+              </div>
+
+              {/* Dynamic Payout Fields Builder */}
+              <div style={{ borderTop: '1px solid #dee2e6', marginTop: '15px', paddingTop: '15px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                  <h5>Required User Fields</h5>
+                  <button 
+                    className={`${styles.lteBtn} ${styles.lteBtnSuccess}`} 
+                    onClick={() => setPayoutForm({
+                      ...payoutForm, 
+                      custom_inputs: [...payoutForm.custom_inputs, { name: '', placeholder: '' }]
+                    })}
+                  >
+                    + Add Field
+                  </button>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  {payoutForm.custom_inputs.map((input, idx) => (
+                    <div key={idx} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr auto', gap: '10px', alignItems: 'center' }}>
+                      <input 
+                        className={styles.lteFormControl}
+                        placeholder="Field Label (e.g. UPI ID)"
+                        value={input.name}
+                        onChange={(e) => {
+                          const newInputs = [...payoutForm.custom_inputs];
+                          newInputs[idx].name = e.target.value;
+                          setPayoutForm({ ...payoutForm, custom_inputs: newInputs });
+                        }}
+                      />
+                      <input 
+                        className={styles.lteFormControl}
+                        placeholder="Placeholder helper"
+                        value={input.placeholder}
+                        onChange={(e) => {
+                          const newInputs = [...payoutForm.custom_inputs];
+                          newInputs[idx].placeholder = e.target.value;
+                          setPayoutForm({ ...payoutForm, custom_inputs: newInputs });
+                        }}
+                      />
+                      <button 
+                        className={`${styles.lteBtn} ${styles.lteBtnDanger}`}
+                        onClick={() => {
+                          const newInputs = payoutForm.custom_inputs.filter((_, i) => i !== idx);
+                          setPayoutForm({ ...payoutForm, custom_inputs: newInputs });
+                        }}
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Tiers Builder */}
+              <div style={{ borderTop: '1px solid #dee2e6', marginTop: '15px', paddingTop: '15px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                  <h5>Redemption Tiers</h5>
+                  <button 
+                    className={`${styles.lteBtn} ${styles.lteBtnInfo}`} 
+                    onClick={() => setTiersForm([...tiersForm, { amount_text: '', coins_required: 0 }])}
+                  >
+                    + Add Reward Tier
+                  </button>
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '10px' }}>
+                  {tiersForm.map((tier, idx) => (
+                    <div key={idx} className={styles.lteTierBuilderCard}>
+                      <div className={styles.lteFormGroup} style={{ marginBottom: '5px' }}>
+                        <label style={{ fontSize: '11px' }}>Payout Value</label>
+                        <input 
+                          className={styles.lteFormControl}
+                          style={{ padding: '4px 8px', fontSize: '12px' }}
+                          placeholder="e.g. ₹50"
+                          value={tier.amount_text}
+                          onChange={(e) => {
+                            const newTiers = [...tiersForm];
+                            newTiers[idx].amount_text = e.target.value;
+                            setTiersForm(newTiers);
+                          }}
+                        />
+                      </div>
+                      <div className={styles.lteFormGroup} style={{ marginBottom: 0 }}>
+                        <label style={{ fontSize: '11px' }}>Coin Cost</label>
+                        <input 
+                          type="number"
+                          className={styles.lteFormControl}
+                          style={{ padding: '4px 8px', fontSize: '12px' }}
+                          placeholder="5000"
+                          value={tier.coins_required}
+                          onChange={(e) => {
+                            const newTiers = [...tiersForm];
+                            newTiers[idx].coins_required = parseInt(e.target.value);
+                            setTiersForm(newTiers);
+                          }}
+                        />
+                      </div>
+                      <button 
+                        className={styles.lteTierBuilderRemove}
+                        onClick={() => {
+                          const newTiers = tiersForm.filter((_, i) => i !== idx);
+                          setTiersForm(newTiers);
+                        }}
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+            <div className={styles.lteModalFooter}>
+              <button className={`${styles.lteBtn} ${styles.lteBtnSecondary}`} onClick={() => setIsPayoutModalOpen(false)}>Discard</button>
+              <button className={`${styles.lteBtn} ${styles.lteBtnPrimary}`} onClick={handleSavePayout}>Commit Gateway Settings</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ──── MODAL: EDIT TOURNAMENT (CONTEST) ──── */}
+      {isContestModalOpen && (
+        <div className={styles.lteModalOverlay}>
+          <div className={styles.lteModalBox}>
+            <div className={styles.lteModalHeader}>
+              <h4 className={styles.lteModalTitle}>{editingContest ? 'Edit Contest Settings' : 'Launch New Contest'}</h4>
+              <button className={styles.lteModalClose} onClick={() => setIsContestModalOpen(false)}>
+                <X size={20} />
+              </button>
+            </div>
+            <div className={styles.lteModalBody}>
+              <div className={styles.lteFormGroup}>
+                <label className={styles.lteFormLabel}>Tournament / Challenge Title</label>
+                <input 
+                  className={styles.lteFormControl}
+                  placeholder="Weekly Top earner challenge"
+                  value={contestForm.name}
+                  onChange={(e) => setContestForm({...contestForm, name: e.target.value})}
+                />
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px', marginTop: '10px' }}>
+                <div className={styles.lteFormGroup}>
+                  <label className={styles.lteFormLabel}>Slug Link Parameter</label>
+                  <input 
+                    className={styles.lteFormControl}
+                    placeholder="weekly-earning"
+                    value={contestForm.slug}
+                    onChange={(e) => setContestForm({...contestForm, slug: e.target.value})}
+                  />
+                </div>
+                <div className={styles.lteFormGroup}>
+                  <label className={styles.lteFormLabel}>Leaderboard Tracking Metric</label>
+                  <select 
+                    className={styles.lteFormControl}
+                    value={contestForm.type}
+                    onChange={(e) => setContestForm({...contestForm, type: e.target.value as any})}
+                  >
+                    <option value="earning">Earning Coins Volume</option>
+                    <option value="referral">Referral Invitation Volume</option>
+                    <option value="streak">Daily Streak Days Count</option>
+                  </select>
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px', marginTop: '10px' }}>
+                <div className={styles.lteFormGroup}>
+                  <label className={styles.lteFormLabel}>Start Time (Local/UTC)</label>
+                  <input 
+                    type="datetime-local"
+                    className={styles.lteFormControl}
+                    value={contestForm.start_time}
+                    onChange={(e) => setContestForm({...contestForm, start_time: e.target.value})}
+                  />
+                </div>
+                <div className={styles.lteFormGroup}>
+                  <label className={styles.lteFormLabel}>End Time (Local/UTC)</label>
+                  <input 
+                    type="datetime-local"
+                    className={styles.lteFormControl}
+                    value={contestForm.end_time}
+                    onChange={(e) => setContestForm({...contestForm, end_time: e.target.value})}
+                  />
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px', marginTop: '10px' }}>
+                <div className={styles.lteFormGroup}>
+                  <label className={styles.lteFormLabel}>Prize Pool Text Display</label>
+                  <input 
+                    className={styles.lteFormControl}
+                    placeholder="₹5000"
+                    value={contestForm.prize_pool_text}
+                    onChange={(e) => setContestForm({...contestForm, prize_pool_text: e.target.value})}
+                  />
+                </div>
+                <div className={styles.lteFormGroup}>
+                  <label className={styles.lteFormLabel}>Ecosystem Status Mode</label>
+                  <select 
+                    className={styles.lteFormControl}
+                    value={contestForm.status}
+                    onChange={(e) => setContestForm({...contestForm, status: e.target.value as any})}
+                  >
+                    <option value="upcoming">Upcoming</option>
+                    <option value="active">Active</option>
+                    <option value="ended">Ended</option>
+                  </select>
+                </div>
+              </div>
+
+              {editingContest && (
+                <div style={{ borderTop: '1px solid #dee2e6', marginTop: '15px', paddingTop: '15px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                    <h5>Reward Tiers Distribution</h5>
+                    <button 
+                      className={`${styles.lteBtn} ${styles.lteBtnSuccess}`}
+                      onClick={() => {
+                        const rank = prompt("Enter Rank boundary From:");
+                        const value = prompt("Enter reward Token Coins:");
+                        const text = prompt("Enter cash prize text display (e.g. ₹500):");
+                        if (rank && value) {
+                          handleAddContestReward(editingContest.id, {
+                            rank_from: parseInt(rank),
+                            rank_to: parseInt(rank),
+                            reward_value: parseInt(value),
+                            reward_text: text || `${value} Coins`
+                          });
+                        }
+                      }}
+                    >
+                      + Add Payout boundary
+                    </button>
+                  </div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                    {editingContest.rewards?.map((r: any) => (
+                      <div key={r.id} style={{ background: '#e2f0d9', color: '#385723', padding: '6px 12px', borderRadius: '8px', border: '1px solid #c5e0b4', fontSize: '12px' }}>
+                        Rank {r.rank_from}: <strong>{r.reward_text}</strong> ({r.reward_value} c)
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+            <div className={styles.lteModalFooter}>
+              <button className={`${styles.lteBtn} ${styles.lteBtnSecondary}`} onClick={() => setIsContestModalOpen(false)}>Cancel</button>
+              <button className={`${styles.lteBtn} ${styles.lteBtnPrimary}`} onClick={handleSaveContest}>Save Contest Information</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ──── MODAL: NEW VISIT TASK ──── */}
+      {isVisitModalOpen && (
+        <div className={styles.lteModalOverlay}>
+          <div className={styles.lteModalBox} style={{ maxWidth: '450px' }}>
+            <div className={styles.lteModalHeader}>
+              <h4 className={styles.lteModalTitle}>Launch Visit Campaign Task</h4>
+              <button className={styles.lteModalClose} onClick={() => setIsVisitModalOpen(false)}>
+                <X size={20} />
+              </button>
+            </div>
+            <div className={styles.lteModalBody}>
+              <div className={styles.lteFormGroup}>
+                <label className={styles.lteFormLabel}>Campaign Action Title</label>
+                <input className={styles.lteFormControl} value={visitForm.title} onChange={e => setVisitForm({...visitForm, title: e.target.value})} placeholder="e.g. Visit Our YouTube Channel" />
+              </div>
+              <div className={styles.lteFormGroup}>
+                <label className={styles.lteFormLabel}>Campaign Target Action URL</label>
+                <input className={styles.lteFormControl} value={visitForm.url} onChange={e => setVisitForm({...visitForm, url: e.target.value})} placeholder="https://..." />
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px', marginTop: '10px' }}>
+                <div className={styles.lteFormGroup}>
+                  <label className={styles.lteFormLabel}>Payout Reward (Coins)</label>
+                  <input type="number" className={styles.lteFormControl} value={visitForm.reward_amount} onChange={e => setVisitForm({...visitForm, reward_amount: parseInt(e.target.value)})} />
+                </div>
+                <div className={styles.lteFormGroup}>
+                  <label className={styles.lteFormLabel}>Task Timer Limit (Seconds)</label>
+                  <input type="number" className={styles.lteFormControl} value={visitForm.timer_seconds} onChange={e => setVisitForm({...visitForm, timer_seconds: parseInt(e.target.value)})} />
+                </div>
+              </div>
+            </div>
+            <div className={styles.lteModalFooter}>
+              <button className={`${styles.lteBtn} ${styles.lteBtnSecondary}`} onClick={() => setIsVisitModalOpen(false)}>Cancel</button>
+              <button className={`${styles.lteBtn} ${styles.lteBtnPrimary}`} onClick={async () => {
+                try {
+                  const res = await fetch(`${API_URL}/api/admin/visit-tasks`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'x-admin-secret': secret },
+                    credentials: 'include',
+                    body: JSON.stringify(visitForm)
+                  });
+                  if (res.ok) {
+                    showToast("Visit task created successfully");
+                    setIsVisitModalOpen(false);
+                    fetchAllData(secret);
+                  }
+                } catch (err) { showToast("Error creating task", "error"); }
+              }}>Create Visit Task</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

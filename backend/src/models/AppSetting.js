@@ -57,7 +57,7 @@ const AppSetting = sequelize.define('AppSetting', {
   },
   adsgram_checkin_block_id: {
     type: DataTypes.STRING,
-    defaultValue: '4376'  // Same as main block by default; set separately in Admin if needed
+    defaultValue: '30393'  // Dedicated AdsGram block for daily streak check-in
   }
 }, {
   tableName: 'app_settings',

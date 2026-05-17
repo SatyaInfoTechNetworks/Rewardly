@@ -10,9 +10,10 @@ import styles from './ReferralScreen.module.css';
 
 interface ReferralScreenProps {
   user: any;
+  onReward?: () => void;
 }
 
-export const ReferralScreen: React.FC<ReferralScreenProps> = ({ user }) => {
+export const ReferralScreen: React.FC<ReferralScreenProps> = ({ user, onReward }) => {
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [isRulesOpen, setIsRulesOpen] = useState(false);
@@ -76,6 +77,7 @@ export const ReferralScreen: React.FC<ReferralScreenProps> = ({ user }) => {
       if (res.ok) {
         alert("🎉 Milestone reward claimed!");
         fetchReferralData();
+        if (onReward) onReward();
         if (tg?.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
       } else {
         const err = await res.json();

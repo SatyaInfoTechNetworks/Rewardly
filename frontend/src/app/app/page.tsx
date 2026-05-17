@@ -165,7 +165,7 @@ export default function AppDashboard() {
     }
 
     if (activeTab === "share") {
-      return <ReferralScreen user={user} />;
+      return <ReferralScreen user={user} onReward={handleSyncUser} />;
     }
 
     if (activeTab === "contest") {

@@ -6,7 +6,7 @@ const LuckyDraw = require('../models/LuckyDraw');
 const LuckyDrawEntry = require('../models/LuckyDrawEntry');
 const LuckyDrawWinner = require('../models/LuckyDrawWinner');
 const { adminAuth } = require('../middlewares/adminAuth');
-const { sequelize } = require('../database/connection');
+const { sequelize } = require('../config/database');
 
 /**
  * ──── LUCKY DRAW MANAGEMENT ENDPOINTS ────

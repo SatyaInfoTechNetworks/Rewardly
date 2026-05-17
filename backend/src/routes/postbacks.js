@@ -153,6 +153,24 @@ router.get('/adsgram', async (req, res) => {
       return res.status(404).send('User not found');
     }
 
+    // Cooldown check for S2S
+    const lastGameTx = await Transaction.findOne({
+      where: {
+        telegram_id: user_id,
+        type: 'game',
+        description: 'Watch Ads Reward'
+      },
+      order: [['created_at', 'DESC']]
+    });
+    if (lastGameTx) {
+      const elapsedSec = Math.floor((Date.now() - new Date(lastGameTx.created_at).getTime()) / 1000);
+      if (elapsedSec < settings.watch_earn_cooldown) {
+        console.warn(`⚠️ [AdsGram Postback] User ${user_id} requested reward within cooldown (${settings.watch_earn_cooldown - elapsedSec}s left)`);
+        await t.rollback();
+        return res.status(400).send('Cooldown active');
+      }
+    }
+
     const rewardAmount = settings.game_reward_coins; 
     
     // Update Balance
@@ -501,6 +519,25 @@ router.get('/adsgram-draw', async (req, res) => {
       console.error(`❌ [AdsGram Draw Postback] User ${user_id} not found`);
       await t.rollback();
       return res.status(404).send('User not found');
+    }
+
+    // Cooldown Check
+    const lastAdEntry = await LuckyDrawEntry.findOne({
+      where: {
+        user_id: user.telegram_id,
+        entry_source: 'ad'
+      },
+      order: [['created_at', 'DESC']]
+    });
+    const settings = await getSettings();
+    const cooldownPeriod = settings ? settings.ad_entry_cooldown : 60;
+    if (lastAdEntry) {
+      const elapsedSec = Math.floor((Date.now() - new Date(lastAdEntry.created_at).getTime()) / 1000);
+      if (elapsedSec < cooldownPeriod) {
+        console.warn(`⚠️ [AdsGram Draw Postback] User ${user_id} requested draw ticket within cooldown (${cooldownPeriod - elapsedSec}s left)`);
+        await t.rollback();
+        return res.status(400).send('Cooldown active');
+      }
     }
 
     // Find the latest active lucky draw that allows ad entries

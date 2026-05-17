@@ -14,6 +14,7 @@ export default function AdminPanel() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [secret, setSecret] = useState("");
   const [stats, setStats] = useState<any>(null);
+  const [analyticsData, setAnalyticsData] = useState<any>(null);
   const [activeTab, setActiveTab] = useState<'users' | 'withdrawals' | 'payouts'>('users');
   const [users, setUsers] = useState<any[]>([]);
   const [filteredUsers, setFilteredUsers] = useState<any[]>([]);
@@ -183,6 +184,16 @@ export default function AdminPanel() {
         // Fetch Lucky Draw Stats
         const drawStatsRes = await fetch(`${API_URL}/api/admin/lucky-draws/stats`, options);
         if (drawStatsRes.ok) setLuckyDrawStats(await drawStatsRes.json());
+
+        // Fetch Advanced Production Analytics
+        try {
+          const analyticsRes = await fetch(`${API_URL}/api/admin/analytics`, options);
+          if (analyticsRes.ok) {
+            setAnalyticsData(await analyticsRes.json());
+          }
+        } catch (err) {
+          console.error("Failed to load analytics data", err);
+        }
         
         setIsAuthenticated(true);
         localStorage.setItem("admin_secret", authSecret);
@@ -723,6 +734,7 @@ export default function AdminPanel() {
             <ul className={styles.lteNavList}>
               {[
                 { id: 'dashboard', icon: LayoutDashboard, label: 'Dashboard Overview' },
+                { id: 'analytics', icon: Activity, label: 'Advanced Analytics' },
                 { id: 'users', icon: Users, label: 'User Database' },
                 { id: 'lifafas', icon: Gift, label: 'Lifafa Promo Codes' },
                 { id: 'payouts', icon: Gift, label: 'Payout Gateways' },
@@ -823,6 +835,465 @@ export default function AdminPanel() {
                   <p>Welcome to Rewardly AdminLTE Dashboard Panel. Use the left navigation sidebar to control and monitor database tables, gate payouts, and configure global variables.</p>
                 </div>
               </div>
+            </div>
+          )}
+
+          {/* ──── VIEW: ADVANCED ANALYTICS ──── */}
+          {activeView === 'analytics' && analyticsData && (
+            <div className={styles.lteAnalyticsContainer} style={{ animation: 'fadeIn 0.6s ease-in-out' }}>
+              
+              {/* Top Premium Metrix Row */}
+              <div className={styles.lteStatsGrid} style={{ marginBottom: '24px' }}>
+                
+                {/* WAU / MAU Stickiness Box */}
+                <div className={`${styles.lteSmallBox}`} style={{ background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)', color: 'white', border: '1px solid #334155', borderRadius: '16px', boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.3)' }}>
+                  <div className={styles.lteInner}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                      <span style={{ fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.1em', color: '#94a3b8', fontWeight: 600 }}>Stickiness DAU/MAU</span>
+                      <span style={{ background: 'rgba(56, 189, 248, 0.1)', color: '#38bdf8', padding: '2px 8px', borderRadius: '20px', fontSize: '10px', fontWeight: 700 }}>PREMIUM</span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px' }}>
+                      <h3 style={{ fontSize: '32px', margin: 0, fontWeight: 800, color: '#38bdf8' }}>{analyticsData.user.stickiness}%</h3>
+                      <span style={{ fontSize: '12px', color: '#64748b' }}>({analyticsData.user.dauToday} / {analyticsData.user.mau} MAU)</span>
+                    </div>
+                    <div style={{ width: '100%', background: '#334155', height: '6px', borderRadius: '3px', marginTop: '12px', overflow: 'hidden' }}>
+                      <div style={{ width: `${analyticsData.user.stickiness}%`, background: '#38bdf8', height: '100%', borderRadius: '3px', transition: 'width 1s ease' }}></div>
+                    </div>
+                    <p style={{ margin: '8px 0 0 0', fontSize: '11px', color: '#64748b' }}>Target {'>'}20% for stable growth engine</p>
+                  </div>
+                </div>
+
+                {/* Viral Coefficient (K-factor) */}
+                <div className={`${styles.lteSmallBox}`} style={{ background: 'linear-gradient(135deg, #090d16 0%, #111827 100%)', color: 'white', border: '1px solid #1f2937', borderRadius: '16px', boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.3)' }}>
+                  <div className={styles.lteInner}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                      <span style={{ fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.1em', color: '#9ca3af', fontWeight: 600 }}>Viral Loop (K-Factor)</span>
+                      <span style={{ background: 'rgba(168, 85, 247, 0.1)', color: '#a855f7', padding: '2px 8px', borderRadius: '20px', fontSize: '10px', fontWeight: 700 }}>VIRALITY</span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px' }}>
+                      <h3 style={{ fontSize: '32px', margin: 0, fontWeight: 800, color: '#a855f7' }}>{analyticsData.referral.viralCoefficient}</h3>
+                      <span style={{ fontSize: '12px', color: '#4b5563' }}>({analyticsData.referral.conversionRate}% Conv Rate)</span>
+                    </div>
+                    <div style={{ width: '100%', background: '#374151', height: '6px', borderRadius: '3px', marginTop: '12px', overflow: 'hidden' }}>
+                      <div style={{ width: `${Math.min(100, analyticsData.referral.viralCoefficient * 100)}%`, background: '#a855f7', height: '100%', borderRadius: '3px' }}></div>
+                    </div>
+                    <p style={{ margin: '8px 0 0 0', fontSize: '11px', color: '#4b5563' }}>Every 100 users bring {Math.round(analyticsData.referral.viralCoefficient * 100)} new organic users</p>
+                  </div>
+                </div>
+
+                {/* Coin Economy Burn Ratio */}
+                <div className={`${styles.lteSmallBox}`} style={{ background: 'linear-gradient(135deg, #050505 0%, #151515 100%)', color: 'white', border: '1px solid #262626', borderRadius: '16px', boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.3)' }}>
+                  <div className={styles.lteInner}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                      <span style={{ fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.1em', color: '#a3a3a3', fontWeight: 600 }}>Coin Burn Ratio</span>
+                      <span style={{ background: 'rgba(234, 179, 8, 0.1)', color: '#eab308', padding: '2px 8px', borderRadius: '20px', fontSize: '10px', fontWeight: 700 }}>ECONOMY</span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px' }}>
+                      <h3 style={{ fontSize: '32px', margin: 0, fontWeight: 800, color: '#eab308' }}>{analyticsData.coin.burnRatio}%</h3>
+                      <span style={{ fontSize: '12px', color: '#525252' }}>({analyticsData.coin.spentToday.toLocaleString()} Spent)</span>
+                    </div>
+                    <div style={{ width: '100%', background: '#404040', height: '6px', borderRadius: '3px', marginTop: '12px', overflow: 'hidden' }}>
+                      <div style={{ width: `${analyticsData.coin.burnRatio}%`, background: '#eab308', height: '100%', borderRadius: '3px' }}></div>
+                    </div>
+                    <p style={{ margin: '8px 0 0 0', fontSize: '11px', color: '#525252' }}>Target range 40% - 60% for healthy coin economy</p>
+                  </div>
+                </div>
+
+                {/* Monetization Quality (ARPDAS) */}
+                <div className={`${styles.lteSmallBox}`} style={{ background: 'linear-gradient(135deg, #022c22 0%, #064e3b 100%)', color: 'white', border: '1px solid #065f46', borderRadius: '16px', boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.3)' }}>
+                  <div className={styles.lteInner}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                      <span style={{ fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.1em', color: '#a7f3d0', fontWeight: 600 }}>ARPDAU (Ad Rev / User)</span>
+                      <span style={{ background: 'rgba(52, 211, 153, 0.1)', color: '#34d399', padding: '2px 8px', borderRadius: '20px', fontSize: '10px', fontWeight: 700 }}>REVENUE</span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px' }}>
+                      <h3 style={{ fontSize: '32px', margin: 0, fontWeight: 800, color: '#34d399' }}>${analyticsData.monetization.arpdau.toFixed(4)}</h3>
+                      <span style={{ fontSize: '12px', color: '#047857' }}>(${analyticsData.monetization.estimatedRevenue} Today)</span>
+                    </div>
+                    <div style={{ width: '100%', background: '#065f46', height: '6px', borderRadius: '3px', marginTop: '12px', overflow: 'hidden' }}>
+                      <div style={{ width: `${Math.min(100, (analyticsData.monetization.arpdau / 0.05) * 100)}%`, background: '#34d399', height: '100%', borderRadius: '3px' }}></div>
+                    </div>
+                    <p style={{ margin: '8px 0 0 0', fontSize: '11px', color: '#047857' }}>Calculated using standard S2S postback validations</p>
+                  </div>
+                </div>
+
+              </div>
+
+              {/* Advanced Interactive SVGs Chart Center */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(450px, 1fr))', gap: '24px', marginBottom: '24px' }}>
+                
+                {/* Chart 1: DAU & Revenue Trend */}
+                <div className={styles.lteCard} style={{ borderRadius: '16px', background: '#ffffff', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -1px rgba(0,0,0,0.03)' }}>
+                  <div className={styles.lteCardHeader} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #f1f5f9', padding: '16px 24px' }}>
+                    <div>
+                      <h4 style={{ margin: 0, fontSize: '16px', fontWeight: 700, color: '#1e293b' }}>Daily Engagement & Monetization</h4>
+                      <p style={{ margin: '2px 0 0 0', fontSize: '11px', color: '#64748b' }}>7-day active user engagement vs. network ad earnings</p>
+                    </div>
+                    <div style={{ display: 'flex', gap: '12px', fontSize: '11px' }}>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#3b82f6', fontWeight: 600 }}><span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#3b82f6' }}></span> DAU</span>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#10b981', fontWeight: 600 }}><span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#10b981' }}></span> Revenue ($)</span>
+                    </div>
+                  </div>
+                  <div className={styles.lteCardBody} style={{ padding: '24px' }}>
+                    <div style={{ width: '100%', height: '220px', position: 'relative' }}>
+                      
+                      {/* Responsive Premium SVG */}
+                      <svg viewBox="0 0 100 100" preserveAspectRatio="none" style={{ width: '100%', height: '100%', overflow: 'visible' }}>
+                        <defs>
+                          <linearGradient id="dauGlow" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.2"/>
+                            <stop offset="100%" stopColor="#3b82f6" stopOpacity="0.0"/>
+                          </linearGradient>
+                          <linearGradient id="revGlow" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stopColor="#10b981" stopOpacity="0.2"/>
+                            <stop offset="100%" stopColor="#10b981" stopOpacity="0.0"/>
+                          </linearGradient>
+                        </defs>
+                        {/* Horizontal Gridlines */}
+                        <line x1="0" y1="20" x2="100" y2="20" stroke="#f1f5f9" strokeWidth="0.5" />
+                        <line x1="0" y1="40" x2="100" y2="40" stroke="#f1f5f9" strokeWidth="0.5" />
+                        <line x1="0" y1="60" x2="100" y2="60" stroke="#f1f5f9" strokeWidth="0.5" />
+                        <line x1="0" y1="80" x2="100" y2="80" stroke="#f1f5f9" strokeWidth="0.5" />
+                        
+                        {/* Area glow under lines */}
+                        {(() => {
+                          const maxD = Math.max(...analyticsData.trends.map((t: any) => t.dau), 1);
+                          const ptsD = analyticsData.trends.map((t: any, i: number) => `${(i / 6) * 100},${100 - (t.dau / maxD) * 80}`).join(" ");
+                          return <polygon points={`0,100 ${ptsD} 100,100`} fill="url(#dauGlow)" />;
+                        })()}
+
+                        {(() => {
+                          const maxR = Math.max(...analyticsData.trends.map((t: any) => t.revenue), 1);
+                          const ptsR = analyticsData.trends.map((t: any, i: number) => `${(i / 6) * 100},${100 - (t.revenue / maxR) * 80}`).join(" ");
+                          return <polygon points={`0,100 ${ptsR} 100,100`} fill="url(#revGlow)" />;
+                        })()}
+
+                        {/* Line charts */}
+                        {(() => {
+                          const maxD = Math.max(...analyticsData.trends.map((t: any) => t.dau), 1);
+                          const ptsD = analyticsData.trends.map((t: any, i: number) => `${(i / 6) * 100},${100 - (t.dau / maxD) * 80}`).join(" ");
+                          return <polyline fill="none" stroke="#3b82f6" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" points={ptsD} />;
+                        })()}
+
+                        {(() => {
+                          const maxR = Math.max(...analyticsData.trends.map((t: any) => t.revenue), 1);
+                          const ptsR = analyticsData.trends.map((t: any, i: number) => `${(i / 6) * 100},${100 - (t.revenue / maxR) * 80}`).join(" ");
+                          return <polyline fill="none" stroke="#10b981" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" points={ptsR} />;
+                        })()}
+
+                        {/* Interactive Data dots */}
+                        {analyticsData.trends.map((t: any, i: number) => {
+                          const maxD = Math.max(...analyticsData.trends.map((t: any) => t.dau), 1);
+                          const maxR = Math.max(...analyticsData.trends.map((t: any) => t.revenue), 1);
+                          const cx = (i / 6) * 100;
+                          const cyD = 100 - (t.dau / maxD) * 80;
+                          const cyR = 100 - (t.revenue / maxR) * 80;
+                          return (
+                            <g key={i}>
+                              <circle cx={cx} cy={cyD} r="2.5" fill="#3b82f6" stroke="#ffffff" strokeWidth="1" />
+                              <circle cx={cx} cy={cyR} r="2.5" fill="#10b981" stroke="#ffffff" strokeWidth="1" />
+                            </g>
+                          );
+                        })}
+                      </svg>
+                    </div>
+
+                    {/* Chart X-axis Labels */}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '12px', fontSize: '11px', color: '#94a3b8', fontWeight: 600 }}>
+                      {analyticsData.trends.map((t: any, i: number) => (
+                        <span key={i}>{t.date}</span>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Chart 2: Coin Economy Burn Center */}
+                <div className={styles.lteCard} style={{ borderRadius: '16px', background: '#ffffff', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -1px rgba(0,0,0,0.03)' }}>
+                  <div className={styles.lteCardHeader} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #f1f5f9', padding: '16px 24px' }}>
+                    <div>
+                      <h4 style={{ margin: 0, fontSize: '16px', fontWeight: 700, color: '#1e293b' }}>Coin Ecosystem Issuance vs Burn</h4>
+                      <p style={{ margin: '2px 0 0 0', fontSize: '11px', color: '#64748b' }}>Track token generation vs utility redemptions</p>
+                    </div>
+                    <div style={{ display: 'flex', gap: '12px', fontSize: '11px' }}>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#eab308', fontWeight: 600 }}><span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#eab308' }}></span> Coins Earned</span>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#ef4444', fontWeight: 600 }}><span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#ef4444' }}></span> Coins Burned</span>
+                    </div>
+                  </div>
+                  <div className={styles.lteCardBody} style={{ padding: '24px' }}>
+                    <div style={{ width: '100%', height: '220px', position: 'relative' }}>
+                      
+                      {/* Responsive Coin economy SVG */}
+                      <svg viewBox="0 0 100 100" preserveAspectRatio="none" style={{ width: '100%', height: '100%', overflow: 'visible' }}>
+                        <defs>
+                          <linearGradient id="earnedGlow" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stopColor="#eab308" stopOpacity="0.2"/>
+                            <stop offset="100%" stopColor="#eab308" stopOpacity="0.0"/>
+                          </linearGradient>
+                          <linearGradient id="burnGlow" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stopColor="#ef4444" stopOpacity="0.2"/>
+                            <stop offset="100%" stopColor="#ef4444" stopOpacity="0.0"/>
+                          </linearGradient>
+                        </defs>
+                        {/* Horizontal Gridlines */}
+                        <line x1="0" y1="20" x2="100" y2="20" stroke="#f1f5f9" strokeWidth="0.5" />
+                        <line x1="0" y1="40" x2="100" y2="40" stroke="#f1f5f9" strokeWidth="0.5" />
+                        <line x1="0" y1="60" x2="100" y2="60" stroke="#f1f5f9" strokeWidth="0.5" />
+                        <line x1="0" y1="80" x2="100" y2="80" stroke="#f1f5f9" strokeWidth="0.5" />
+                        
+                        {/* Area glow under lines */}
+                        {(() => {
+                          const maxC = Math.max(...analyticsData.trends.map((t: any) => Math.max(t.coinsGenerated, t.coinsSpent)), 1);
+                          const ptsC = analyticsData.trends.map((t: any, i: number) => `${(i / 6) * 100},${100 - (t.coinsGenerated / maxC) * 80}`).join(" ");
+                          return <polygon points={`0,100 ${ptsC} 100,100`} fill="url(#earnedGlow)" />;
+                        })()}
+
+                        {(() => {
+                          const maxC = Math.max(...analyticsData.trends.map((t: any) => Math.max(t.coinsGenerated, t.coinsSpent)), 1);
+                          const ptsB = analyticsData.trends.map((t: any, i: number) => `${(i / 6) * 100},${100 - (t.coinsSpent / maxC) * 80}`).join(" ");
+                          return <polygon points={`0,100 ${ptsB} 100,100`} fill="url(#burnGlow)" />;
+                        })()}
+
+                        {/* Line charts */}
+                        {(() => {
+                          const maxC = Math.max(...analyticsData.trends.map((t: any) => Math.max(t.coinsGenerated, t.coinsSpent)), 1);
+                          const ptsC = analyticsData.trends.map((t: any, i: number) => `${(i / 6) * 100},${100 - (t.coinsGenerated / maxC) * 80}`).join(" ");
+                          return <polyline fill="none" stroke="#eab308" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" points={ptsC} />;
+                        })()}
+
+                        {(() => {
+                          const maxC = Math.max(...analyticsData.trends.map((t: any) => Math.max(t.coinsGenerated, t.coinsSpent)), 1);
+                          const ptsB = analyticsData.trends.map((t: any, i: number) => `${(i / 6) * 100},${100 - (t.coinsSpent / maxC) * 80}`).join(" ");
+                          return <polyline fill="none" stroke="#ef4444" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" points={ptsB} />;
+                        })()}
+
+                        {/* Interactive Data dots */}
+                        {analyticsData.trends.map((t: any, i: number) => {
+                          const maxC = Math.max(...analyticsData.trends.map((t: any) => Math.max(t.coinsGenerated, t.coinsSpent)), 1);
+                          const cx = (i / 6) * 100;
+                          const cyC = 100 - (t.coinsGenerated / maxC) * 80;
+                          const cyB = 100 - (t.coinsSpent / maxC) * 80;
+                          return (
+                            <g key={i}>
+                              <circle cx={cx} cy={cyC} r="2.5" fill="#eab308" stroke="#ffffff" strokeWidth="1" />
+                              <circle cx={cx} cy={cyB} r="2.5" fill="#ef4444" stroke="#ffffff" strokeWidth="1" />
+                            </g>
+                          );
+                        })}
+                      </svg>
+                    </div>
+
+                    {/* Chart X-axis Labels */}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '12px', fontSize: '11px', color: '#94a3b8', fontWeight: 600 }}>
+                      {analyticsData.trends.map((t: any, i: number) => (
+                        <span key={i}>{t.date}</span>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+              </div>
+
+              {/* Sub-Panels: Coin circulation, session analytics & retention grids */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '24px', marginBottom: '24px' }}>
+                
+                {/* Sub-Panel 1: Coin Economy Summary */}
+                <div className={styles.lteCard} style={{ borderRadius: '16px', background: '#ffffff', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}>
+                  <div className={styles.lteCardHeader} style={{ borderBottom: '1px solid #f1f5f9', padding: '16px 24px' }}>
+                    <h4 style={{ margin: 0, fontSize: '15px', fontWeight: 700, color: '#1e293b' }}>💎 Coin Economy Metrics</h4>
+                  </div>
+                  <div className={styles.lteCardBody} style={{ padding: '24px' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f8fafc', paddingBottom: '8px' }}>
+                        <span style={{ color: '#64748b', fontSize: '13px' }}>Coins in Circulation</span>
+                        <span style={{ fontWeight: 'bold', color: '#0f172a' }}>{analyticsData.coin.circulation.toLocaleString()}</span>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f8fafc', paddingBottom: '8px' }}>
+                        <span style={{ color: '#64748b', fontSize: '13px' }}>Average Balance / User</span>
+                        <span style={{ fontWeight: 'bold', color: '#0f172a' }}>{analyticsData.coin.avgCoins.toLocaleString()} Coins</span>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f8fafc', paddingBottom: '8px' }}>
+                        <span style={{ color: '#64748b', fontSize: '13px' }}>Coins Generated (Today)</span>
+                        <span style={{ fontWeight: 'bold', color: '#10b981' }}>+{analyticsData.coin.generatedToday.toLocaleString()}</span>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f8fafc', paddingBottom: '8px' }}>
+                        <span style={{ color: '#64748b', fontSize: '13px' }}>Coins Spent/Burned (Today)</span>
+                        <span style={{ fontWeight: 'bold', color: '#ef4444' }}>-{analyticsData.coin.spentToday.toLocaleString()}</span>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <span style={{ color: '#64748b', fontSize: '13px' }}>Economy Inflation Rate</span>
+                        <span style={{ fontWeight: 'bold', color: analyticsData.coin.burnRatio < 30 ? '#ef4444' : '#10b981' }}>
+                          {analyticsData.coin.burnRatio < 30 ? 'HIGH (Inflating)' : 'HEALTHY (Stable)'}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Sub-Panel 2: Premium User Session Retention Heat-map */}
+                <div className={styles.lteCard} style={{ borderRadius: '16px', background: '#ffffff', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}>
+                  <div className={styles.lteCardHeader} style={{ borderBottom: '1px solid #f1f5f9', padding: '16px 24px' }}>
+                    <h4 style={{ margin: 0, fontSize: '15px', fontWeight: 700, color: '#1e293b' }}>📅 Cohort Cohort Retention Rate</h4>
+                  </div>
+                  <div className={styles.lteCardBody} style={{ padding: '24px' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px', textAlign: 'center' }}>
+                      <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', padding: '16px', borderRadius: '12px' }}>
+                        <div style={{ fontSize: '11px', color: '#166534', fontWeight: 600 }}>D1 Retention</div>
+                        <div style={{ fontSize: '28px', fontWeight: 800, color: '#15803d', margin: '6px 0' }}>{analyticsData.retention.d1}%</div>
+                        <div style={{ fontSize: '10px', color: '#86efac' }}>Target: {'>'}40%</div>
+                      </div>
+                      <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', padding: '16px', borderRadius: '12px' }}>
+                        <div style={{ fontSize: '11px', color: '#1e40af', fontWeight: 600 }}>D7 Retention</div>
+                        <div style={{ fontSize: '28px', fontWeight: 800, color: '#1d4ed8', margin: '6px 0' }}>{analyticsData.retention.d7}%</div>
+                        <div style={{ fontSize: '10px', color: '#93c5fd' }}>Target: {'>'}20%</div>
+                      </div>
+                      <div style={{ background: '#f5f3ff', border: '1px solid #ddd6fe', padding: '16px', borderRadius: '12px' }}>
+                        <div style={{ fontSize: '11px', color: '#5b21b6', fontWeight: 600 }}>D30 Retention</div>
+                        <div style={{ fontSize: '28px', fontWeight: 800, color: '#6d28d9', margin: '6px 0' }}>{analyticsData.retention.d30}%</div>
+                        <div style={{ fontSize: '10px', color: '#c084fc' }}>Target: {'>'}8%</div>
+                      </div>
+                    </div>
+                    <div style={{ marginTop: '16px', fontSize: '11.5px', color: '#64748b', textAlign: 'center' }}>
+                      Retention is calculated on user check-ins & transaction events logs.
+                    </div>
+                  </div>
+                </div>
+
+                {/* Sub-Panel 3: User Engagement & Telegram Sources */}
+                <div className={styles.lteCard} style={{ borderRadius: '16px', background: '#ffffff', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}>
+                  <div className={styles.lteCardHeader} style={{ borderBottom: '1px solid #f1f5f9', padding: '16px 24px' }}>
+                    <h4 style={{ margin: 0, fontSize: '15px', fontWeight: 700, color: '#1e293b' }}>📊 Session & Entry Channels</h4>
+                  </div>
+                  <div className={styles.lteCardBody} style={{ padding: '24px' }}>
+                    
+                    {/* Session indicators */}
+                    <div style={{ display: 'flex', justifyContent: 'space-around', marginBottom: '16px', borderBottom: '1px solid #f1f5f9', paddingBottom: '16px' }}>
+                      <div style={{ textAlign: 'center' }}>
+                        <span style={{ fontSize: '10px', textTransform: 'uppercase', color: '#94a3b8' }}>Session Depth</span>
+                        <div style={{ fontSize: '18px', fontWeight: 'bold', color: '#0f172a' }}>{analyticsData.session.sessionDepth} events</div>
+                      </div>
+                      <div style={{ textAlign: 'center' }}>
+                        <span style={{ fontSize: '10px', textTransform: 'uppercase', color: '#94a3b8' }}>Avg Duration</span>
+                        <div style={{ fontSize: '18px', fontWeight: 'bold', color: '#0f172a' }}>{analyticsData.session.avgSessionDuration}</div>
+                      </div>
+                    </div>
+
+                    {/* Telegram Entry sources channel list */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      <div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
+                          <span>Telegram Channel / Group Invites</span>
+                          <span>{analyticsData.telegramSources.channel}%</span>
+                        </div>
+                        <div style={{ width: '100%', background: '#f1f5f9', height: '6px', borderRadius: '3px' }}>
+                          <div style={{ width: `${analyticsData.telegramSources.channel}%`, background: '#3b82f6', height: '100%', borderRadius: '3px' }}></div>
+                        </div>
+                      </div>
+                      <div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
+                          <span>Direct Bot Starts</span>
+                          <span>{analyticsData.telegramSources.direct}%</span>
+                        </div>
+                        <div style={{ width: '100%', background: '#f1f5f9', height: '6px', borderRadius: '3px' }}>
+                          <div style={{ width: `${analyticsData.telegramSources.direct}%`, background: '#a855f7', height: '100%', borderRadius: '3px' }}></div>
+                        </div>
+                      </div>
+                      <div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
+                          <span>Group Chats Integrations</span>
+                          <span>{analyticsData.telegramSources.group}%</span>
+                        </div>
+                        <div style={{ width: '100%', background: '#f1f5f9', height: '6px', borderRadius: '3px' }}>
+                          <div style={{ width: `${analyticsData.telegramSources.group}%`, background: '#10b981', height: '100%', borderRadius: '3px' }}></div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+              </div>
+
+              {/* Ecosystem Engagement Leaderboards & Real-time Audit logs */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
+                
+                {/* Left Panel: Top Users Leaderboards */}
+                <div className={styles.lteCard} style={{ borderRadius: '16px', background: '#ffffff', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}>
+                  <div className={styles.lteCardHeader} style={{ borderBottom: '1px solid #f1f5f9', padding: '16px 24px' }}>
+                    <h4 style={{ margin: 0, fontSize: '15px', fontWeight: 700, color: '#1e293b' }}>🏆 Ecosystem Performance Leaderboards</h4>
+                  </div>
+                  <div className={styles.lteCardBody} style={{ padding: '24px' }}>
+                    
+                    {/* Top Earners */}
+                    <h5 style={{ margin: '0 0 8px 0', fontSize: '12px', textTransform: 'uppercase', color: '#3b82f6', letterSpacing: '0.05em' }}>💰 Top Cash-Out / Earners Balance</h5>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '20px' }}>
+                      {analyticsData.topUsers.earners.map((u: any, idx: number) => (
+                        <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#f8fafc', padding: '8px 12px', borderRadius: '8px', fontSize: '12.5px' }}>
+                          <span><strong>#{idx + 1}</strong> {u.first_name} <span style={{ color: '#94a3b8' }}>(@{u.username})</span></span>
+                          <span style={{ fontWeight: 'bold', color: '#10b981' }}>{u.balance.toLocaleString()} Coins</span>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Top Referrers */}
+                    <h5 style={{ margin: '0 0 8px 0', fontSize: '12px', textTransform: 'uppercase', color: '#a855f7', letterSpacing: '0.05em' }}>📢 Top Referrers & Growth loops</h5>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '20px' }}>
+                      {analyticsData.topUsers.referrers.map((u: any, idx: number) => (
+                        <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#f8fafc', padding: '8px 12px', borderRadius: '8px', fontSize: '12.5px' }}>
+                          <span><strong>#{idx + 1}</strong> {u.first_name} <span style={{ color: '#94a3b8' }}>(@{u.username})</span></span>
+                          <span style={{ fontWeight: 'bold', color: '#a855f7' }}>{u.invite_count} Refers</span>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Longest Daily Streaks */}
+                    <h5 style={{ margin: '0 0 8px 0', fontSize: '12px', textTransform: 'uppercase', color: '#eab308', letterSpacing: '0.05em' }}>🔥 Daily Check-in Streak Champions</h5>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      {analyticsData.topUsers.streaks.map((u: any, idx: number) => (
+                        <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#f8fafc', padding: '8px 12px', borderRadius: '8px', fontSize: '12.5px' }}>
+                          <span><strong>#{idx + 1}</strong> {u.first_name} <span style={{ color: '#94a3b8' }}>(@{u.username})</span></span>
+                          <span style={{ fontWeight: 'bold', color: '#eab308' }}>🔥 {u.streak} Days Streak</span>
+                        </div>
+                      ))}
+                    </div>
+
+                  </div>
+                </div>
+
+                {/* Right Panel: Real-time Activity Logs Stream */}
+                <div className={styles.lteCard} style={{ borderRadius: '16px', background: '#ffffff', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}>
+                  <div className={styles.lteCardHeader} style={{ borderBottom: '1px solid #f1f5f9', padding: '16px 24px' }}>
+                    <h4 style={{ margin: 0, fontSize: '15px', fontWeight: 700, color: '#1e293b' }}>⚡ Real-time Network Activity Feed</h4>
+                  </div>
+                  <div className={styles.lteCardBody} style={{ padding: '24px', maxHeight: '540px', overflowY: 'auto' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                      {analyticsData.realtimeFeed.map((txn: any) => (
+                        <div key={txn.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '1px solid #f8fafc', paddingBottom: '10px' }}>
+                          <div>
+                            <div style={{ fontSize: '12.5px', fontWeight: 700, color: '#334155' }}>
+                              User <code style={{ background: '#f1f5f9', padding: '2px 4px', borderRadius: '4px', fontSize: '11px' }}>{txn.telegram_id}</code>
+                            </div>
+                            <div style={{ fontSize: '11.5px', color: '#64748b', marginTop: '2px' }}>{txn.description}</div>
+                            <div style={{ fontSize: '10px', color: '#94a3b8', marginTop: '4px' }}>{new Date(txn.created_at || txn.createdAt).toLocaleString()}</div>
+                          </div>
+                          <div style={{ textAlign: 'right' }}>
+                            <span className={styles.lteBadge} style={
+                              txn.type === 'withdrawal' ? { background: '#fef2f2', color: '#ef4444' } :
+                              txn.type === 'referral' ? { background: '#f5f3ff', color: '#8b5cf6' } :
+                              { background: '#f0fdf4', color: '#22c55e' }
+                            }>
+                              {txn.type.toUpperCase()}
+                            </span>
+                            <div style={{ fontSize: '13px', fontWeight: 'bold', marginTop: '4px', color: txn.amount < 0 ? '#ef4444' : '#22c55e' }}>
+                              {txn.amount < 0 ? '' : '+'}{txn.amount} c
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+              </div>
+
             </div>
           )}
 
@@ -1907,9 +2378,9 @@ export default function AdminPanel() {
                 <h3 className={styles.lteCardTitle}>Global Ecosystem Variables</h3>
               </div>
               <div className={styles.lteCardBody}>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '20px' }}>
                   <div className={styles.lteFormGroup}>
-                    <label className={styles.lteFormLabel}>Game Completion Reward (Coins)</label>
+                    <label className={styles.lteFormLabel}>Game Reward (Coins)</label>
                     <input 
                       type="number"
                       className={styles.lteFormControl}
@@ -1924,6 +2395,24 @@ export default function AdminPanel() {
                       className={styles.lteFormControl}
                       value={appSettings.game_limit_per_day || 0}
                       onChange={(e) => setAppSettings({...appSettings, game_limit_per_day: parseInt(e.target.value)})}
+                    />
+                  </div>
+                  <div className={styles.lteFormGroup}>
+                    <label className={styles.lteFormLabel}>Watch & Earn Cooldown (sec)</label>
+                    <input 
+                      type="number"
+                      className={styles.lteFormControl}
+                      value={appSettings.watch_earn_cooldown || 60}
+                      onChange={(e) => setAppSettings({...appSettings, watch_earn_cooldown: parseInt(e.target.value)})}
+                    />
+                  </div>
+                  <div className={styles.lteFormGroup}>
+                    <label className={styles.lteFormLabel}>Jackpot Ad Cooldown (sec)</label>
+                    <input 
+                      type="number"
+                      className={styles.lteFormControl}
+                      value={appSettings.ad_entry_cooldown || 60}
+                      onChange={(e) => setAppSettings({...appSettings, ad_entry_cooldown: parseInt(e.target.value)})}
                     />
                   </div>
                 </div>

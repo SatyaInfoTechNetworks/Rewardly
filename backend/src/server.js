@@ -176,7 +176,11 @@ testConnection().then(async () => {
 
     // 6. Lifafa Tables DDL Creation
     "CREATE TABLE IF NOT EXISTS `lifafas` (`id` INTEGER AUTO_INCREMENT PRIMARY KEY, `code` VARCHAR(255) NOT NULL UNIQUE, `reward_coins` INTEGER NOT NULL, `max_uses` INTEGER DEFAULT -1, `current_uses` INTEGER DEFAULT 0, `status` VARCHAR(255) DEFAULT 'active', `expires_at` DATETIME NULL, `created_at` DATETIME NOT NULL, `updated_at` DATETIME NOT NULL);",
-    "CREATE TABLE IF NOT EXISTS `lifafa_claims` (`id` INTEGER AUTO_INCREMENT PRIMARY KEY, `lifafa_id` INTEGER NOT NULL, `user_id` BIGINT NOT NULL, `claimed_at` DATETIME DEFAULT CURRENT_TIMESTAMP, `created_at` DATETIME NOT NULL, `updated_at` DATETIME NOT NULL);"
+    "CREATE TABLE IF NOT EXISTS `lifafa_claims` (`id` INTEGER AUTO_INCREMENT PRIMARY KEY, `lifafa_id` INTEGER NOT NULL, `user_id` BIGINT NOT NULL, `claimed_at` DATETIME DEFAULT CURRENT_TIMESTAMP, `created_at` DATETIME NOT NULL, `updated_at` DATETIME NOT NULL);",
+
+    // 7. Cooldown Settings Fields
+    "ALTER TABLE `app_settings` ADD `watch_earn_cooldown` INTEGER DEFAULT 30;",
+    "ALTER TABLE `app_settings` ADD `ad_entry_cooldown` INTEGER DEFAULT 60;"
   ];
 
   for (const sql of migrations) {
@@ -184,7 +188,8 @@ testConnection().then(async () => {
       await sequelize.query(sql);
     } catch (err) {
       const isDuplicate = err.parent?.code === 'ER_DUP_FIELDNAME' || 
-                         err.message.includes('Duplicate column name');
+                         err.message.includes('Duplicate column name') ||
+                         err.message.includes('already exists');
       if (!isDuplicate) console.log(`ℹ️ Migration Note: ${err.message}`);
     }
   }
@@ -205,6 +210,8 @@ testConnection().then(async () => {
       await sequelize.query("UPDATE `app_settings` SET `adsgram_checkin_block_id` = '30393' WHERE `adsgram_checkin_block_id` IS NULL OR `adsgram_checkin_block_id` = '4376'");
       await sequelize.query("UPDATE `app_settings` SET `adsgram_draw_block_id` = '30394' WHERE `adsgram_draw_block_id` IS NULL OR `adsgram_draw_block_id` = '30393'");
       await sequelize.query("UPDATE `app_settings` SET `adsgram_visit_block_id` = 'int 30395' WHERE `adsgram_visit_block_id` IS NULL");
+      await sequelize.query("UPDATE `app_settings` SET `watch_earn_cooldown` = 30 WHERE `watch_earn_cooldown` IS NULL;");
+      await sequelize.query("UPDATE `app_settings` SET `ad_entry_cooldown` = 60 WHERE `ad_entry_cooldown` IS NULL;");
     } catch (err) {
       console.log('ℹ️ Migration Note (Defaults):', err.message);
     }
@@ -230,7 +237,9 @@ testConnection().then(async () => {
           pubscale_sandbox: false,
           adsgram_checkin_block_id: '30393',
           adsgram_draw_block_id: '30394',
-          adsgram_visit_block_id: 'int 30395'
+          adsgram_visit_block_id: 'int 30395',
+          watch_earn_cooldown: 30,
+          ad_entry_cooldown: 60
         }
       });
  

@@ -112,7 +112,9 @@ router.get('/:slug', async (req, res) => {
       free: 0,
       ad: 0,
       coins: 0,
-      referral: 0
+      referral: 0,
+      cooldownRemaining: 0,
+      cooldownPeriod: 60
     };
 
     if (initData) {
@@ -130,6 +132,27 @@ router.get('/:slug', async (req, res) => {
         if (e.entry_source === 'coins') userStats.coins++;
         if (e.entry_source === 'referral') userStats.referral++;
       });
+
+      // Compute Cooldown
+      const lastAdEntry = await LuckyDrawEntry.findOne({
+        where: {
+          user_id: tgUser.id,
+          entry_source: 'ad'
+        },
+        order: [['created_at', 'DESC']]
+      });
+
+      const AppSetting = require('../models/AppSetting');
+      const settings = await AppSetting.findByPk(1);
+      const cooldownPeriod = settings ? settings.ad_entry_cooldown : 60;
+      userStats.cooldownPeriod = cooldownPeriod;
+
+      if (lastAdEntry) {
+        const elapsedSec = Math.floor((Date.now() - new Date(lastAdEntry.created_at).getTime()) / 1000);
+        if (elapsedSec < cooldownPeriod) {
+          userStats.cooldownRemaining = cooldownPeriod - elapsedSec;
+        }
+      }
     }
 
     res.json({
@@ -216,7 +239,24 @@ router.post('/:id/enter', async (req, res) => {
       if (sourceCounts.ad >= draw.max_ad_entries) {
         return res.status(400).json({ error: `You have reached the limit of ${draw.max_ad_entries} ad-based entries.` });
       }
-      // Rewarded ad verification should happen on frontend SDK postback/success before hitting this
+      
+      // Cooldown Check
+      const lastAdEntry = await LuckyDrawEntry.findOne({
+        where: {
+          user_id: user.telegram_id,
+          entry_source: 'ad'
+        },
+        order: [['created_at', 'DESC']]
+      });
+      const AppSetting = require('../models/AppSetting');
+      const settings = await AppSetting.findByPk(1);
+      const cooldownPeriod = settings ? settings.ad_entry_cooldown : 60;
+      if (lastAdEntry) {
+        const elapsedSec = Math.floor((Date.now() - new Date(lastAdEntry.created_at).getTime()) / 1000);
+        if (elapsedSec < cooldownPeriod) {
+          return res.status(400).json({ error: `Please wait ${cooldownPeriod - elapsedSec} seconds before adding another ad ticket.` });
+        }
+      }
     } 
     else if (entry_source === 'coins') {
       if (!draw.coin_entry_enabled) {

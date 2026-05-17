@@ -66,6 +66,14 @@ const AppSetting = sequelize.define('AppSetting', {
   adsgram_visit_block_id: {
     type: DataTypes.STRING,
     defaultValue: 'int 30395'  // Dedicated AdsGram interstitial block for Visit & Earn
+  },
+  watch_earn_cooldown: {
+    type: DataTypes.INTEGER,
+    defaultValue: 30
+  },
+  ad_entry_cooldown: {
+    type: DataTypes.INTEGER,
+    defaultValue: 60
   }
 }, {
   tableName: 'app_settings',

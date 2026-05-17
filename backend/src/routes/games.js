@@ -43,6 +43,23 @@ router.get('/stats', async (req, res) => {
       await user.save();
     }
 
+    // Cooldown check
+    const lastGameTx = await Transaction.findOne({
+      where: {
+        telegram_id: tgUser.id,
+        type: 'game'
+      },
+      order: [['created_at', 'DESC']]
+    });
+    
+    let cooldownRemaining = 0;
+    if (lastGameTx) {
+      const elapsedSec = Math.floor((Date.now() - new Date(lastGameTx.created_at).getTime()) / 1000);
+      if (elapsedSec < settings.watch_earn_cooldown) {
+        cooldownRemaining = settings.watch_earn_cooldown - elapsedSec;
+      }
+    }
+
     res.json({
       balance: user.balance,
       todayPlays: user.daily_games_played,
@@ -50,7 +67,9 @@ router.get('/stats', async (req, res) => {
       limit: settings.game_limit_per_day,
       rewardPerGame: settings.game_reward_coins,
       adsgramEnabled: settings.adsgram_enabled,
-      monetagEnabled: settings.monetag_enabled
+      monetagEnabled: settings.monetag_enabled,
+      cooldownRemaining,
+      cooldownPeriod: settings.watch_earn_cooldown
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -76,6 +95,22 @@ router.post('/reward', async (req, res) => {
     
     const user = await User.findByPk(tgUser.id);
     if (!user) return res.status(404).json({ error: 'User not found' });
+
+    // Cooldown check on reward endpoint
+    const lastGameTx = await Transaction.findOne({
+      where: {
+        telegram_id: tgUser.id,
+        type: 'game'
+      },
+      order: [['created_at', 'DESC']]
+    });
+    
+    if (lastGameTx) {
+      const elapsedSec = Math.floor((Date.now() - new Date(lastGameTx.created_at).getTime()) / 1000);
+      if (elapsedSec < settings.watch_earn_cooldown) {
+        return res.status(400).json({ error: `Please wait ${settings.watch_earn_cooldown - elapsedSec} seconds before watching another ad.` });
+      }
+    }
 
     const today = new Date().toISOString().split('T')[0];
 

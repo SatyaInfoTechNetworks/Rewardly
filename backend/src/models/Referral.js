@@ -9,7 +9,8 @@ const Referral = sequelize.define('Referral', {
   },
   referrer_user_id: {
     type: DataTypes.BIGINT,
-    allowNull: false
+    allowNull: false,
+    field: 'referrer_id'
   },
   referred_user_id: {
     type: DataTypes.BIGINT,
@@ -21,10 +22,12 @@ const Referral = sequelize.define('Referral', {
   },
   is_valid: {
     type: DataTypes.BOOLEAN,
-    defaultValue: false
+    defaultValue: false,
+    field: 'reward_given'
   },
   validated_at: {
-    type: DataTypes.DATE
+    type: DataTypes.DATE,
+    field: 'completed_at'
   },
   ip_address: { type: DataTypes.STRING },
   device_id: { type: DataTypes.STRING }

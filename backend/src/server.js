@@ -162,7 +162,10 @@ testConnection().then(async () => {
     "ALTER TABLE `app_settings` ADD `pubscale_sandbox` TINYINT(1) DEFAULT 0;",
     "ALTER TABLE `app_settings` ADD `adsgram_checkin_block_id` VARCHAR(255) DEFAULT '4376';",
     "ALTER TABLE `app_settings` ADD `adsgram_draw_block_id` VARCHAR(255) DEFAULT '30393';",
-    "ALTER TABLE `app_settings` ADD `adsgram_visit_block_id` VARCHAR(255) DEFAULT 'int 30395';"
+    "ALTER TABLE `app_settings` ADD `adsgram_visit_block_id` VARCHAR(255) DEFAULT 'int 30395';",
+    
+    // 5. Referrals Status Enum Alteration
+    "ALTER TABLE `referrals` MODIFY COLUMN `status` ENUM('pending', 'active', 'qualified', 'rewarded', 'validated', 'rejected', 'fraud') DEFAULT 'pending';"
   ];
 
   for (const sql of migrations) {

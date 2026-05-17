@@ -186,7 +186,7 @@ testConnection().then(async () => {
       await sequelize.query("UPDATE `app_settings` SET `pubscale_enabled` = 1 WHERE `pubscale_enabled` IS NULL;");
       await sequelize.query("UPDATE `app_settings` SET `opinion_universe_enabled` = 1 WHERE `opinion_universe_enabled` IS NULL;");
       await sequelize.query("UPDATE `app_settings` SET `pubscale_app_id` = '78594689' WHERE `pubscale_app_id` IS NULL OR `pubscale_app_id` = '26048184';");
-      await sequelize.query("UPDATE `app_settings` SET `opinion_universe_url` = 'https://opinionuniverse.com/offerwall?pubId=1863&app_id=ID_eb1f5bea3e8caadcfcf6ccb5d35a1d1d' WHERE `opinion_universe_url` NOT LIKE '%app_id=ID_eb1f5bea3e8caadcfcf6ccb5d35a1d1d%';");
+      await sequelize.query("UPDATE `app_settings` SET `opinion_universe_url` = 'https://opinionuniverse.com/offerwall?pubId=1863&SID={SID}&appId=ID_eb1f5bea3e8caadcfcf6ccb5d35a1d1d' WHERE `opinion_universe_url` NOT LIKE '%SID={SID}%' OR `opinion_universe_url` IS NULL;");
       await sequelize.query("UPDATE `app_settings` SET `adsgram_checkin_block_id` = '30393' WHERE `adsgram_checkin_block_id` IS NULL OR `adsgram_checkin_block_id` = '4376'");
       await sequelize.query("UPDATE `app_settings` SET `adsgram_draw_block_id` = '30394' WHERE `adsgram_draw_block_id` IS NULL OR `adsgram_draw_block_id` = '30393'");
     } catch (err) {
@@ -209,7 +209,7 @@ testConnection().then(async () => {
           onboarding_verification_enabled: true,
           pubscale_app_id: '78594689',
           pubscale_enabled: true,
-          opinion_universe_url: 'https://opinionuniverse.com/offerwall?pubId=1863&app_id=ID_eb1f5bea3e8caadcfcf6ccb5d35a1d1d',
+          opinion_universe_url: 'https://opinionuniverse.com/offerwall?pubId=1863&SID={SID}&appId=ID_eb1f5bea3e8caadcfcf6ccb5d35a1d1d',
           opinion_universe_enabled: true,
           pubscale_sandbox: false,
           adsgram_checkin_block_id: '30393',

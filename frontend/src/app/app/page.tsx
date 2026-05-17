@@ -320,7 +320,21 @@ export default function AppDashboard() {
                       tag="POPULAR"
                       urgency="High Paying"
                       icon="/opinionuniverse.png"
-                      href={`${appSettings.opinion_universe_url || 'https://opinionuniverse.com/offerwall?pubId=1863&app_id=ID_eb1f5bea3e8caadcfcf6ccb5d35a1d1d'}&SID=${user.id}`}
+                      href={(() => {
+                        let url = appSettings.opinion_universe_url || 'https://opinionuniverse.com/offerwall?pubId=1863&SID={SID}&appId=ID_eb1f5bea3e8caadcfcf6ccb5d35a1d1d';
+                        if (url.includes('{SID}')) {
+                          url = url.replace('{SID}', user.id);
+                        } else if (url.includes('[userId]')) {
+                          url = url.replace('[userId]', user.id);
+                        } else if (url.includes('{userId}')) {
+                          url = url.replace('{userId}', user.id);
+                        } else if (!url.includes('SID=')) {
+                          url = url.includes('?') ? `${url}&SID=${user.id}` : `${url}?SID=${user.id}`;
+                        } else {
+                          url = url.replace(/SID=[^&]*/, `SID=${user.id}`);
+                        }
+                        return url;
+                      })()}
                     />
                   )}
                   

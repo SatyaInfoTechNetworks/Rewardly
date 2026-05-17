@@ -137,13 +137,26 @@ router.get('/postback', async (req, res) => {
     await user.save();
 
     // 3. Create Transaction record
+    const finalTxId = trans_id || generateTransactionId('OU');
     await Transaction.create({
       telegram_id: user.telegram_id,
-      reference_id: trans_id || generateTransactionId('OU'),
+      reference_id: finalTxId,
       amount: reward,
       type: 'survey',
       description: `Opinion Universe Offer: ${offer_id || 'N/A'}`,
       status: 'completed'
+    });
+
+    // Send Telegram Alert to Admin
+    const { sendCompletionAlert } = require('../utils/telegramAlerter');
+    sendCompletionAlert({
+      offerName: offer_id ? `Offer #${offer_id}` : 'Opinion Universe Survey',
+      offerwall: 'Opinion Universe',
+      amount: reward,
+      transactionId: finalTxId,
+      username: user.username,
+      firstName: user.first_name,
+      telegramId: user_id
     });
 
     console.log(`✅ [OpinionUniverse] Success: User ${user_id} awarded ${reward} coins`);

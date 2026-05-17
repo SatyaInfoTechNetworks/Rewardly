@@ -60,6 +60,18 @@ router.get('/cpx', async (req, res) => {
     await trackContestActivity(user_id, 'earnings', rewardAmount);
     await validateReferral(user_id);
 
+    // Send Telegram Alert to Admin
+    const { sendCompletionAlert } = require('../utils/telegramAlerter');
+    sendCompletionAlert({
+      offerName: 'CPX Research Survey',
+      offerwall: 'CPX Research',
+      amount: rewardAmount,
+      transactionId: trans_id,
+      username: user.username,
+      firstName: user.first_name,
+      telegramId: user_id
+    });
+
     console.log(`✅ User ${user_id} credited with ${rewardAmount} coins.`);
     return res.send('OK');
   } catch (error) {
@@ -241,6 +253,18 @@ router.get(/^\/pubscale(\/.*)?$/, async (req, res) => {
     // 7. Post-reward processing
     await trackContestActivity(user_id, 'earnings', rewardAmount);
     await validateReferral(user_id);
+
+    // Send Telegram Alert to Admin
+    const { sendCompletionAlert } = require('../utils/telegramAlerter');
+    sendCompletionAlert({
+      offerName: offer_name || 'PubScale Offer Completion',
+      offerwall: 'PubScale WOW',
+      amount: rewardAmount,
+      transactionId: token,
+      username: user.username,
+      firstName: user.first_name,
+      telegramId: user_id
+    });
 
     console.log(`✅ PubScale Reward: User ${user_id} credited with ${rewardAmount} coins.`);
     return res.send('OK');

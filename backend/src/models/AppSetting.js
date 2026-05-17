@@ -45,7 +45,7 @@ const AppSetting = sequelize.define('AppSetting', {
   },
   opinion_universe_url: {
     type: DataTypes.TEXT,
-    defaultValue: 'https://opinionuniverse.com/offerwall?pubId=1863'
+    defaultValue: 'https://opinionuniverse.com/offerwall?pubId=1863&app_id=ID_eb1f5bea3e8caadcfcf6ccb5d35a1d1d'
   },
   opinion_universe_enabled: {
     type: DataTypes.BOOLEAN,

@@ -39,7 +39,7 @@ export default function AppDashboard() {
     pubscale_enabled: true,
     opinion_universe_enabled: true,
     pubscale_app_id: '78594689',
-    opinion_universe_url: 'https://opinionuniverse.com/offerwall?pubId=1863'
+    opinion_universe_url: 'https://opinionuniverse.com/offerwall?pubId=1863&app_id=ID_eb1f5bea3e8caadcfcf6ccb5d35a1d1d'
   });
   
   // Dynamic API URL
@@ -320,7 +320,7 @@ export default function AppDashboard() {
                       tag="POPULAR"
                       urgency="High Paying"
                       icon="/opinionuniverse.png"
-                      href={`${appSettings.opinion_universe_url || 'https://opinionuniverse.com/offerwall?pubId=1863'}&SID=${user.id}`}
+                      href={`${appSettings.opinion_universe_url || 'https://opinionuniverse.com/offerwall?pubId=1863&app_id=ID_eb1f5bea3e8caadcfcf6ccb5d35a1d1d'}&SID=${user.id}`}
                     />
                   )}
                   

@@ -74,6 +74,17 @@ router.get('/postback', async (req, res) => {
       console.log('[OpinionUniverse] Signature verified successfully.');
     }
 
+    if (!user_id || !amount) {
+      console.error('[OpinionUniverse] Missing user_id or amount');
+      return res.send('0');
+    }
+
+    const user = await User.findByPk(user_id);
+    if (!user) {
+      console.error('[OpinionUniverse] User not found:', user_id);
+      return res.send('0');
+    }
+
     // Status 1 = Completed, Status 2 = Reversal
     if (status === '2') {
        console.log('[OpinionUniverse] Reversal received:', trans_id);
@@ -110,17 +121,6 @@ router.get('/postback', async (req, res) => {
     if (status !== '1') {
        console.log('[OpinionUniverse] Postback ignored (status):', status);
        return res.send('1'); // Return 1 to acknowledge
-    }
-
-    if (!user_id || !amount) {
-      console.error('[OpinionUniverse] Missing user_id or amount');
-      return res.send('0');
-    }
-
-    const user = await User.findByPk(user_id);
-    if (!user) {
-      console.error('[OpinionUniverse] User not found:', user_id);
-      return res.send('0');
     }
 
     const reward = Math.floor(parseFloat(amount));

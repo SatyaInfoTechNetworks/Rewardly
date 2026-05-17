@@ -72,16 +72,19 @@ export const VisitAndEarnScreen: React.FC<VisitAndEarnScreenProps> = ({ user, on
       try {
         const controller = await (window as any).Adsgram.init({ blockId });
         controller.show().then(() => {
-          // Ad played successfully or skipped (Interstitial) -> start task
+          // Ad played successfully -> start task
           startTaskTimerAndRedirect();
         }).catch((err: any) => {
           console.error('[AdsGram Interstitial Show Error]', err);
-          // Fallback to start directly if ad fail
-          startTaskTimerAndRedirect();
+          alert("⚠️ You must watch the complete ad to start the visit task.");
+          setVisitingTask(null);
+          setTimerStarted(false);
         });
       } catch (err) {
         console.error('[AdsGram Interstitial Init Error]', err);
-        startTaskTimerAndRedirect();
+        alert("⚠️ Failed to load ad. Please try again.");
+        setVisitingTask(null);
+        setTimerStarted(false);
       }
     } else {
       // Dev / Simulated Ad

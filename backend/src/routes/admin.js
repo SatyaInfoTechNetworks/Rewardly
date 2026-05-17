@@ -255,7 +255,7 @@ router.get('/analytics', adminAuth, async (req, res) => {
     const totalWithdrawals = await WithdrawalRequest.count();
     const approvedWithdrawals = await WithdrawalRequest.count({ where: { status: 'approved' } });
     const withdrawalApprovalRate = totalWithdrawals > 0 ? Math.round((approvedWithdrawals / totalWithdrawals) * 100) : 100;
-    const totalApprovedWithdrawalAmount = await WithdrawalRequest.sum('amount', { where: { status: 'approved' } }) || 0;
+    const totalApprovedWithdrawalAmount = await WithdrawalRequest.sum('coins_used', { where: { status: 'approved' } }) || 0;
     const avgWithdrawalSize = approvedWithdrawals > 0 ? Math.round(totalApprovedWithdrawalAmount / approvedWithdrawals) : 0;
 
     // 10. Feature Popularity

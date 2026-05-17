@@ -556,11 +556,26 @@ router.get('/adsgram-draw', async (req, res) => {
       }
     }
 
-    // Find the latest active lucky draw that allows ad entries
-    const activeDraw = await LuckyDraw.findOne({
-      where: { status: 'active', ad_entries_enabled: true },
-      order: [['created_at', 'DESC']]
-    });
+    // Find the requested lucky draw linked to this user's pending ad watch
+    global.pendingLuckyDrawAdWatches = global.pendingLuckyDrawAdWatches || {};
+    const requestedDrawId = global.pendingLuckyDrawAdWatches[user_id];
+
+    let activeDraw;
+    if (requestedDrawId) {
+      activeDraw = await LuckyDraw.findByPk(requestedDrawId);
+      if (activeDraw && activeDraw.status !== 'active') {
+        console.warn(`⚠️ [AdsGram Draw Postback] Draw #${requestedDrawId} is no longer active. Falling back.`);
+        activeDraw = null;
+      }
+    }
+
+    // Fallback if no pending request was stored or draw is inactive
+    if (!activeDraw) {
+      activeDraw = await LuckyDraw.findOne({
+        where: { status: 'active', ad_entries_enabled: true },
+        order: [['created_at', 'DESC']]
+      });
+    }
 
     if (!activeDraw) {
       console.warn(`⚠️ [AdsGram Draw Postback] No active Lucky Draw accepting ad entries found for User ${user_id}`);

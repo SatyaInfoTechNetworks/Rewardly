@@ -316,4 +316,35 @@ router.post('/:id/enter', async (req, res) => {
   }
 });
 
+/**
+ * POST /api/lucky-draws/:id/request-ad
+ * Record a pending ad watch request for a user to map the incoming S2S postback to this specific lucky draw.
+ */
+router.post('/:id/request-ad', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { initData } = req.body;
+
+    if (!initData) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    const urlParams = new URLSearchParams(initData);
+    const tgUser = JSON.parse(urlParams.get('user'));
+    if (!tgUser || !tgUser.id) {
+      return res.status(400).json({ error: 'Invalid user data' });
+    }
+
+    // Set the user's pending draw watch in the shared global cache
+    global.pendingLuckyDrawAdWatches = global.pendingLuckyDrawAdWatches || {};
+    global.pendingLuckyDrawAdWatches[tgUser.id] = Number(id);
+
+    console.log(`📡 [Ad Watch Request Cached] User ${tgUser.id} initialized ad view for Lucky Draw #${id}`);
+    res.json({ success: true });
+  } catch (err) {
+    console.error("Ad Watch Request Error:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 module.exports = router;

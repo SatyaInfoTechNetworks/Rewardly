@@ -354,50 +354,55 @@ export function ContestScreen({ user, onPlay }: ContestScreenProps) {
     if ((window as any).Adsgram) {
       try {
         setEnteringDraw(true);
-        let adSuccess = false;
-        const controller = await (window as any).Adsgram.init({
-          blockId,
-          onReward: async () => {
-            adSuccess = true;
-            console.log('[AdsGram LuckyDraw] onReward callback success');
 
-            // Capture current ad entry count
-            const currentAdEntries = drawDetail?.userStats?.ad || 0;
-            let pollSuccess = false;
+        // 1. Register the ad watch request in the backend to link S2S postback to this specific draw
+        const initData = tg?.initData || '';
+        try {
+          await fetch(`${API_URL}/api/lucky-draws/${drawId}/request-ad`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ initData })
+          });
+        } catch (adReqErr) {
+          console.error('[Ad Watch Request Registration Error]', adReqErr);
+        }
 
-            // Poll the backend up to 6 times (9 seconds total) to find the new ticket
-            for (let i = 0; i < 6; i++) {
-              await new Promise(r => setTimeout(r, 1500));
-              if (selectedDraw) {
-                const data = await fetchDrawDetailSilently(selectedDraw.slug);
-                if (data && data.userStats && data.userStats.ad > currentAdEntries) {
-                  pollSuccess = true;
-                  break;
-                }
+        // 2. Initialize and show the ad controller
+        const controller = await (window as any).Adsgram.init({ blockId });
+        
+        controller.show().then(async () => {
+          console.log('[AdsGram LuckyDraw] Ad watched successfully');
+          if (tg?.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+
+          // Capture current ad entry count
+          const currentAdEntries = drawDetail?.userStats?.ad || 0;
+          let pollSuccess = false;
+
+          // Poll the backend up to 6 times (9 seconds total) to find the new ticket
+          for (let i = 0; i < 6; i++) {
+            await new Promise(r => setTimeout(r, 1500));
+            if (selectedDraw) {
+              const data = await fetchDrawDetailSilently(selectedDraw.slug);
+              if (data && data.userStats && data.userStats.ad > currentAdEntries) {
+                pollSuccess = true;
+                break;
               }
             }
-
-            await fetchLuckyDraws();
-            setEnteringDraw(false);
-
-            if (pollSuccess) {
-              setTicketSuccessModal(true);
-            } else {
-              alert("🎟️ Ticket registered! Your dashboard will refresh with the new counts shortly.");
-            }
-          },
-          onError: (err: any) => {
-            console.error('[AdsGram LuckyDraw] SDK error:', err);
-            alert('❌ Ad is not available right now or failed to play. No ticket registered.');
-            setEnteringDraw(false);
           }
-        });
-        await controller.show();
 
-        if (!adSuccess) {
-          // If ad was closed early or didn't complete
+          await fetchLuckyDraws();
           setEnteringDraw(false);
-        }
+
+          if (pollSuccess) {
+            setTicketSuccessModal(true);
+          } else {
+            alert("🎟️ Ticket registered! Your dashboard will refresh with the new counts shortly.");
+          }
+        }).catch((err: any) => {
+          console.error('[AdsGram LuckyDraw Show Error]', err);
+          alert('❌ Ad was closed early or failed to play. No ticket registered.');
+          setEnteringDraw(false);
+        });
       } catch (err) {
         console.error('[AdsGram Init Error]', err);
         alert('❌ Failed to play ad.');

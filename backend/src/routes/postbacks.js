@@ -341,8 +341,22 @@ router.get(/^\/pubscale-chargeback(\/.*)?$/, async (req, res) => {
         status: 'completed'
       }, { transaction: t });
     }
-    
     await t.commit();
+
+    // Send Telegram Alert to Admin
+    const user = await User.findByPk(user_id);
+    const { sendChargebackAlert } = require('../utils/telegramAlerter');
+    sendChargebackAlert({
+      offerName: offer_name || (existing ? existing.description : 'PubScale Offer'),
+      offerwall: 'PubScale WOW',
+      amount: value || (existing ? existing.amount : 0),
+      transactionId: token,
+      username: user ? user.username : null,
+      firstName: user ? user.first_name : null,
+      telegramId: user_id,
+      reason: 'PubScale Offer Reversal (Chargeback)'
+    });
+
     console.log(`✅ PubScale Chargeback Processed Successfully for User ${user_id}`);
     return res.send('OK');
   } catch (err) {

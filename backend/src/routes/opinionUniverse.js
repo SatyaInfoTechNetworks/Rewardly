@@ -114,6 +114,19 @@ router.get('/postback', async (req, res) => {
           });
        }
 
+       // Send Telegram Alert to Admin
+       const { sendChargebackAlert } = require('../utils/telegramAlerter');
+       sendChargebackAlert({
+         offerName: offer_id ? `Offer #${offer_id}` : 'Opinion Universe Survey',
+         offerwall: 'Opinion Universe',
+         amount: reward,
+         transactionId: trans_id,
+         username: user.username,
+         firstName: user.first_name,
+         telegramId: user_id,
+         reason: 'Opinion Universe Survey Reversal (Chargeback)'
+       });
+
        console.log(`❌ [OpinionUniverse] Reversal: Deducted ${reward} coins from user ${user_id}`);
        return res.send('1');
     }

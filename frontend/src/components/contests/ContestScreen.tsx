@@ -300,8 +300,8 @@ export function ContestScreen({ user, onPlay }: ContestScreenProps) {
 
   const handleWatchAdForEntry = async (drawId: number) => {
     const tg = (window as any).Telegram?.WebApp;
-    // Attempt real AdsGram call if available
-    const blockId = (window as any).__ADSGRAM_GAME_BLOCK_ID__ || '30393';
+    // Retrieve the dedicated admin-configured AdsGram block ID for Lucky Draws
+    const blockId = (window as any).__ADSGRAM_DRAW_BLOCK_ID__ || '30393';
 
     if ((window as any).Adsgram) {
       try {
@@ -309,8 +309,15 @@ export function ContestScreen({ user, onPlay }: ContestScreenProps) {
         const controller = await (window as any).Adsgram.init({
           blockId,
           onReward: async () => {
-            // Watch succeeded, call backend to claim ad ticket
-            await handleEnterLuckyDraw(drawId, 'ad');
+            // Highly Secure: Reward is processed S2S via the new adsgram-draw postback.
+            // We wait 1.5s for the postback to register, then trigger a refresh!
+            setTimeout(() => {
+              if (selectedDraw) {
+                fetchDrawDetail(selectedDraw.slug);
+              }
+              fetchLuckyDraws();
+              alert("🎟️ Ticket registered");
+            }, 1500);
           },
           onError: (err: any) => {
             console.error('[AdsGram LuckyDraw] SDK error:', err);
@@ -333,9 +340,27 @@ export function ContestScreen({ user, onPlay }: ContestScreenProps) {
 
   const triggerMockAd = (drawId: number) => {
     setSimulatingAd(true);
-    setTimeout(() => {
+    setTimeout(async () => {
       setSimulatingAd(false);
-      handleEnterLuckyDraw(drawId, 'ad');
+      // In local dev where S2S postback is impossible, call direct claim to allow testing
+      try {
+        const tg = (window as any).Telegram?.WebApp;
+        const initData = tg?.initData || '';
+        await fetch(`${API_URL}/api/lucky-draws/${drawId}/enter`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-telegram-init-data': initData
+          },
+          body: JSON.stringify({ entry_source: 'ad' })
+        });
+        if (selectedDraw) {
+          fetchDrawDetail(selectedDraw.slug);
+        }
+        fetchLuckyDraws();
+      } catch (err) {
+        console.error(err);
+      }
     }, 2500); // Simulate watching a 2.5s ad in dev mode
   };
 

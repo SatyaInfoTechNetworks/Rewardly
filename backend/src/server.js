@@ -160,7 +160,8 @@ testConnection().then(async () => {
     "ALTER TABLE `app_settings` ADD `opinion_universe_url` TEXT;",
     "ALTER TABLE `app_settings` ADD `opinion_universe_enabled` TINYINT(1) DEFAULT 1;",
     "ALTER TABLE `app_settings` ADD `pubscale_sandbox` TINYINT(1) DEFAULT 0;",
-    "ALTER TABLE `app_settings` ADD `adsgram_checkin_block_id` VARCHAR(255) DEFAULT '4376';"
+    "ALTER TABLE `app_settings` ADD `adsgram_checkin_block_id` VARCHAR(255) DEFAULT '4376';",
+    "ALTER TABLE `app_settings` ADD `adsgram_draw_block_id` VARCHAR(255) DEFAULT '30393';"
   ];
 
   for (const sql of migrations) {
@@ -187,6 +188,7 @@ testConnection().then(async () => {
       await sequelize.query("UPDATE `app_settings` SET `pubscale_app_id` = '78594689' WHERE `pubscale_app_id` IS NULL OR `pubscale_app_id` = '26048184';");
       await sequelize.query("UPDATE `app_settings` SET `opinion_universe_url` = 'https://opinionuniverse.com/offerwall?pubId=1863&app_id=ID_eb1f5bea3e8caadcfcf6ccb5d35a1d1d' WHERE `opinion_universe_url` NOT LIKE '%app_id=ID_eb1f5bea3e8caadcfcf6ccb5d35a1d1d%';");
       await sequelize.query("UPDATE `app_settings` SET `adsgram_checkin_block_id` = '30393' WHERE `adsgram_checkin_block_id` IS NULL OR `adsgram_checkin_block_id` = '4376'");
+      await sequelize.query("UPDATE `app_settings` SET `adsgram_draw_block_id` = '30393' WHERE `adsgram_draw_block_id` IS NULL");
     } catch (err) {
       console.log('ℹ️ Migration Note (Defaults):', err.message);
     }
@@ -209,7 +211,9 @@ testConnection().then(async () => {
           pubscale_enabled: true,
           opinion_universe_url: 'https://opinionuniverse.com/offerwall?pubId=1863&app_id=ID_eb1f5bea3e8caadcfcf6ccb5d35a1d1d',
           opinion_universe_enabled: true,
-          pubscale_sandbox: false
+          pubscale_sandbox: false,
+          adsgram_checkin_block_id: '30393',
+          adsgram_draw_block_id: '30393'
         }
       });
  

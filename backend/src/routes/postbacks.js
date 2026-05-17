@@ -430,4 +430,100 @@ router.get('/cpx', async (req, res) => {
   }
 });
 
+/**
+ * AdsGram Lucky Draw & Contest Postback
+ * Automatically registers an ad-based ticket entry for the active Lucky Draw upon ad view.
+ * Mounted at: GET /api/postbacks/adsgram-draw
+ */
+router.get('/adsgram-draw', async (req, res) => {
+  const user_id = req.query.user_id || req.query.userId || req.query.tgid || req.query.tg_id;
+  
+  console.log(`📥 [AdsGram Draw Postback] User received: ${user_id}`);
+
+  if (!user_id) {
+    console.error('[AdsGram Draw Postback] Missing user_id from query:', req.query);
+    return res.status(400).send('Missing user_id');
+  }
+
+  // Validate numeric format (Telegram ID)
+  if (isNaN(Number(user_id))) {
+    console.error(`❌ [AdsGram Draw Postback] Invalid non-numeric user_id: "${user_id}". The macro in your AdsGram dashboard must be written as [userId]!`);
+    return res.status(400).send('Invalid user_id format. Use [userId] macro.');
+  }
+
+  const t = await sequelize.transaction();
+
+  try {
+    const User = require('../models/User');
+    const LuckyDraw = require('../models/LuckyDraw');
+    const LuckyDrawEntry = require('../models/LuckyDrawEntry');
+
+    const user = await User.findByPk(user_id);
+    if (!user) {
+      console.error(`❌ [AdsGram Draw Postback] User ${user_id} not found`);
+      await t.rollback();
+      return res.status(404).send('User not found');
+    }
+
+    // Find the latest active lucky draw that allows ad entries
+    const activeDraw = await LuckyDraw.findOne({
+      where: { status: 'active', ad_entries_enabled: true },
+      order: [['created_at', 'DESC']]
+    });
+
+    if (!activeDraw) {
+      console.warn(`⚠️ [AdsGram Draw Postback] No active Lucky Draw accepting ad entries found for User ${user_id}`);
+      await t.rollback();
+      return res.send('OK'); // Acknowledge to AdsGram so they do not retry
+    }
+
+    // Check entry limits for this user
+    const totalEntries = await LuckyDrawEntry.count({
+      where: { lucky_draw_id: activeDraw.id, user_id: user.telegram_id }
+    });
+
+    const adEntries = await LuckyDrawEntry.count({
+      where: { lucky_draw_id: activeDraw.id, user_id: user.telegram_id, entry_source: 'ad' }
+    });
+
+    if (totalEntries >= activeDraw.max_entries_per_user) {
+      console.warn(`⚠️ [AdsGram Draw Postback] User ${user_id} reached global limit (${activeDraw.max_entries_per_user}) for Draw ${activeDraw.id}`);
+      await t.rollback();
+      return res.send('OK');
+    }
+
+    if (adEntries >= activeDraw.max_ad_entries) {
+      console.warn(`⚠️ [AdsGram Draw Postback] User ${user_id} reached ad-specific limit (${activeDraw.max_ad_entries}) for Draw ${activeDraw.id}`);
+      await t.rollback();
+      return res.send('OK');
+    }
+
+    // Create a new entry ticket
+    const entry = await LuckyDrawEntry.create({
+      lucky_draw_id: activeDraw.id,
+      user_id: user.telegram_id,
+      entry_source: 'ad'
+    }, { transaction: t });
+
+    // Create an audit transaction log with 0 coins
+    await Transaction.create({
+      telegram_id: user.telegram_id,
+      amount: 0,
+      type: 'lucky_draw_entry',
+      description: `Ad entry ticket registered for "${activeDraw.title}"`,
+      reference_id: `LD-AD-${activeDraw.id}-${Date.now()}`,
+      status: 'completed'
+    }, { transaction: t });
+
+    await t.commit();
+    console.log(`✅ [AdsGram Draw Postback Success] User ${user_id} registered Draw Entry for "${activeDraw.title}"`);
+    return res.send('OK');
+
+  } catch (err) {
+    await t.rollback();
+    console.error('❌ [AdsGram Draw Postback Error]', err);
+    return res.status(500).send('Internal Error');
+  }
+});
+
 module.exports = router;

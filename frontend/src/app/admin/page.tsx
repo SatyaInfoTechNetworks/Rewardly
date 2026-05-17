@@ -1738,7 +1738,7 @@ export default function AdminPanel() {
                 <div className={styles.lteDivider}></div>
                 <h4>Ad Network Integration Credentials</h4>
                 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginTop: '15px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '20px', marginTop: '15px' }}>
                   <div className={styles.lteFormGroup}>
                     <label className={styles.lteFormLabel}>AdsGram Game Placement Block ID</label>
                     <input 
@@ -1755,6 +1755,15 @@ export default function AdminPanel() {
                       placeholder="e.g. 30393"
                       value={appSettings.adsgram_checkin_block_id || '30393'}
                       onChange={(e) => setAppSettings({...appSettings, adsgram_checkin_block_id: e.target.value})}
+                    />
+                  </div>
+                  <div className={styles.lteFormGroup}>
+                    <label className={styles.lteFormLabel}>AdsGram Lucky Draw Block ID</label>
+                    <input 
+                      className={styles.lteFormControl}
+                      placeholder="e.g. 30393"
+                      value={appSettings.adsgram_draw_block_id || '30393'}
+                      onChange={(e) => setAppSettings({...appSettings, adsgram_draw_block_id: e.target.value})}
                     />
                   </div>
                 </div>

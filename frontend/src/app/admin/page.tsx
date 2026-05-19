@@ -19,6 +19,10 @@ export default function AdminPanel() {
   const [users, setUsers] = useState<any[]>([]);
   const [filteredUsers, setFilteredUsers] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalUsers, setTotalUsers] = useState(0);
+  const [usersLimit, setUsersLimit] = useState(20);
   const [payoutMethods, setPayoutMethods] = useState<any[]>([]);
   const [withdrawals, setWithdrawals] = useState<any[]>([]);
   const [transactions, setTransactions] = useState<any[]>([]);
@@ -137,7 +141,7 @@ export default function AdminPanel() {
       const options = { headers, credentials: 'include' as RequestCredentials };
       const [statsRes, usersRes, payoutsRes, withdrawalsRes, transRes, refSettingsRes, refMilestonesRes, refStatsRes, contestsRes, appSettingsRes] = await Promise.all([
         fetch(`${API_URL}/api/admin/stats`, options),
-        fetch(`${API_URL}/api/admin/users`, options),
+        fetch(`${API_URL}/api/admin/users?page=1&limit=20`, options),
         fetch(`${API_URL}/api/admin/payout-methods`, options),
         fetch(`${API_URL}/api/admin/withdrawals`, options),
         fetch(`${API_URL}/api/admin/transactions`, options),
@@ -152,8 +156,19 @@ export default function AdminPanel() {
       if (statsRes.ok && usersRes.ok && payoutsRes.ok && withdrawalsRes.ok && transRes.ok) {
         setStats(await statsRes.ok ? await statsRes.json() : null);
         const usersData = await usersRes.json();
-        setUsers(usersData);
-        setFilteredUsers(usersData);
+        if (usersData && typeof usersData === 'object' && 'users' in usersData) {
+          setUsers(usersData.users);
+          setFilteredUsers(usersData.users);
+          setTotalUsers(usersData.total);
+          setTotalPages(usersData.totalPages);
+          setCurrentPage(usersData.page);
+        } else if (Array.isArray(usersData)) {
+          setUsers(usersData);
+          setFilteredUsers(usersData);
+          setTotalUsers(usersData.length);
+          setTotalPages(1);
+          setCurrentPage(1);
+        }
         setPayoutMethods(await payoutsRes.json());
         setWithdrawals(await withdrawalsRes.json());
         setTransactions(await transRes.json());
@@ -208,6 +223,37 @@ export default function AdminPanel() {
     }
   };
 
+  const fetchUsers = async (page = 1, limit = 20, search = "") => {
+    try {
+      const authSecret = localStorage.getItem("admin_secret") || secret;
+      const headers = { 'x-admin-secret': authSecret || '' };
+      const res = await fetch(`${API_URL}/api/admin/users?page=${page}&limit=${limit}&search=${encodeURIComponent(search)}`, { headers, credentials: 'include' });
+      if (res.ok) {
+        const data = await res.json();
+        if (data && typeof data === 'object' && 'users' in data) {
+          setUsers(data.users);
+          setFilteredUsers(data.users);
+          setTotalUsers(data.total);
+          setTotalPages(data.totalPages);
+          setCurrentPage(data.page);
+        } else if (Array.isArray(data)) {
+          setUsers(data);
+          setFilteredUsers(data);
+          setTotalUsers(data.length);
+          setTotalPages(1);
+          setCurrentPage(1);
+        }
+      }
+    } catch (error) {
+      console.error("Fetch Users Error:", error);
+    }
+  };
+
+  const handlePageChange = (newPage: number) => {
+    if (newPage < 1 || newPage > totalPages) return;
+    fetchUsers(newPage, usersLimit, searchQuery);
+  };
+
   const handleUpdateUser = async (userId: any, data: any) => {
     try {
       const res = await fetch(`${API_URL}/api/admin/users/${userId}`, {
@@ -255,6 +301,16 @@ export default function AdminPanel() {
       setLoading(false);
     }
   }, []);
+
+  // Debounced search to query the backend database directly
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    const delayDebounceFn = setTimeout(() => {
+      fetchUsers(1, usersLimit, searchQuery);
+    }, 500);
+
+    return () => clearTimeout(delayDebounceFn);
+  }, [searchQuery, usersLimit, isAuthenticated]);
 
   const handleUpdateWithdrawal = async (id: number, status: string) => {
     try {
@@ -620,18 +676,7 @@ export default function AdminPanel() {
   };
 
   const handleSearchUsers = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const query = e.target.value;
-    setSearchQuery(query);
-    if (!query) {
-      setFilteredUsers(users);
-      return;
-    }
-    const filtered = users.filter(u => 
-      u.telegram_id.toString().includes(query) || 
-      (u.first_name && u.first_name.toLowerCase().includes(query.toLowerCase())) ||
-      (u.username && u.username.toLowerCase().includes(query.toLowerCase()))
-    );
-    setFilteredUsers(filtered);
+    setSearchQuery(e.target.value);
   };
 
   if (loading) {
@@ -1419,6 +1464,105 @@ export default function AdminPanel() {
                     ))}
                   </tbody>
                 </table>
+              </div>
+
+              {/* Premium Pagination Footer */}
+              <div className={styles.lteCardFooter} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 24px', borderTop: '1px solid #f1f5f9', background: '#f8fafc' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', color: '#64748b', fontSize: '13px' }}>
+                  <span>Show</span>
+                  <select 
+                    value={usersLimit} 
+                    onChange={(e) => {
+                      setUsersLimit(parseInt(e.target.value));
+                      setCurrentPage(1);
+                    }}
+                    style={{ padding: '6px 12px', borderRadius: '6px', border: '1px solid #e2e8f0', background: '#ffffff', color: '#0f172a', fontWeight: 600, outline: 'none', cursor: 'pointer' }}
+                  >
+                    {[10, 20, 50, 100].map(val => (
+                      <option key={val} value={val}>{val} entries</option>
+                    ))}
+                  </select>
+                  <span>of <strong>{totalUsers.toLocaleString()}</strong> users</span>
+                </div>
+
+                {totalPages > 1 && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <button 
+                      onClick={() => handlePageChange(currentPage - 1)}
+                      disabled={currentPage === 1}
+                      style={{
+                        padding: '6px 12px',
+                        borderRadius: '6px',
+                        border: '1px solid #e2e8f0',
+                        background: currentPage === 1 ? '#f1f5f9' : '#ffffff',
+                        color: currentPage === 1 ? '#94a3b8' : '#0f172a',
+                        fontSize: '13px',
+                        fontWeight: 600,
+                        cursor: currentPage === 1 ? 'not-allowed' : 'pointer',
+                        transition: 'all 0.2s'
+                      }}
+                    >
+                      Previous
+                    </button>
+
+                    {/* Pagination Numbers */}
+                    {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                      let pageNum = currentPage;
+                      if (currentPage <= 3) {
+                        pageNum = i + 1;
+                      } else if (currentPage >= totalPages - 2) {
+                        pageNum = totalPages - 4 + i;
+                      } else {
+                        pageNum = currentPage - 2 + i;
+                      }
+
+                      if (pageNum < 1 || pageNum > totalPages) return null;
+
+                      return (
+                        <button
+                          key={pageNum}
+                          onClick={() => handlePageChange(pageNum)}
+                          style={{
+                            minWidth: '32px',
+                            height: '32px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            borderRadius: '6px',
+                            border: '1px solid',
+                            borderColor: currentPage === pageNum ? '#3b82f6' : '#e2e8f0',
+                            background: currentPage === pageNum ? '#3b82f6' : '#ffffff',
+                            color: currentPage === pageNum ? '#ffffff' : '#0f172a',
+                            fontSize: '13px',
+                            fontWeight: 700,
+                            cursor: 'pointer',
+                            transition: 'all 0.2s'
+                          }}
+                        >
+                          {pageNum}
+                        </button>
+                      );
+                    })}
+
+                    <button 
+                      onClick={() => handlePageChange(currentPage + 1)}
+                      disabled={currentPage === totalPages}
+                      style={{
+                        padding: '6px 12px',
+                        borderRadius: '6px',
+                        border: '1px solid #e2e8f0',
+                        background: currentPage === totalPages ? '#f1f5f9' : '#ffffff',
+                        color: currentPage === totalPages ? '#94a3b8' : '#0f172a',
+                        fontSize: '13px',
+                        fontWeight: 600,
+                        cursor: currentPage === totalPages ? 'not-allowed' : 'pointer',
+                        transition: 'all 0.2s'
+                      }}
+                    >
+                      Next
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
           )}

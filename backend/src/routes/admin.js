@@ -432,11 +432,38 @@ router.get('/analytics', adminAuth, async (req, res) => {
  */
 router.get('/users', adminAuth, async (req, res) => {
   try {
-    const users = await User.findAll({
+    const { Op } = require('sequelize');
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 20;
+    const search = req.query.search || '';
+    const offset = (page - 1) * limit;
+
+    let whereClause = {};
+    if (search) {
+      const isNumeric = /^\d+$/.test(search);
+      whereClause = {
+        [Op.or]: [
+          isNumeric ? { telegram_id: parseInt(search) } : null,
+          { telegram_id: { [Op.like]: `%${search}%` } },
+          { first_name: { [Op.like]: `%${search}%` } },
+          { username: { [Op.like]: `%${search}%` } }
+        ].filter(Boolean)
+      };
+    }
+
+    const { count, rows } = await User.findAndCountAll({
+      where: whereClause,
       order: [['created_at', 'DESC']],
-      limit: 100
+      limit,
+      offset
     });
-    res.json(users);
+
+    res.json({
+      users: rows,
+      total: count,
+      page,
+      totalPages: Math.ceil(count / limit)
+    });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -671,6 +698,37 @@ router.put('/withdrawals/:id', adminAuth, async (req, res) => {
     if (!withdrawal) return res.status(404).json({ error: 'Withdrawal not found' });
 
     await WithdrawalRequest.update({ status, admin_note }, { where: { id }, transaction: t });
+
+    // Handle user balance updates and transaction updates when state changes from pending
+    if (withdrawal.status === 'pending') {
+      const user = await User.findByPk(withdrawal.user_id, { transaction: t });
+      if (user) {
+        if (status === 'approved') {
+          // Decrement pending balance
+          await user.update({
+            pending_balance: Math.max(0, (user.pending_balance || 0) - withdrawal.coins_used)
+          }, { transaction: t });
+
+          // Update transaction status
+          await Transaction.update(
+            { status: 'completed' },
+            { where: { external_id: id.toString(), type: 'withdrawal' }, transaction: t }
+          );
+        } else if (status === 'rejected') {
+          // Decrement pending balance and refund main balance
+          await user.update({
+            pending_balance: Math.max(0, (user.pending_balance || 0) - withdrawal.coins_used),
+            balance: (user.balance || 0) + withdrawal.coins_used
+          }, { transaction: t });
+
+          // Update transaction status
+          await Transaction.update(
+            { status: 'failed', description: `Rejected: ${withdrawal.amount_text} withdrawal refunded` },
+            { where: { external_id: id.toString(), type: 'withdrawal' }, transaction: t }
+          );
+        }
+      }
+    }
 
     // Handle Referral Reward on Approval
     if (status === 'approved' && withdrawal.User.referred_by) {

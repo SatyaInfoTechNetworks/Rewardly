@@ -43,7 +43,10 @@ export const RedeemScreen: React.FC<RedeemScreenProps> = ({ method, user, onBack
     try {
       const response = await fetch(`${API_URL}/api/payouts/withdraw`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'x-telegram-init-data': (window as any).Telegram?.WebApp?.initData || ''
+        },
         credentials: 'include',
         body: JSON.stringify({
           method_id: method.id,
@@ -120,7 +123,7 @@ export const RedeemScreen: React.FC<RedeemScreenProps> = ({ method, user, onBack
             value={selectedTier?.id || ''}
           >
             <option value="">Select an amount</option>
-            {method.tiers?.map((tier: any) => (
+            {[...(method.tiers || [])].sort((a: any, b: any) => a.coins_required - b.coins_required).map((tier: any) => (
               <option key={tier.id} value={tier.id}>
                 {tier.amount_text} ({tier.coins_required.toLocaleString()} Coins)
               </option>

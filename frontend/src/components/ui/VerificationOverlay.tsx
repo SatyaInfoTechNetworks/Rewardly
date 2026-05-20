@@ -44,9 +44,9 @@ export const VerificationOverlay: React.FC<VerificationOverlayProps> = ({
   const handleJoinChannel = () => {
     const tg = (window as any).Telegram?.WebApp;
     if (tg) {
-      tg.openTelegramLink("https://t.me/rewardly_india");
+      tg.openTelegramLink("https://t.me/SatyainfotechNetworks");
     } else {
-      window.open("https://t.me/rewardly_india", "_blank");
+      window.open("https://t.me/SatyainfotechNetworks", "_blank");
     }
   };
 

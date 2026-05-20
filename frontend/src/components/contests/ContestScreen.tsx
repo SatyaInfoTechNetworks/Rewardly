@@ -95,6 +95,7 @@ export function ContestScreen({ user, onPlay }: ContestScreenProps) {
   const [drawDetail, setDrawDetail] = useState<any>(null);
   const [userCoins, setUserCoins] = useState<number>(user?.balance || 0);
   const [ticketSuccessModal, setTicketSuccessModal] = useState(false);
+  const [showPastWinnersModal, setShowPastWinnersModal] = useState(false);
 
   // Loaders
   const [loading, setLoading] = useState(true);
@@ -474,6 +475,14 @@ export function ContestScreen({ user, onPlay }: ContestScreenProps) {
       case 'special_event': return 'Mega Giveaway';
       default: return 'Lucky Draw';
     }
+  };
+
+  const activeOrUpcomingDraws = draws.filter(d => d.status !== 'ended');
+  const endedDraws = draws.filter(d => d.status === 'ended');
+  const sortedEndedDraws = [...endedDraws].sort((a, b) => new Date(b.end_time).getTime() - new Date(a.end_time).getTime());
+
+  const getWinnersForDraw = (drawId: number) => {
+    return recentWinners.filter(w => w.lucky_draw_id === drawId);
   };
 
   // --- RENDER 1: Selected Contest Detail ---
@@ -900,11 +909,33 @@ export function ContestScreen({ user, onPlay }: ContestScreenProps) {
           {/* Recent Global Winners Marquee Board */}
           {recentWinners.length > 0 && (
             <div className={styles.winnersSection} style={{ padding: '14px 16px', borderRadius: '18px', background: '#fffbeb', border: '1px solid #fef3c7', marginBottom: '20px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
-                <span style={{ fontSize: '13px', fontWeight: '900', color: '#b45309' }}>🎉 Live Drop Winner Announcements</span>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span style={{ fontSize: '13px', fontWeight: '900', color: '#b45309' }}>🎉 Live Drop Winner Announcements</span>
+                </div>
+                <button
+                  onClick={() => setShowPastWinnersModal(true)}
+                  style={{
+                    background: '#b45309',
+                    color: 'white',
+                    fontSize: '11px',
+                    fontWeight: '800',
+                    padding: '4px 10px',
+                    borderRadius: '10px',
+                    border: 'none',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    boxShadow: '0 2px 4px rgba(180, 83, 9, 0.2)'
+                  }}
+                >
+                  <Trophy size={10} />
+                  Past Winners
+                </button>
               </div>
-              <div style={{ maxHeight: '110px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                {recentWinners.slice(0, 3).map((w: Winner) => (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                {recentWinners.slice(0, 1).map((w: Winner) => (
                   <div key={w.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '11.5px', color: '#78350f', background: 'rgba(255,255,255,0.6)', padding: '6px 10px', borderRadius: '8px' }}>
                     <span style={{ fontWeight: '700' }}>@{w.User?.username || w.User?.first_name || 'Player'}</span>
                     <span style={{ fontWeight: '500' }}>won {w.prize_won} in {w.LuckyDraw?.title}</span>
@@ -914,52 +945,84 @@ export function ContestScreen({ user, onPlay }: ContestScreenProps) {
             </div>
           )}
 
+          {/* Active draws listing header */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px', marginTop: '10px' }}>
+            <h3 className={styles.sectionTitle} style={{ margin: 0 }}>Giveaway Events</h3>
+            <button
+              onClick={() => setShowPastWinnersModal(true)}
+              style={{
+                background: 'linear-gradient(135deg, #fbbf24 0%, #d97706 100%)',
+                color: '#0f172a',
+                fontSize: '12px',
+                fontWeight: '800',
+                padding: '6px 14px',
+                borderRadius: '12px',
+                border: 'none',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                boxShadow: '0 4px 10px rgba(217, 119, 6, 0.2)'
+              }}
+            >
+              <Trophy size={14} />
+              Past Winners
+            </button>
+          </div>
+
           {/* Active draws listing */}
           <div className={styles.drawGrid}>
-            {draws.length > 0 ? (
-              draws.map((draw) => {
-                const isExpired = new Date(draw.end_time).getTime() <= timeTick;
+            {(() => {
+              const mainDrawsList = [
+                ...activeOrUpcomingDraws,
+                ...(sortedEndedDraws.length > 0 ? [sortedEndedDraws[0]] : [])
+              ];
 
-                return (
-                  <div
-                    key={draw.id}
-                    className={styles.drawCard}
-                    onClick={() => fetchDrawDetail(draw.slug)}
-                  >
-                    <div className={styles.drawBannerWrapper}>
-                      <img
-                        src={draw.banner_image || 'https://images.unsplash.com/photo-1595853035070-59a39fe84de3?auto=format&fit=crop&q=80&w=600'}
-                        className={styles.drawBannerImage}
-                        alt={draw.title}
-                      />
-                      <div className={styles.drawBadge}>{getDrawTypeLabel(draw.type)}</div>
-                      <div className={styles.drawPrizeOverlay}>🎁 Prize: {draw.prize_amount}</div>
-                    </div>
-                    <div className={styles.drawCardInfo}>
-                      <h3 className={styles.drawCardTitle}>{draw.title}</h3>
-                      <p className={styles.drawCardDesc}>{draw.description || 'Watch ads, spend coins or get referrals to maximize ticket entries!'}</p>
+              return mainDrawsList.length > 0 ? (
+                mainDrawsList.map((draw) => {
+                  const isExpired = new Date(draw.end_time).getTime() <= timeTick;
 
-                      <div className={styles.drawMetaRow}>
-                        <div className={styles.drawCountdownBox} style={{ background: isExpired ? '#f1f5f9' : '#fee2e2', color: isExpired ? '#64748b' : '#ef4444' }}>
-                          <Clock size={12} />
-                          <span>{isExpired ? 'Ended' : formatTimeLeft(draw.end_time)}</span>
-                        </div>
-                        <div className={styles.drawParticipantsBox}>
-                          <Users size={12} />
-                          <span>{draw.participantsCount || 0} Players</span>
+                  return (
+                    <div
+                      key={draw.id}
+                      className={styles.drawCard}
+                      onClick={() => fetchDrawDetail(draw.slug)}
+                    >
+                      <div className={styles.drawBannerWrapper}>
+                        <img
+                          src={draw.banner_image || 'https://images.unsplash.com/photo-1595853035070-59a39fe84de3?auto=format&fit=crop&q=80&w=600'}
+                          className={styles.drawBannerImage}
+                          alt={draw.title}
+                        />
+                        <div className={styles.drawBadge}>{getDrawTypeLabel(draw.type)}</div>
+                        <div className={styles.drawPrizeOverlay}>🎁 Prize: {draw.prize_amount}</div>
+                      </div>
+                      <div className={styles.drawCardInfo}>
+                        <h3 className={styles.drawCardTitle}>{draw.title}</h3>
+                        <p className={styles.drawCardDesc}>{draw.description || 'Watch ads, spend coins or get referrals to maximize ticket entries!'}</p>
+
+                        <div className={styles.drawMetaRow}>
+                          <div className={styles.drawCountdownBox} style={{ background: isExpired ? '#f1f5f9' : '#fee2e2', color: isExpired ? '#64748b' : '#ef4444' }}>
+                            <Clock size={12} />
+                            <span>{isExpired ? 'Ended' : formatTimeLeft(draw.end_time)}</span>
+                          </div>
+                          <div className={styles.drawParticipantsBox}>
+                            <Users size={12} />
+                            <span>{draw.participantsCount || 0} Players</span>
+                          </div>
                         </div>
                       </div>
                     </div>
-                  </div>
-                );
-              })
-            ) : (
-              <div className={styles.emptyBox}>
-                <Ticket size={48} opacity={0.2} />
-                <h3>No Giveaway Events Active</h3>
-                <p>New jackpots dropping soon. Keep checking!</p>
-              </div>
-            )}
+                  );
+                })
+              ) : (
+                <div className={styles.emptyBox}>
+                  <Ticket size={48} opacity={0.2} />
+                  <h3>No Giveaway Events Active</h3>
+                  <p>New jackpots dropping soon. Keep checking!</p>
+                </div>
+              );
+            })()}
           </div>
         </>
       )}
@@ -1093,6 +1156,171 @@ export function ContestScreen({ user, onPlay }: ContestScreenProps) {
                 }}
               >
                 Awesome!
+              </button>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* ─── Past Winners Modal ─── */}
+      <AnimatePresence>
+        {showPastWinnersModal && (
+          <div
+            style={{
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              width: '100%',
+              height: '100%',
+              background: 'rgba(15, 23, 42, 0.75)',
+              backdropFilter: 'blur(10px)',
+              zIndex: 99998,
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center',
+              padding: '20px'
+            }}
+          >
+            <motion.div
+              initial={{ y: 50, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: 50, opacity: 0 }}
+              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+              style={{
+                background: '#ffffff',
+                borderRadius: '24px',
+                padding: '24px 20px',
+                width: '100%',
+                maxWidth: '400px',
+                maxHeight: '80vh',
+                display: 'flex',
+                flexDirection: 'column',
+                boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.4)',
+                border: '1px solid rgba(255, 255, 255, 0.8)',
+                position: 'relative',
+                overflow: 'hidden'
+              }}
+            >
+              {/* Header */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '18px', borderBottom: '1px solid #f1f5f9', paddingBottom: '12px' }}>
+                <h2 style={{ fontSize: '18px', fontWeight: '900', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '8px', margin: 0, fontFamily: '"Outfit", sans-serif' }}>
+                  <Trophy size={20} color="#eab308" fill="#eab308" />
+                  Past Contests & Winners
+                </h2>
+                <button
+                  onClick={() => setShowPastWinnersModal(false)}
+                  style={{
+                    background: '#f1f5f9',
+                    color: '#64748b',
+                    border: 'none',
+                    borderRadius: '50%',
+                    width: '32px',
+                    height: '32px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontWeight: '800',
+                    cursor: 'pointer',
+                    fontSize: '14px'
+                  }}
+                >
+                  ✕
+                </button>
+              </div>
+
+              {/* Scrollable list */}
+              <div style={{ overflowY: 'auto', flex: 1, paddingRight: '4px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                {sortedEndedDraws.length > 0 ? (
+                  sortedEndedDraws.map((draw) => {
+                    const drawWinners = getWinnersForDraw(draw.id);
+                    return (
+                      <div
+                        key={draw.id}
+                        onClick={() => {
+                          fetchDrawDetail(draw.slug);
+                          setShowPastWinnersModal(false);
+                          const tg = (window as any).Telegram?.WebApp;
+                          if (tg?.HapticFeedback) tg.HapticFeedback.impactOccurred('light');
+                        }}
+                        style={{
+                          background: '#f8fafc',
+                          border: '1px solid #e2e8f0',
+                          borderRadius: '18px',
+                          padding: '14px',
+                          cursor: 'pointer',
+                          transition: 'all 0.2s',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: '8px'
+                        }}
+                      >
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                          <span style={{ fontSize: '10px', fontWeight: '800', color: '#b45309', background: '#fffbeb', padding: '3px 8px', borderRadius: '8px', textTransform: 'uppercase' }}>
+                            {getDrawTypeLabel(draw.type)}
+                          </span>
+                          <span style={{ fontSize: '11px', color: '#64748b', fontWeight: '500' }}>
+                            Ended {new Date(draw.end_time).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                          </span>
+                        </div>
+
+                        <h3 style={{ fontSize: '14px', fontWeight: '800', color: '#1e293b', margin: 0 }}>
+                          {draw.title}
+                        </h3>
+                        <div style={{ fontSize: '12px', fontWeight: '700', color: '#475569', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                          <span>🎁 Prize: {draw.prize_amount}</span>
+                        </div>
+
+                        {/* Inline Winners */}
+                        <div style={{ background: '#ffffff', borderRadius: '12px', padding: '8px 10px', border: '1px solid #f1f5f9', marginTop: '4px' }}>
+                          <div style={{ fontSize: '11px', fontWeight: '800', color: '#059669', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                            <Award size={12} />
+                            WINNERS
+                          </div>
+                          {drawWinners.length > 0 ? (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                              {drawWinners.map((w) => (
+                                <div key={w.id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: '#334155' }}>
+                                  <span style={{ fontWeight: '700' }}>@{w.User?.username || w.User?.first_name || 'Player'}</span>
+                                  <span style={{ fontWeight: '500', color: '#059669' }}>{w.prize_won}</span>
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <span style={{ fontSize: '11px', color: '#94a3b8', fontStyle: 'italic' }}>
+                              Click to view participants & winners
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })
+                ) : (
+                  <div style={{ textAlign: 'center', padding: '30px 10px', color: '#94a3b8' }}>
+                    <Trophy size={36} opacity={0.3} style={{ marginBottom: '8px' }} />
+                    <p style={{ margin: 0, fontSize: '13px' }}>No past contests found.</p>
+                  </div>
+                )}
+              </div>
+
+              {/* Close Footer Button */}
+              <button
+                onClick={() => setShowPastWinnersModal(false)}
+                style={{
+                  width: '100%',
+                  background: '#0f172a',
+                  color: '#ffffff',
+                  fontWeight: '800',
+                  fontSize: '13.5px',
+                  padding: '12px',
+                  borderRadius: '14px',
+                  border: 'none',
+                  marginTop: '18px',
+                  cursor: 'pointer',
+                  outline: 'none',
+                  transition: 'background 0.2s'
+                }}
+              >
+                Close View
               </button>
             </motion.div>
           </div>

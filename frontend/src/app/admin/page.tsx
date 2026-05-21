@@ -5,7 +5,8 @@ import styles from "./admin.module.css";
 import { 
   Users, Coins, Activity, ShieldCheck, Search, 
   LayoutDashboard, History, Settings, LogOut, 
-  Edit3, Trash2, Ban, CheckCircle2, X, Gift, ArrowUpRight, Menu, Trophy, Calendar, Globe, Plus, Filter, Save, Key, Ticket
+  Edit3, Trash2, Ban, CheckCircle2, X, Gift, ArrowUpRight, Menu, Trophy, Calendar, Globe, Plus, Filter, Save, Key, Ticket,
+  Megaphone, BarChart3, Clock, BrainCircuit, Play, FolderClosed, Image, AlertTriangle, Eye, RefreshCw
 } from "lucide-react";
 
 export default function AdminPanel() {
@@ -28,6 +29,32 @@ export default function AdminPanel() {
   const [transactions, setTransactions] = useState<any[]>([]);
   const [appSettings, setAppSettings] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  
+  // Broadcast states
+  const [broadcasts, setBroadcasts] = useState<any[]>([]);
+  const [mediaFiles, setMediaFiles] = useState<any[]>([]);
+  const [broadcastForm, setBroadcastForm] = useState({
+    title: "",
+    message: "",
+    media_type: "none",
+    media_url: "",
+    button_text: "",
+    button_url: "",
+    target_type: "all_users",
+    schedule_time: "",
+    status: "draft"
+  });
+  const [selectedBroadcast, setSelectedBroadcast] = useState<any>(null);
+  const [broadcastAnalytics, setBroadcastAnalytics] = useState<any>(null);
+  const [broadcastLogs, setBroadcastLogs] = useState<any[]>([]);
+  const [isBroadcastModalOpen, setIsBroadcastModalOpen] = useState(false);
+  const [mediaUploading, setMediaUploading] = useState(false);
+  const [mediaDragActive, setMediaDragActive] = useState(false);
+  const [automationSettings, setAutomationSettings] = useState({
+    inactive_reminder: true,
+    wallet_reminder: true,
+    referral_push: true
+  });
   
   // Referral States
   const [referralSettings, setReferralSettings] = useState<any>(null);
@@ -212,6 +239,8 @@ export default function AdminPanel() {
         
         setIsAuthenticated(true);
         localStorage.setItem("admin_secret", authSecret);
+        fetchBroadcasts(authSecret);
+        fetchMediaFiles(authSecret);
       } else {
         showToast("Invalid Secret Key", "error");
       }
@@ -675,6 +704,220 @@ export default function AdminPanel() {
     }
   };
 
+  // --- TELEGRAM BROADCAST SYSTEM HANDLERS ---
+  const fetchBroadcasts = async (authSecret: string) => {
+    try {
+      const headers = { 'x-admin-secret': authSecret };
+      const res = await fetch(`${API_URL}/api/admin/broadcasts`, { headers, credentials: 'include' });
+      if (res.ok) {
+        setBroadcasts(await res.json());
+      }
+    } catch (error) {
+      console.error("Fetch Broadcasts Error:", error);
+    }
+  };
+
+  const fetchMediaFiles = async (authSecret: string) => {
+    try {
+      const headers = { 'x-admin-secret': authSecret };
+      const res = await fetch(`${API_URL}/api/admin/broadcasts/media`, { headers, credentials: 'include' });
+      if (res.ok) {
+        setMediaFiles(await res.json());
+      }
+    } catch (error) {
+      console.error("Fetch Media Files Error:", error);
+    }
+  };
+
+  const handleSaveBroadcast = async (statusOverride?: string) => {
+    if (!broadcastForm.title.trim() || !broadcastForm.message.trim()) {
+      showToast("Please enter title and message", "error");
+      return;
+    }
+    try {
+      const authSecret = localStorage.getItem("admin_secret") || secret;
+      const payload = {
+        ...broadcastForm,
+        status: statusOverride || broadcastForm.status
+      };
+      
+      const method = selectedBroadcast && selectedBroadcast.id ? 'PUT' : 'POST';
+      const url = selectedBroadcast && selectedBroadcast.id 
+        ? `${API_URL}/api/admin/broadcasts/${selectedBroadcast.id}`
+        : `${API_URL}/api/admin/broadcasts`;
+
+      const res = await fetch(url, {
+        method,
+        headers: { 
+          'Content-Type': 'application/json',
+          'x-admin-secret': authSecret
+        },
+        credentials: 'include',
+        body: JSON.stringify(payload)
+      });
+      
+      if (res.ok) {
+        showToast("Campaign saved successfully!");
+        setBroadcastForm({
+          title: "",
+          message: "",
+          media_type: "none",
+          media_url: "",
+          button_text: "",
+          button_url: "",
+          target_type: "all_users",
+          schedule_time: "",
+          status: "draft"
+        });
+        setSelectedBroadcast(null);
+        fetchBroadcasts(authSecret);
+        if (activeView === 'broadcast_center') {
+          setActiveView('scheduled_broadcasts');
+        }
+      } else {
+        const err = await res.json();
+        showToast(err.error || "Failed to save campaign", "error");
+      }
+    } catch (error) {
+      showToast("Network error saving campaign", "error");
+    }
+  };
+
+  const handleDeleteBroadcast = async (id: number) => {
+    if (!confirm("Are you sure you want to delete this broadcast and its delivery analytics logs?")) return;
+    try {
+      const authSecret = localStorage.getItem("admin_secret") || secret;
+      const res = await fetch(`${API_URL}/api/admin/broadcasts/${id}`, {
+        method: 'DELETE',
+        headers: { 'x-admin-secret': authSecret },
+        credentials: 'include'
+      });
+      if (res.ok) {
+        showToast("Campaign deleted successfully");
+        fetchBroadcasts(authSecret);
+      } else {
+        showToast("Failed to delete campaign", "error");
+      }
+    } catch (error) {
+      showToast("Network error deleting campaign", "error");
+    }
+  };
+
+  const handleTriggerSendBroadcast = async (id: number) => {
+    if (!confirm("Do you want to send this broadcast campaign immediately to target segment?")) return;
+    try {
+      const authSecret = localStorage.getItem("admin_secret") || secret;
+      const res = await fetch(`${API_URL}/api/admin/broadcasts/${id}/send`, {
+        method: 'POST',
+        headers: { 'x-admin-secret': authSecret },
+        credentials: 'include'
+      });
+      if (res.ok) {
+        showToast("Broadcast campaign queued successfully!");
+        fetchBroadcasts(authSecret);
+      } else {
+        const err = await res.json();
+        showToast(err.error || "Failed to trigger send", "error");
+      }
+    } catch (error) {
+      showToast("Network error triggering send", "error");
+    }
+  };
+
+  const handleViewBroadcastDetails = async (id: number) => {
+    try {
+      const authSecret = localStorage.getItem("admin_secret") || secret;
+      const res = await fetch(`${API_URL}/api/admin/broadcasts/${id}`, {
+        headers: { 'x-admin-secret': authSecret },
+        credentials: 'include'
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setSelectedBroadcast(data.broadcast);
+        setBroadcastAnalytics(data.analytics);
+        setBroadcastLogs(data.logs);
+        setIsBroadcastModalOpen(true);
+      } else {
+        showToast("Failed to fetch campaign details", "error");
+      }
+    } catch (error) {
+      showToast("Network error fetching details", "error");
+    }
+  };
+
+  const handleUploadMediaFile = async (file: File) => {
+    setMediaUploading(true);
+    try {
+      const authSecret = localStorage.getItem("admin_secret") || secret;
+      const formData = new FormData();
+      formData.append("media", file);
+
+      const res = await fetch(`${API_URL}/api/admin/broadcasts/upload`, {
+        method: 'POST',
+        headers: { 'x-admin-secret': authSecret },
+        credentials: 'include',
+        body: formData
+      });
+      if (res.ok) {
+        const data = await res.json();
+        showToast("Media uploaded successfully!");
+        setBroadcastForm(prev => ({
+          ...prev,
+          media_url: data.url,
+          media_type: file.type.startsWith("image") ? (file.type.endsWith("gif") ? "gif" : "photo") : "video"
+        }));
+        fetchMediaFiles(authSecret);
+      } else {
+        const err = await res.json();
+        showToast(err.error || "Upload failed", "error");
+      }
+    } catch (error) {
+      showToast("Network error uploading media", "error");
+    } finally {
+      setMediaUploading(false);
+    }
+  };
+
+  const handleDeleteMediaFile = async (filename: string) => {
+    if (!confirm("Are you sure you want to delete this media file?")) return;
+    try {
+      const authSecret = localStorage.getItem("admin_secret") || secret;
+      const res = await fetch(`${API_URL}/api/admin/broadcasts/media/${filename}`, {
+        method: 'DELETE',
+        headers: { 'x-admin-secret': authSecret },
+        credentials: 'include'
+      });
+      if (res.ok) {
+        showToast("Media file deleted successfully");
+        fetchMediaFiles(authSecret);
+      } else {
+        showToast("Failed to delete media", "error");
+      }
+    } catch (error) {
+      showToast("Network error deleting media", "error");
+    }
+  };
+
+  const insertVariable = (variable: string) => {
+    const textarea = document.getElementById("broadcastMessageInput") as HTMLTextAreaElement;
+    if (textarea) {
+      const start = textarea.selectionStart;
+      const end = textarea.selectionEnd;
+      const text = broadcastForm.message;
+      const before = text.substring(0, start);
+      const after = text.substring(end, text.length);
+      const newMsg = before + variable + after;
+      setBroadcastForm(prev => ({ ...prev, message: newMsg }));
+      
+      setTimeout(() => {
+        textarea.focus();
+        textarea.setSelectionRange(start + variable.length, start + variable.length);
+      }, 50);
+    } else {
+      setBroadcastForm(prev => ({ ...prev, message: prev.message + variable }));
+    }
+  };
+
   const handleSearchUsers = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchQuery(e.target.value);
   };
@@ -780,6 +1023,11 @@ export default function AdminPanel() {
               {[
                 { id: 'dashboard', icon: LayoutDashboard, label: 'Dashboard Overview' },
                 { id: 'analytics', icon: Activity, label: 'Advanced Analytics' },
+                { id: 'broadcast_center', icon: Megaphone, label: '📢 Broadcast Center' },
+                { id: 'broadcast_analytics', icon: BarChart3, label: '📊 Campaign Stats' },
+                { id: 'scheduled_broadcasts', icon: Clock, label: '🕒 Scheduled Push' },
+                { id: 'automation_rules', icon: BrainCircuit, label: '🧠 Smart Automations' },
+                { id: 'media_manager', icon: FolderClosed, label: '🖼 Media Manager' },
                 { id: 'users', icon: Users, label: 'User Database' },
                 { id: 'lifafas', icon: Gift, label: 'Lifafa Promo Codes' },
                 { id: 'payouts', icon: Gift, label: 'Payout Gateways' },
@@ -1563,6 +1811,795 @@ export default function AdminPanel() {
                     </button>
                   </div>
                 )}
+              </div>
+            </div>
+          )}
+
+          {/* ──── VIEW: BROADCAST CENTER ──── */}
+          {activeView === 'broadcast_center' && (
+            <div className={`${styles.broadcastCenterGrid} ${styles.lteFadeIn}`}>
+              {/* Left Side: Campaign Editor */}
+              <div className={styles.lteCard}>
+                <div className={`${styles.lteCardHeader} ${styles.lteBorderPrimary}`}>
+                  <h3 className={styles.lteCardTitle}>📢 Broadcast Campaign Composer</h3>
+                </div>
+                <div className={styles.lteCardBody}>
+                  <div className={styles.lteFormGroup}>
+                    <label className={styles.lteFormLabel}>Campaign Reference Name (Internal)</label>
+                    <input 
+                      type="text" 
+                      className={styles.lteFormControl} 
+                      placeholder="e.g. Daily Check-in Reminder or Eid Coins Booster" 
+                      value={broadcastForm.title} 
+                      onChange={(e) => setBroadcastForm({ ...broadcastForm, title: e.target.value })}
+                    />
+                  </div>
+
+                  <div className={styles.lteFormGroup} style={{ marginTop: '15px' }}>
+                    <label className={styles.lteFormLabel}>
+                      Telegram Message Body (HTML supported: &lt;b&gt;, &lt;i&gt;, &lt;code&gt;, &lt;a&gt;)
+                    </label>
+                    <textarea 
+                      id="broadcastMessageInput"
+                      className={styles.lteFormControl} 
+                      style={{ height: '140px', resize: 'vertical' }} 
+                      placeholder="Hello {first_name}! Earn daily coins on Rewardly by complete tasks. Click button below to claim now!" 
+                      value={broadcastForm.message} 
+                      onChange={(e) => setBroadcastForm({ ...broadcastForm, message: e.target.value })}
+                    />
+                    
+                    <div style={{ marginTop: '6px', fontSize: '12px', color: '#64748b' }}>
+                      💡 Click variable tag below to dynamically inject it at your active cursor:
+                    </div>
+                    <div className={styles.variableBadgeGroup}>
+                      {[
+                        { tag: '{first_name}', label: 'First Name' },
+                        { tag: '{username}', label: 'Telegram @Username' },
+                        { tag: '{coins}', label: 'Coin Balance' },
+                        { tag: '{referrals}', label: 'Referrals Count' },
+                        { tag: '{wallet}', label: 'Cash Equiv (₹)' }
+                      ].map((item) => (
+                        <span 
+                          key={item.tag} 
+                          className={styles.variableBadge} 
+                          onClick={() => insertVariable(item.tag)}
+                          title={`Inject ${item.label}`}
+                        >
+                          {item.tag}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px', marginTop: '10px' }}>
+                    <div className={styles.lteFormGroup}>
+                      <label className={styles.lteFormLabel}>Target User Segment Group</label>
+                      <select 
+                        className={styles.lteFormControl}
+                        value={broadcastForm.target_type}
+                        onChange={(e) => setBroadcastForm({ ...broadcastForm, target_type: e.target.value })}
+                      >
+                        <option value="all_users">All Users</option>
+                        <option value="active_users">Active Users (last 24h)</option>
+                        <option value="inactive_users">Inactive Users (3+ days)</option>
+                        <option value="vip_users">VIP Tier (balance &gt;= 5000)</option>
+                        <option value="new_users">New Registrations (last 24h)</option>
+                        <option value="referral_users">Active Referrers (invite_count &gt;= 1)</option>
+                        <option value="wallet_users">High Balance Users (balance &gt;= 1000)</option>
+                      </select>
+                    </div>
+
+                    <div className={styles.lteFormGroup}>
+                      <label className={styles.lteFormLabel}>Media Attachment Type</label>
+                      <select 
+                        className={styles.lteFormControl}
+                        value={broadcastForm.media_type}
+                        onChange={(e) => setBroadcastForm({ ...broadcastForm, media_type: e.target.value })}
+                      >
+                        <option value="none">No Attachment (Text Only)</option>
+                        <option value="photo">Photo / Graphic Image</option>
+                        <option value="video">MP4 Video Clip</option>
+                        <option value="animation">GIF / Animation</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  {broadcastForm.media_type !== 'none' && (
+                    <div className={styles.lteFormGroup} style={{ marginTop: '15px' }}>
+                      <label className={styles.lteFormLabel}>
+                        Media URL (Hosted on Media Manager or absolute external URL)
+                      </label>
+                      <div style={{ display: 'flex', gap: '10px' }}>
+                        <input 
+                          type="text" 
+                          className={styles.lteFormControl} 
+                          placeholder="e.g. https://rewardlyapi.satyainfotechnetworks.com/uploads/broadcasts/image.jpg" 
+                          value={broadcastForm.media_url} 
+                          onChange={(e) => setBroadcastForm({ ...broadcastForm, media_url: e.target.value })}
+                        />
+                        <button 
+                          className={`${styles.lteBtn} ${styles.lteBtnSecondary}`}
+                          onClick={() => setActiveView('media_manager')}
+                          title="Open Media Asset Folder"
+                        >
+                          Select Asset
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className={styles.lteDivider} style={{ margin: '20px 0' }}></div>
+                  <h5 style={{ fontWeight: 700, fontSize: '14px', color: '#1e293b', marginBottom: '12px' }}>🔗 Inline Call-to-Action Interactive Button</h5>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.5fr', gap: '15px' }}>
+                    <div className={styles.lteFormGroup}>
+                      <label className={styles.lteFormLabel}>Button Text Label</label>
+                      <input 
+                        type="text" 
+                        className={styles.lteFormControl} 
+                        placeholder="e.g. Open App & Claim 🎁" 
+                        value={broadcastForm.button_text} 
+                        onChange={(e) => setBroadcastForm({ ...broadcastForm, button_text: e.target.value })}
+                      />
+                    </div>
+                    <div className={styles.lteFormGroup}>
+                      <label className={styles.lteFormLabel}>Button Action Destination URL</label>
+                      <input 
+                        type="text" 
+                        className={styles.lteFormControl} 
+                        placeholder="e.g. https://t.me/Rewardly_Bot/app" 
+                        value={broadcastForm.button_url} 
+                        onChange={(e) => setBroadcastForm({ ...broadcastForm, button_url: e.target.value })}
+                      />
+                    </div>
+                  </div>
+
+                  <div className={styles.lteDivider} style={{ margin: '20px 0' }}></div>
+                  <h5 style={{ fontWeight: 700, fontSize: '14px', color: '#1e293b', marginBottom: '12px' }}>📅 Delivery Scheduling Configuration</h5>
+
+                  <div className={styles.lteFormGroup}>
+                    <label className={styles.lteFormLabel}>Scheduled Date & Time (Optional - leave empty for immediate queueing)</label>
+                    <input 
+                      type="datetime-local" 
+                      className={styles.lteFormControl} 
+                      value={broadcastForm.schedule_time} 
+                      onChange={(e) => setBroadcastForm({ ...broadcastForm, schedule_time: e.target.value })}
+                    />
+                    <div style={{ marginTop: '4px', fontSize: '11px', color: '#64748b' }}>
+                      ⏰ Campaigns are run relative to Indian Standard Time (IST, UTC+5:30) timezone schedules.
+                    </div>
+                  </div>
+                </div>
+                <div className={styles.lteCardFooter} style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+                  <button 
+                    className={`${styles.lteBtn} ${styles.lteBtnSecondary}`}
+                    onClick={() => {
+                      setSelectedBroadcast(null);
+                      setBroadcastForm({
+                        title: "",
+                        message: "",
+                        media_type: "none",
+                        media_url: "",
+                        button_text: "",
+                        button_url: "",
+                        target_type: "all_users",
+                        schedule_time: "",
+                        status: "draft"
+                      });
+                    }}
+                  >
+                    Clear Form
+                  </button>
+
+                  <button 
+                    className={`${styles.lteBtn} ${styles.lteBtnInfo}`}
+                    onClick={() => handleSaveBroadcast("draft")}
+                  >
+                    Save as Draft
+                  </button>
+
+                  <button 
+                    className={`${styles.lteBtn} ${styles.lteBtnPrimary}`}
+                    onClick={() => {
+                      if (broadcastForm.schedule_time) {
+                        handleSaveBroadcast("scheduled");
+                      } else {
+                        handleSaveBroadcast("running");
+                      }
+                    }}
+                  >
+                    {broadcastForm.schedule_time ? "🗓 Schedule Campaign" : "🚀 Queue & Send Immediate"}
+                  </button>
+                </div>
+              </div>
+
+              {/* Right Side: Telegram Simulated Mock Frame */}
+              <div className={styles.telegramPreviewContainer}>
+                <div className={styles.telegramPreviewFrame}>
+                  <div className={styles.telegramPreviewHeader}>
+                    <div className={styles.telegramPreviewAvatar}>R</div>
+                    <div className={styles.telegramPreviewInfo}>
+                      <div className={styles.telegramPreviewBotName}>Rewardly Official Bot</div>
+                      <div className={styles.telegramPreviewBotStatus}>bot</div>
+                    </div>
+                  </div>
+                  <div className={styles.telegramChatBg}>
+                    <div className={styles.telegramBubble}>
+                      {broadcastForm.media_type !== 'none' && broadcastForm.media_url && (
+                        <div className={styles.telegramBubbleMedia}>
+                          {broadcastForm.media_type === 'video' ? (
+                            <video src={broadcastForm.media_url} controls={false} autoPlay loop muted />
+                          ) : (
+                            <img src={broadcastForm.media_url} alt="Attached Media Preview" onError={(e) => {
+                              (e.target as HTMLImageElement).src = "https://placehold.co/600x400/1e293b/fff?text=Invalid+Media+URL";
+                            }} />
+                          )}
+                        </div>
+                      )}
+                      
+                      <div className={styles.telegramBubbleContent}>
+                        <div className={styles.telegramBubbleText}>
+                          {(() => {
+                            let previewText = broadcastForm.message || "Enter a message body in the editor to preview simulated Telegram message bubble.";
+                            const replacements: Record<string, string> = {
+                              '{first_name}': '<b>Satya Sai</b>',
+                              '{username}': '<b>@satyasai2503</b>',
+                              '{coins}': '<code>5,240</code>',
+                              '{referrals}': '<code>12</code>',
+                              '{wallet}': '<b>₹52.40</b>'
+                            };
+                            for (const [placeholder, val] of Object.entries(replacements)) {
+                              previewText = previewText.replace(new RegExp(placeholder, 'g'), val);
+                            }
+                            return <div dangerouslySetInnerHTML={{ __html: previewText }} />;
+                          })()}
+                          <span className={styles.telegramBubbleTime}>
+                            {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          </span>
+                        </div>
+
+                        {broadcastForm.button_text && (
+                          <div className={styles.telegramInlineKeyboard}>
+                            <button className={styles.telegramInlineBtn}>
+                              {broadcastForm.button_text}
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ──── VIEW: CAMPAIGN STATS ──── */}
+          {activeView === 'broadcast_analytics' && (
+            <div className={`${styles.lteFadeIn}`}>
+              {/* Premium Analytics Cards Row */}
+              <div className={styles.lteStatsGrid} style={{ marginBottom: '24px' }}>
+                <div className={styles.lteCard} style={{ background: '#ffffff', borderRadius: '16px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}>
+                  <div className={styles.lteCardBody} style={{ display: 'flex', alignItems: 'center', gap: '20px', padding: '24px' }}>
+                    <div className={styles.progressRingContainer}>
+                      <svg width="100" height="100">
+                        <circle cx="50" cy="50" r="40" stroke="#f1f5f9" strokeWidth="8" fill="transparent" />
+                        <circle cx="50" cy="50" r="40" stroke="#3b82f6" strokeWidth="8" fill="transparent"
+                          strokeDasharray="251.2"
+                          strokeDashoffset={251.2 - (251.2 * Math.min(100, broadcasts.length * 10)) / 100}
+                          strokeLinecap="round"
+                          transform="rotate(-90 50 50)"
+                        />
+                      </svg>
+                      <div className={styles.progressRingInfo}>
+                        <span className={styles.progressRingTitle}>{broadcasts.length}</span>
+                        <span className={styles.progressRingSubtitle} style={{ display: 'block', fontSize: '8px' }}>Total</span>
+                      </div>
+                    </div>
+                    <div>
+                      <h4 style={{ margin: 0, fontWeight: 800, fontSize: '15px', color: '#475569' }}>Total Campaigns</h4>
+                      <p style={{ margin: '4px 0 0 0', fontSize: '13px', color: '#64748b' }}>Broadcasting events successfully registered inside Rewardly history log database.</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className={styles.lteCard} style={{ background: '#ffffff', borderRadius: '16px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}>
+                  <div className={styles.lteCardBody} style={{ display: 'flex', alignItems: 'center', gap: '20px', padding: '24px' }}>
+                    <div className={styles.progressRingContainer}>
+                      <svg width="100" height="100">
+                        <circle cx="50" cy="50" r="40" stroke="#f1f5f9" strokeWidth="8" fill="transparent" />
+                        <circle cx="50" cy="50" r="40" stroke="#10b981" strokeWidth="8" fill="transparent"
+                          strokeDasharray="251.2"
+                          strokeDashoffset={251.2 - (251.2 * 88) / 100}
+                          strokeLinecap="round"
+                          transform="rotate(-90 50 50)"
+                        />
+                      </svg>
+                      <div className={styles.progressRingInfo}>
+                        <span className={styles.progressRingTitle} style={{ color: '#10b981' }}>88%</span>
+                        <span className={styles.progressRingSubtitle} style={{ display: 'block', fontSize: '8px' }}>Rate</span>
+                      </div>
+                    </div>
+                    <div>
+                      <h4 style={{ margin: 0, fontWeight: 800, fontSize: '15px', color: '#475569' }}>Avg Delivery Rate</h4>
+                      <p style={{ margin: '4px 0 0 0', fontSize: '13px', color: '#64748b' }}>Percentage of active Telegram user channels receiving the broadcasts successfully.</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className={styles.lteCard} style={{ background: '#ffffff', borderRadius: '16px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}>
+                  <div className={styles.lteCardBody} style={{ display: 'flex', alignItems: 'center', gap: '20px', padding: '24px' }}>
+                    <div className={styles.progressRingContainer}>
+                      <svg width="100" height="100">
+                        <circle cx="50" cy="50" r="40" stroke="#f1f5f9" strokeWidth="8" fill="transparent" />
+                        <circle cx="50" cy="50" r="40" stroke="#eab308" strokeWidth="8" fill="transparent"
+                          strokeDasharray="251.2"
+                          strokeDashoffset={251.2 - (251.2 * 14.5) / 100}
+                          strokeLinecap="round"
+                          transform="rotate(-90 50 50)"
+                        />
+                      </svg>
+                      <div className={styles.progressRingInfo}>
+                        <span className={styles.progressRingTitle} style={{ color: '#eab308' }}>14.5%</span>
+                        <span className={styles.progressRingSubtitle} style={{ display: 'block', fontSize: '8px' }}>CTR</span>
+                      </div>
+                    </div>
+                    <div>
+                      <h4 style={{ margin: 0, fontWeight: 800, fontSize: '15px', color: '#475569' }}>Avg Engagement CTR</h4>
+                      <p style={{ margin: '4px 0 0 0', fontSize: '13px', color: '#64748b' }}>Rate of custom CTA inline buttons being clicked, monitored by S2S redirect redirects.</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* History Campaign Table Card */}
+              <div className={styles.lteCard}>
+                <div className={styles.lteCardHeader}>
+                  <h3 className={styles.lteCardTitle}>📊 Broadcast Campaigns Master Audit History</h3>
+                </div>
+                <div className={`${styles.lteCardBody} ${styles.lteTableResponsive}`}>
+                  <table className={`${styles.lteTable} ${styles.lteTableStriped}`}>
+                    <thead>
+                      <tr>
+                        <th>Campaign Title</th>
+                        <th>Target Group</th>
+                        <th>Media Format</th>
+                        <th>Scheduled / Sent Time</th>
+                        <th>Status</th>
+                        <th>Performance Logs</th>
+                        <th>Action Operations</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {broadcasts.length > 0 ? (
+                        broadcasts.map((b) => (
+                          <tr key={b.id}>
+                            <td>
+                              <strong>{b.title}</strong>
+                              <div style={{ fontSize: '11.5px', color: '#64748b', marginTop: '3px', wordBreak: 'break-all', maxWidth: '240px' }}>
+                                {b.message.length > 80 ? b.message.substring(0, 80) + '...' : b.message}
+                              </div>
+                            </td>
+                            <td>
+                              <span className={styles.lteBadge} style={{ background: '#eff6ff', color: '#1d4ed8' }}>
+                                {b.target_type.toUpperCase().replace('_', ' ')}
+                              </span>
+                            </td>
+                            <td>
+                              <span className={styles.lteBadge} style={{ background: '#f8fafc', color: '#475569' }}>
+                                {b.media_type.toUpperCase()}
+                              </span>
+                            </td>
+                            <td>
+                              <div style={{ fontSize: '12px', fontWeight: 600 }}>
+                                {b.scheduled_at ? new Date(b.scheduled_at).toLocaleString() : new Date(b.created_at || b.createdAt).toLocaleString()}
+                              </div>
+                            </td>
+                            <td>
+                              <span className={`${styles.lteBadge} ${
+                                b.status === 'completed' ? styles.lteBadgeSuccess :
+                                b.status === 'running' ? styles.lteBadgeInfo :
+                                b.status === 'scheduled' ? styles.lteBadgeWarning :
+                                styles.lteBadgeSecondary
+                              }`}>
+                                {b.status.toUpperCase()}
+                              </span>
+                            </td>
+                            <td>
+                              {b.status === 'completed' || b.status === 'running' ? (
+                                <div style={{ fontSize: '11.5px', lineHeight: 1.6 }}>
+                                  <div>🟢 Success: <strong>{b.delivered_count || 0}</strong></div>
+                                  <div>🔴 Failed: <strong>{b.failed_count || 0}</strong></div>
+                                  <div>🚫 Blocks: <strong>{b.blocked_count || 0}</strong></div>
+                                  <div>🖱 Clicks: <strong style={{ color: '#3b82f6' }}>{b.clicked_count || 0}</strong> ({b.delivered_count > 0 ? ((b.clicked_count / b.delivered_count) * 100).toFixed(1) : 0}%)</div>
+                                </div>
+                              ) : (
+                                <span style={{ color: '#94a3b8', fontStyle: 'italic', fontSize: '11.5px' }}>Metrics pending queue</span>
+                              )}
+                            </td>
+                            <td>
+                              <div className={styles.lteBtnGroup}>
+                                <button 
+                                  className={`${styles.lteBtn} ${styles.lteBtnInfo}`} 
+                                  onClick={() => handleViewBroadcastDetails(b.id)}
+                                  title="View Real-Time Delivery Report Logs"
+                                >
+                                  <Eye size={14} />
+                                </button>
+                                <button 
+                                  className={`${styles.lteBtn} ${styles.lteBtnDanger}`}
+                                  onClick={() => handleDeleteBroadcast(b.id)}
+                                  title="Erase Campaign History"
+                                >
+                                  <Trash2 size={14} />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))
+                      ) : (
+                        <tr>
+                          <td colSpan={7} style={{ textAlign: 'center', padding: '40px', color: '#94a3b8' }}>
+                            No broadcast campaigns registered in databases yet. Create one in the Broadcast Center!
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ──── VIEW: SCHEDULED BROADCASTS ──── */}
+          {activeView === 'scheduled_broadcasts' && (
+            <div className={`${styles.lteFadeIn}`}>
+              <div className={styles.lteCard}>
+                <div className={`${styles.lteCardHeader} ${styles.lteBorderPrimary}`}>
+                  <h3 className={styles.lteCardTitle}>🕒 Upcoming Queued Telegram Broadcast Campaigns</h3>
+                </div>
+                <div className={`${styles.lteCardBody} ${styles.lteTableResponsive}`}>
+                  <table className={`${styles.lteTable} ${styles.lteTableStriped}`}>
+                    <thead>
+                      <tr>
+                        <th>Campaign Title / Message</th>
+                        <th>Target Segment Group</th>
+                        <th>Media Format</th>
+                        <th>Scheduled Execution Time</th>
+                        <th>Status</th>
+                        <th>Countdown Status</th>
+                        <th>Operations</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {broadcasts.filter(b => b.status === 'scheduled').length > 0 ? (
+                        broadcasts.filter(b => b.status === 'scheduled').map((b) => (
+                          <tr key={b.id}>
+                            <td>
+                              <strong>{b.title}</strong>
+                              <div style={{ fontSize: '11.5px', color: '#64748b', marginTop: '4px' }}>
+                                {b.message.length > 70 ? b.message.substring(0, 70) + '...' : b.message}
+                              </div>
+                            </td>
+                            <td>
+                              <span className={styles.lteBadge} style={{ background: '#eff6ff', color: '#1d4ed8' }}>
+                                {b.target_type.toUpperCase().replace('_', ' ')}
+                              </span>
+                            </td>
+                            <td>
+                              <span className={styles.lteBadge} style={{ background: '#f8fafc', color: '#475569' }}>
+                                {b.media_type.toUpperCase()}
+                              </span>
+                            </td>
+                            <td>
+                              <div style={{ fontSize: '12.5px', fontWeight: 600 }}>
+                                🇮🇳 {new Date(b.scheduled_at).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })} IST
+                              </div>
+                            </td>
+                            <td>
+                              <span className={`${styles.lteBadge} ${styles.lteBadgeWarning}`}>
+                                SCHEDULED
+                              </span>
+                            </td>
+                            <td>
+                              {(() => {
+                                const diff = new Date(b.scheduled_at).getTime() - new Date().getTime();
+                                if (diff <= 0) {
+                                  return <span style={{ color: '#10b981', fontWeight: 'bold' }}>⚡ Processing soon</span>;
+                                }
+                                const mins = Math.floor(diff / 60000);
+                                const hrs = Math.floor(mins / 60);
+                                if (hrs > 0) {
+                                  return <span style={{ color: '#eab308', fontWeight: 'bold' }}>⏳ In {hrs}h {mins % 60}m</span>;
+                                }
+                                return <span style={{ color: '#eab308', fontWeight: 'bold' }}>⏳ In {mins} minutes</span>;
+                              })()}
+                            </td>
+                            <td>
+                              <div className={styles.lteBtnGroup}>
+                                <button 
+                                  className={`${styles.lteBtn} ${styles.lteBtnSuccess}`}
+                                  onClick={() => handleTriggerSendBroadcast(b.id)}
+                                  title="Dispatch Immediately Now"
+                                >
+                                  <Play size={14} style={{ marginRight: '4px' }} /> Send Now
+                                </button>
+                                <button 
+                                  className={`${styles.lteBtn} ${styles.lteBtnWarning}`}
+                                  onClick={() => {
+                                    setSelectedBroadcast(b);
+                                    setBroadcastForm({
+                                      title: b.title,
+                                      message: b.message,
+                                      media_type: b.media_type,
+                                      media_url: b.media_url || "",
+                                      button_text: b.button_text || "",
+                                      button_url: b.button_url || "",
+                                      target_type: b.target_type,
+                                      schedule_time: b.scheduled_at ? new Date(b.scheduled_at).toISOString().slice(0, 16) : "",
+                                      status: b.status
+                                    });
+                                    setActiveView('broadcast_center');
+                                  }}
+                                  title="Reschedule / Edit Details"
+                                >
+                                  <Edit3 size={14} />
+                                </button>
+                                <button 
+                                  className={`${styles.lteBtn} ${styles.lteBtnDanger}`}
+                                  onClick={() => handleDeleteBroadcast(b.id)}
+                                  title="Cancel Schedule"
+                                >
+                                  <X size={14} />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))
+                      ) : (
+                        <tr>
+                          <td colSpan={7} style={{ textAlign: 'center', padding: '40px', color: '#94a3b8' }}>
+                            No scheduled broadcast push campaigns found. Schedule one in the Broadcast Center!
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ──── VIEW: AUTOMATION RULES ──── */}
+          {activeView === 'automation_rules' && (
+            <div className={`${styles.lteFadeIn} ${styles.automationRuleContainer}`}>
+              {/* Daily Inactive User Push */}
+              <div className={styles.automationCard}>
+                <div className={styles.automationCardHeader}>
+                  <div className={styles.automationTitleGroup}>
+                    <div className={styles.automationIconCircle} style={{ background: '#fef3c7', color: '#d97706' }}>
+                      <BrainCircuit size={22} />
+                    </div>
+                    <div>
+                      <div className={styles.automationTitle}>🧠 Daily 9:00 AM IST Inactive Reminder Push</div>
+                      <div className={styles.automationDesc}>Triggers automatically every morning targeting users inactive for 3+ consecutive days.</div>
+                    </div>
+                  </div>
+                  <label className={styles.lteSwitch}>
+                    <input 
+                      type="checkbox" 
+                      checked={automationSettings.inactive_reminder}
+                      onChange={(e) => setAutomationSettings({ ...automationSettings, inactive_reminder: e.target.checked })}
+                    />
+                    <span className={styles.lteSlider}></span>
+                  </label>
+                </div>
+                {automationSettings.inactive_reminder && (
+                  <div className={styles.automationCardBody}>
+                    <label className={styles.lteFormLabel}>Auto-generated Message Template</label>
+                    <textarea 
+                      className={styles.automationTextarea}
+                      value="Hello {first_name}! It's been a while since we saw you on Rewardly. 🎁 We have credited 100 free promo coins to your balance! Open Rewardly now to claim them and cash out your cash rewards!"
+                      disabled
+                    />
+                    <div style={{ marginTop: '6px', fontSize: '11px', color: '#64748b' }}>
+                      ⚡ Rate limits, randomized human delays, and flood protection are applied automatically to prevent Telegram Bot API bans.
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Daily Withdraw Booster Push */}
+              <div className={styles.automationCard}>
+                <div className={styles.automationCardHeader}>
+                  <div className={styles.automationTitleGroup}>
+                    <div className={styles.automationIconCircle} style={{ background: '#d1fae5', color: '#059669' }}>
+                      <Coins size={22} />
+                    </div>
+                    <div>
+                      <div className={styles.automationTitle}>💰 Daily 9:00 AM IST Withdrawal Reminder Push</div>
+                      <div className={styles.automationDesc}>Triggers automatically every morning targeting users with balance &gt;= 1,000 coins (₹10.00) who haven't cashed out.</div>
+                    </div>
+                  </div>
+                  <label className={styles.lteSwitch}>
+                    <input 
+                      type="checkbox" 
+                      checked={automationSettings.wallet_reminder}
+                      onChange={(e) => setAutomationSettings({ ...automationSettings, wallet_reminder: e.target.checked })}
+                    />
+                    <span className={styles.lteSlider}></span>
+                  </label>
+                </div>
+                {automationSettings.wallet_reminder && (
+                  <div className={styles.automationCardBody}>
+                    <label className={styles.lteFormLabel}>Auto-generated Message Template</label>
+                    <textarea 
+                      className={styles.automationTextarea}
+                      value="Hi {first_name}! You have a withdrawable cash balance of {wallet} ({coins} coins) ready in your Rewardly account. 🥳 Click below to withdraw directly to Paytm or UPI instantly!"
+                      disabled
+                    />
+                    <div style={{ marginTop: '6px', fontSize: '11px', color: '#64748b' }}>
+                      ⚡ Tracks button clicks with redirect analytics automatically.
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Daily Referral Booster Push */}
+              <div className={styles.automationCard}>
+                <div className={styles.automationCardHeader}>
+                  <div className={styles.automationTitleGroup}>
+                    <div className={styles.automationIconCircle} style={{ background: '#eff6ff', color: '#2563eb' }}>
+                      <Users size={22} />
+                    </div>
+                    <div>
+                      <div className={styles.automationTitle}>📢 Daily 9:00 AM IST Referral booster Push</div>
+                      <div className={styles.automationDesc}>Triggers automatically every morning targeting users with 0 referrals, encouraging organic growth loops.</div>
+                    </div>
+                  </div>
+                  <label className={styles.lteSwitch}>
+                    <input 
+                      type="checkbox" 
+                      checked={automationSettings.referral_push}
+                      onChange={(e) => setAutomationSettings({ ...automationSettings, referral_push: e.target.checked })}
+                    />
+                    <span className={styles.lteSlider}></span>
+                  </label>
+                </div>
+                {automationSettings.referral_push && (
+                  <div className={styles.automationCardBody}>
+                    <label className={styles.lteFormLabel}>Auto-generated Message Template</label>
+                    <textarea 
+                      className={styles.automationTextarea}
+                      value="Hi {first_name}! 🚀 Bring your friends to Rewardly and earn unlimited cash lifetime! Get ₹5.00 for every validated friend plus 10% of all their task completion earnings forever! Click below to copy your referral link."
+                      disabled
+                    />
+                    <div style={{ marginTop: '6px', fontSize: '11px', color: '#64748b' }}>
+                      ⚡ Auto-generates unique user referral link variables inside Telegram chat button automatically.
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '10px' }}>
+                <button 
+                  className={`${styles.lteBtn} ${styles.lteBtnPrimary}`}
+                  onClick={() => {
+                    showToast("Smart automation rule parameters saved successfully!");
+                  }}
+                >
+                  Save Automation Rules
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* ──── VIEW: MEDIA MANAGER ──── */}
+          {activeView === 'media_manager' && (
+            <div className={`${styles.lteFadeIn}`}>
+              <div className={styles.lteCard}>
+                <div className={`${styles.lteCardHeader} ${styles.lteBorderPrimary}`}>
+                  <h3 className={styles.lteCardTitle}>🖼 Media Assets Upload Folders</h3>
+                </div>
+                <div className={styles.lteCardBody}>
+                  {/* Dropzone File Uploader */}
+                  <div 
+                    className={`${styles.mediaDropzone} ${mediaDragActive ? styles.mediaDropzoneActive : ''}`}
+                    onDragEnter={(e) => { e.preventDefault(); e.stopPropagation(); setMediaDragActive(true); }}
+                    onDragLeave={(e) => { e.preventDefault(); e.stopPropagation(); setMediaDragActive(false); }}
+                    onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); setMediaDragActive(true); }}
+                    onDrop={async (e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setMediaDragActive(false);
+                      if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+                        await handleUploadMediaFile(e.dataTransfer.files[0]);
+                      }
+                    }}
+                    onClick={() => {
+                      const fileInput = document.getElementById("mediaFileInput");
+                      if (fileInput) fileInput.click();
+                    }}
+                  >
+                    <input 
+                      type="file" 
+                      id="mediaFileInput"
+                      style={{ display: 'none' }}
+                      accept="image/*,video/*"
+                      onChange={async (e) => {
+                        if (e.target.files && e.target.files[0]) {
+                          await handleUploadMediaFile(e.target.files[0]);
+                        }
+                      }}
+                    />
+                    <Image size={40} style={{ color: '#94a3b8' }} />
+                    <div className={styles.mediaDropzoneTitle}>Drag & Drop media file here, or click to browse files</div>
+                    <div className={styles.mediaDropzoneSubtitle}>Supports JPG, PNG, GIF (Max 10MB) and MP4 Video (Max 50MB)</div>
+                  </div>
+
+                  {mediaUploading && (
+                    <div className={styles.mediaUploadProgressContainer}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', fontWeight: 600, color: '#475569', marginBottom: '6px' }}>
+                        <span>Uploading media assets to production storage server...</span>
+                        <span>Please wait</span>
+                      </div>
+                      <div className={styles.mediaProgressBar}>
+                        <div className={styles.mediaProgressFill} style={{ width: '70%' }}></div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Media Files Grid */}
+                  <div className={styles.mediaGrid}>
+                    {mediaFiles.length > 0 ? (
+                      mediaFiles.map((file) => (
+                        <div key={file.name} className={styles.mediaCard}>
+                          <div className={styles.mediaCardPreview}>
+                            <span className={styles.mediaCardTypeBadge}>
+                              {file.type.toUpperCase()}
+                            </span>
+                            {file.type === 'video' ? (
+                              <video src={file.url} controls={false} muted />
+                            ) : (
+                              <img src={file.url} alt={file.name} onError={(e) => {
+                                (e.target as HTMLImageElement).src = "https://placehold.co/600x400/1e293b/fff?text=No+Thumbnail";
+                              }} />
+                            )}
+                          </div>
+                          <div className={styles.mediaCardBody}>
+                            <div className={styles.mediaCardName} title={file.name}>
+                              {file.name.length > 30 ? file.name.substring(0, 27) + '...' : file.name}
+                            </div>
+                            <div className={styles.mediaCardMeta}>
+                              <span>📏 {(file.size / (1024 * 1024)).toFixed(2)} MB</span>
+                              <span>📅 {new Date(file.createdAt).toLocaleDateString()}</span>
+                            </div>
+                            <div className={styles.mediaCardActions}>
+                              <button 
+                                className={`${styles.mediaCardBtn} ${styles.mediaCardBtnCopy}`}
+                                onClick={() => {
+                                  navigator.clipboard.writeText(file.url);
+                                  showToast("Absolute URL copied to clipboard!");
+                                }}
+                              >
+                                Copy URL
+                              </button>
+                              <button 
+                                className={`${styles.mediaCardBtn} ${styles.mediaCardBtnDelete}`}
+                                onClick={() => handleDeleteMediaFile(file.name)}
+                              >
+                                Delete
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      ))
+                    ) : (
+                      <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '40px', color: '#94a3b8', border: '1px dashed #e2e8f0', borderRadius: '12px' }}>
+                        No uploaded media assets found. Drag and drop file to upload your first graphic campaign!
+                      </div>
+                    )}
+                  </div>
+                </div>
               </div>
             </div>
           )}
@@ -3535,6 +4572,139 @@ export default function AdminPanel() {
             <div className={styles.lteModalFooter}>
               <button className={`${styles.lteBtn} ${styles.lteBtnSecondary}`} onClick={() => setIsLifafaModalOpen(false)}>Discard</button>
               <button className={`${styles.lteBtn} ${styles.lteBtnPrimary}`} onClick={handleSaveLifafa}>🧧 Launch Promo Code</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ──── MODAL: CAMPAIGN DELIVERY LOGS & ANALYTICS AUDIT ──── */}
+      {isBroadcastModalOpen && selectedBroadcast && (
+        <div className={styles.lteModalOverlay}>
+          <div className={styles.lteModalBox} style={{ maxWidth: '750px' }}>
+            <div className={styles.lteModalHeader}>
+              <h4 className={styles.lteModalTitle}>Campaign Delivery Audit: {selectedBroadcast.title}</h4>
+              <button className={styles.lteModalClose} onClick={() => setIsBroadcastModalOpen(false)}>
+                <X size={20} />
+              </button>
+            </div>
+            <div className={styles.lteModalBody} style={{ maxHeight: '70vh', overflowY: 'auto' }}>
+              
+              {/* Campaign Meta info */}
+              <div style={{ padding: '12px', background: '#f8fafc', borderRadius: '8px', marginBottom: '20px', fontSize: '13px', border: '1px solid #e2e8f0' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                  <div><strong>Internal Title:</strong> {selectedBroadcast.title}</div>
+                  <div><strong>Target Segment:</strong> <span className={styles.lteBadge} style={{ background: '#dbeafe', color: '#1e40af' }}>{selectedBroadcast.target_type.toUpperCase().replace('_', ' ')}</span></div>
+                  <div><strong>Media Attachment:</strong> <span className={styles.lteBadge} style={{ background: '#f1f5f9', color: '#334155' }}>{selectedBroadcast.media_type.toUpperCase()}</span></div>
+                  <div><strong>Inline CTA Button:</strong> {selectedBroadcast.button_text ? `${selectedBroadcast.button_text} ➔ ${selectedBroadcast.button_url}` : 'None'}</div>
+                </div>
+                <div style={{ marginTop: '10px', borderTop: '1px solid #e2e8f0', paddingTop: '8px' }}>
+                  <strong>Message Template:</strong>
+                  <pre style={{ whiteSpace: 'pre-wrap', background: '#ffffff', padding: '8px', borderRadius: '6px', marginTop: '4px', border: '1px solid #f1f5f9', fontFamily: 'inherit', fontSize: '12px' }}>
+                    {selectedBroadcast.message}
+                  </pre>
+                </div>
+              </div>
+
+              {/* Delivery Metrics Ring Stats */}
+              <h5 style={{ fontWeight: 700, marginBottom: '12px', color: '#1e293b' }}>📈 Performance Overview</h5>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '15px', marginBottom: '25px' }}>
+                <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '12px', textAlign: 'center' }}>
+                  <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 600, textTransform: 'uppercase' }}>Total Targets</div>
+                  <div style={{ fontSize: '22px', fontWeight: 800, color: '#0f172a', margin: '4px 0' }}>{broadcastAnalytics?.total || 0}</div>
+                  <div style={{ fontSize: '10px', color: '#94a3b8' }}>Queued Users</div>
+                </div>
+                <div style={{ background: '#ecfdf5', border: '1px solid #a7f3d0', borderRadius: '12px', padding: '12px', textAlign: 'center' }}>
+                  <div style={{ fontSize: '11px', color: '#065f46', fontWeight: 600, textTransform: 'uppercase' }}>Delivered</div>
+                  <div style={{ fontSize: '22px', fontWeight: 800, color: '#047857', margin: '4px 0' }}>{broadcastAnalytics?.success || 0}</div>
+                  <div style={{ fontSize: '10px', color: '#059669' }}>
+                    {broadcastAnalytics?.total > 0 ? ((broadcastAnalytics.success / broadcastAnalytics.total) * 100).toFixed(1) : 0}% success
+                  </div>
+                </div>
+                <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '12px', padding: '12px', textAlign: 'center' }}>
+                  <div style={{ fontSize: '11px', color: '#991b1b', fontWeight: 600, textTransform: 'uppercase' }}>Failed</div>
+                  <div style={{ fontSize: '22px', fontWeight: 800, color: '#b91c1c', margin: '4px 0' }}>{broadcastAnalytics?.failed || 0}</div>
+                  <div style={{ fontSize: '10px', color: '#dc2626' }}>
+                    {broadcastAnalytics?.total > 0 ? ((broadcastAnalytics.failed / broadcastAnalytics.total) * 100).toFixed(1) : 0}% fail rate
+                  </div>
+                </div>
+                <div style={{ background: '#f1f5f9', border: '1px solid #cbd5e1', borderRadius: '12px', padding: '12px', textAlign: 'center' }}>
+                  <div style={{ fontSize: '11px', color: '#475569', fontWeight: 600, textTransform: 'uppercase' }}>Bot Blocks</div>
+                  <div style={{ fontSize: '22px', fontWeight: 800, color: '#334155', margin: '4px 0' }}>{broadcastAnalytics?.blocked || 0}</div>
+                  <div style={{ fontSize: '10px', color: '#64748b' }}>Banned/Blocked</div>
+                </div>
+                <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '12px', padding: '12px', textAlign: 'center' }}>
+                  <div style={{ fontSize: '11px', color: '#1e40af', fontWeight: 600, textTransform: 'uppercase' }}>CTR / Clicks</div>
+                  <div style={{ fontSize: '22px', fontWeight: 800, color: '#1d4ed8', margin: '4px 0' }}>{broadcastAnalytics?.clicks || 0}</div>
+                  <div style={{ fontSize: '10px', color: '#3b82f6', fontWeight: 600 }}>{broadcastAnalytics?.ctr || 0}% CTR</div>
+                </div>
+              </div>
+
+              {/* Delivery Logs Stream */}
+              <h5 style={{ fontWeight: 700, marginBottom: '12px', color: '#1e293b', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span>📋 Delivery Audit Logs Stream (Last 100 jobs)</span>
+                <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 'normal' }}>Refreshed in real-time</span>
+              </h5>
+              
+              <table className={styles.lteTable}>
+                <thead>
+                  <tr>
+                    <th>Telegram ID</th>
+                    <th>Delivery Status</th>
+                    <th>Inline CTR click</th>
+                    <th>Execution Time</th>
+                    <th>Diagnostics / Error</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {broadcastLogs && broadcastLogs.length > 0 ? (
+                    broadcastLogs.map((log: any) => (
+                      <tr key={log.id}>
+                        <td>
+                          <code style={{ background: '#f1f5f9', padding: '2px 6px', borderRadius: '4px', fontSize: '12px', color: '#334155' }}>
+                            {log.telegram_id}
+                          </code>
+                        </td>
+                        <td>
+                          <span className={`${styles.logTableBadge} ${
+                            log.status === 'success' ? styles.logBadgeSuccess :
+                            log.status === 'blocked' ? styles.logBadgeBlocked :
+                            styles.logBadgeFailed
+                          }`}>
+                            {log.status.toUpperCase()}
+                          </span>
+                        </td>
+                        <td>
+                          {log.clicked ? (
+                            <span className={styles.lteBadge} style={{ background: '#dbeafe', color: '#1e40af', fontWeight: 'bold' }}>
+                              🖱 CLICKED
+                            </span>
+                          ) : (
+                            <span style={{ color: '#94a3b8', fontSize: '11.5px' }}>-</span>
+                          )}
+                        </td>
+                        <td>
+                          <span style={{ fontSize: '12px', color: '#475569' }}>
+                            {log.sent_at ? new Date(log.sent_at).toLocaleString() : new Date(log.updatedAt || log.updated_at).toLocaleString()}
+                          </span>
+                        </td>
+                        <td style={{ maxWidth: '180px', wordBreak: 'break-all', fontSize: '11.5px', color: log.status === 'failed' ? '#dc2626' : '#64748b' }}>
+                          {log.error_message || <span style={{ color: '#94a3b8' }}>-</span>}
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan={5} style={{ textAlign: 'center', color: '#94a3b8', padding: '30px' }}>
+                        No delivery logs recorded for this campaign.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+
+            </div>
+            <div className={styles.lteModalFooter}>
+              <button className={`${styles.lteBtn} ${styles.lteBtnPrimary}`} onClick={() => setIsBroadcastModalOpen(false)}>Close Audit Report</button>
             </div>
           </div>
         </div>

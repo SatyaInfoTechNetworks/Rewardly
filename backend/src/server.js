@@ -30,7 +30,10 @@ const LuckyDrawEntry = require('./models/LuckyDrawEntry');
 const LuckyDrawWinner = require('./models/LuckyDrawWinner');
 const Lifafa = require('./models/Lifafa');
 const LifafaClaim = require('./models/LifafaClaim');
+const Broadcast = require('./models/Broadcast');
+const BroadcastLog = require('./models/BroadcastLog');
 const axios = require('axios');
+const path = require('path');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -119,6 +122,12 @@ Lifafa.hasMany(LifafaClaim, { as: 'claims', foreignKey: 'lifafa_id' });
 LifafaClaim.belongsTo(Lifafa, { foreignKey: 'lifafa_id' });
 LifafaClaim.belongsTo(User, { foreignKey: 'user_id', targetKey: 'telegram_id' });
 
+// Broadcast Associations
+Broadcast.hasMany(BroadcastLog, { as: 'logs', foreignKey: 'broadcast_id' });
+BroadcastLog.belongsTo(Broadcast, { foreignKey: 'broadcast_id' });
+BroadcastLog.belongsTo(User, { foreignKey: 'user_id', targetKey: 'telegram_id' });
+User.hasMany(BroadcastLog, { foreignKey: 'user_id', sourceKey: 'telegram_id' });
+
 // Start Server (Move this inside sync)
 
 // Test DB Connection & Sync Models
@@ -180,7 +189,18 @@ testConnection().then(async () => {
 
     // 7. Cooldown Settings Fields
     "ALTER TABLE `app_settings` ADD `watch_earn_cooldown` INTEGER DEFAULT 30;",
-    "ALTER TABLE `app_settings` ADD `ad_entry_cooldown` INTEGER DEFAULT 60;"
+    "ALTER TABLE `app_settings` ADD `ad_entry_cooldown` INTEGER DEFAULT 60;",
+
+    // 8. User Activity & Notification Tracking Columns
+    "ALTER TABLE `users` ADD `last_active_at` DATETIME;",
+    "ALTER TABLE `users` ADD `last_notification_at` DATETIME;",
+    "ALTER TABLE `users` ADD `notification_clicks` INTEGER DEFAULT 0;",
+    "ALTER TABLE `users` ADD `notification_opens` INTEGER DEFAULT 0;",
+    "ALTER TABLE `users` ADD `quality_score` INTEGER DEFAULT 50;",
+
+    // 9. Broadcast and Broadcast Log Tables
+    "CREATE TABLE IF NOT EXISTS `broadcasts` (`id` INTEGER AUTO_INCREMENT PRIMARY KEY, `title` VARCHAR(255) NOT NULL, `message` TEXT NOT NULL, `media_type` VARCHAR(50) DEFAULT 'none', `media_url` TEXT NULL, `button_text` VARCHAR(255) NULL, `button_url` TEXT NULL, `target_type` VARCHAR(100) NOT NULL, `status` VARCHAR(50) DEFAULT 'draft', `scheduled_at` DATETIME NULL, `created_at` DATETIME NOT NULL, `updated_at` DATETIME NOT NULL);",
+    "CREATE TABLE IF NOT EXISTS `broadcast_logs` (`id` INTEGER AUTO_INCREMENT PRIMARY KEY, `broadcast_id` INTEGER NOT NULL, `user_id` BIGINT NOT NULL, `telegram_id` BIGINT NOT NULL, `status` VARCHAR(50) DEFAULT 'pending', `error_message` TEXT NULL, `sent_at` DATETIME NULL, `clicked` TINYINT DEFAULT 0, `opened` TINYINT DEFAULT 0, `created_at` DATETIME NOT NULL, `updated_at` DATETIME NOT NULL);"
   ];
 
   for (const sql of migrations) {
@@ -216,6 +236,13 @@ testConnection().then(async () => {
       console.log('ℹ️ Migration Note (Defaults):', err.message);
     }
     console.log('✅ Database Schema Check Complete.');
+
+    // Serve static files from the uploads directory
+    app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
+
+    // Initialize node-cron schedulers for Broadcasts, Automations, & Quality score
+    const { initializeSchedulers } = require('./utils/scheduler');
+    initializeSchedulers();
 
     // Auto-Seed Defaults
     try {
@@ -309,9 +336,11 @@ app.use('/api/postbacks', require('./routes/postbacks'));
 app.use('/api/admin', require('./routes/adminContests'));
 app.use('/api/admin', require('./routes/adminLuckyDraws'));
 app.use('/api/admin', require('./routes/admin'));
+app.use('/api/admin', require('./routes/broadcasts')); // Mount Broadcast Admin API
+app.use('/api', require('./routes/broadcasts')); // Mount click tracking redirects
 app.use('/api/payouts', require('./routes/payouts'));
 app.use('/api/referrals', require('./routes/referrals'));
-  app.use('/api/contests', require('./routes/contests'));
+app.use('/api/contests', require('./routes/contests'));
 app.use('/api/rewards', require('./routes/rewards'));
 app.use('/api/game-system', require('./routes/gameSystem'));
 app.use('/api/opinion-universe', require('./routes/opinionUniverse'));
@@ -475,11 +504,30 @@ app.post('/api/auth/sync', async (req, res) => {
       });
     }
 
-    // Update profile info
+    // Track TMA opens triggered from dynamic broadcast campaigns
+    if (referralCode && referralCode.startsWith('bc_')) {
+      const broadcastId = parseInt(referralCode.replace('bc_', ''));
+      if (!isNaN(broadcastId)) {
+        try {
+          const log = await BroadcastLog.findOne({
+            where: { broadcast_id: broadcastId, user_id: tgUser.id }
+          });
+          if (log) {
+            await log.update({ opened: 1 });
+          }
+          await user.increment('notification_opens', { by: 1 });
+        } catch (err) {
+          console.error('❌ Error updating notification opens CTR:', err);
+        }
+      }
+    }
+
+    // Update profile info with last_active_at
     await user.update({ 
       username: tgUser.username,
       photo_url: tgUser.photo_url,
-      ip_address: clientIp
+      ip_address: clientIp,
+      last_active_at: new Date()
     });
 
     // Get App Settings

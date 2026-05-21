@@ -53,7 +53,12 @@ const User = sequelize.define('User', {
   ip_address: { type: DataTypes.STRING, allowNull: true },
   photo_url: { type: DataTypes.STRING, allowNull: true },
   daily_games_played: { type: DataTypes.INTEGER, defaultValue: 0 },
-  last_game_date: { type: DataTypes.DATEONLY, allowNull: true }
+  last_game_date: { type: DataTypes.DATEONLY, allowNull: true },
+  last_active_at: { type: DataTypes.DATE, allowNull: true },
+  last_notification_at: { type: DataTypes.DATE, allowNull: true },
+  notification_clicks: { type: DataTypes.INTEGER, defaultValue: 0 },
+  notification_opens: { type: DataTypes.INTEGER, defaultValue: 0 },
+  quality_score: { type: DataTypes.INTEGER, defaultValue: 50 }
 }, {
   tableName: 'users',
   timestamps: true,

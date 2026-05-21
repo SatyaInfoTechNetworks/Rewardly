@@ -1049,3 +1049,651 @@ textarea.lteFormControl {
     box-shadow: 0 14px 28px rgba(0,0,0,.25),0 10px 10px rgba(0,0,0,.22);
   }
 }
+
+/* ──────────────────────────────────────────────────────────
+   📢 TELEGRAM BROADCAST & NOTIFICATION SYSTEM PREMIUM CSS
+   ────────────────────────────────────────────────────────── */
+
+/* Broadcast Center Grid */
+.broadcastCenterGrid {
+  display: grid;
+  grid-template-columns: 1.3fr 0.7fr;
+  gap: 24px;
+  align-items: start;
+}
+
+@media (max-width: 1024px) {
+  .broadcastCenterGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Visual Variable Injectors */
+.variableBadgeGroup {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+  margin-bottom: 16px;
+}
+
+.variableBadge {
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  color: #1d4ed8;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-family: monospace;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  user-select: none;
+}
+
+.variableBadge:hover {
+  background: #3b82f6;
+  border-color: #3b82f6;
+  color: #ffffff;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(59, 130, 246, 0.2);
+}
+
+/* Interactive Telegram Mock Simulator Frame */
+.telegramPreviewContainer {
+  position: sticky;
+  top: 80px;
+}
+
+.telegramPreviewFrame {
+  width: 100%;
+  background: #17212b; /* Telegram Dark Mode Blue-grey bg */
+  border-radius: 16px;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.25);
+  border: 4px solid #24303f;
+  overflow: hidden;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  color: #ffffff;
+}
+
+.telegramPreviewHeader {
+  background: #242f3d;
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border-bottom: 1px solid #1c2734;
+}
+
+.telegramPreviewAvatar {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #2a9df4, #1282c4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  color: white;
+  font-size: 15px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.telegramPreviewInfo {
+  flex: 1;
+}
+
+.telegramPreviewBotName {
+  font-weight: 600;
+  font-size: 14.5px;
+  color: #ffffff;
+}
+
+.telegramPreviewBotStatus {
+  font-size: 11px;
+  color: #7995b1;
+  margin-top: 1px;
+}
+
+.telegramChatBg {
+  background-color: #0e1621;
+  background-image: radial-gradient(circle, rgba(255,255,255,0.02) 1px, transparent 1px);
+  background-size: 16px 16px;
+  padding: 20px 16px;
+  min-height: 340px;
+  max-height: 480px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+}
+
+.telegramBubble {
+  background: #182533;
+  border-radius: 12px 12px 12px 0px;
+  max-width: 90%;
+  align-self: flex-start;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+  margin-bottom: 12px;
+  overflow: hidden;
+  position: relative;
+  animation: ltePopIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes ltePopIn {
+  from { transform: scale(0.95); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+.telegramBubbleMedia {
+  width: 100%;
+  max-height: 180px;
+  overflow: hidden;
+  background: #0f1621;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-bottom: 1px solid #121c27;
+}
+
+.telegramBubbleMedia img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.telegramBubbleMedia video {
+  width: 100%;
+  max-height: 180px;
+  object-fit: contain;
+}
+
+.telegramBubbleContent {
+  padding: 10px 12px 8px 12px;
+}
+
+.telegramBubbleText {
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: #f5f5f5;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.telegramBubbleText b, .telegramBubbleText strong {
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.telegramBubbleText i, .telegramBubbleText em {
+  font-style: italic;
+}
+
+.telegramBubbleText code {
+  font-family: monospace;
+  background: rgba(0,0,0,0.3);
+  padding: 2px 4px;
+  border-radius: 4px;
+  color: #fca5a5;
+  font-size: 12px;
+}
+
+.telegramBubbleText a {
+  color: #64b5f6;
+  text-decoration: none;
+}
+
+.telegramBubbleText a:hover {
+  text-decoration: underline;
+}
+
+.telegramBubbleTime {
+  font-size: 10px;
+  color: #7995b1;
+  text-align: right;
+  margin-top: 4px;
+  display: block;
+}
+
+.telegramInlineKeyboard {
+  margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.telegramInlineBtn {
+  background: #24303f;
+  border: 1px solid #2b394a;
+  color: #64b5f6;
+  font-size: 12.5px;
+  font-weight: 600;
+  padding: 8px 16px;
+  border-radius: 8px;
+  text-align: center;
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.1s ease;
+  width: 100%;
+  border: none;
+  outline: none;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.telegramInlineBtn:hover {
+  background: #2c3a4e;
+  color: #90caf9;
+  transform: translateY(-0.5px);
+}
+
+.telegramInlineBtn:active {
+  transform: scale(0.98);
+}
+
+/* 🖼 Media Manager Premium Styling */
+.mediaDropzone {
+  border: 2px dashed #cbd5e1;
+  border-radius: 12px;
+  padding: 32px 24px;
+  text-align: center;
+  background: #f8fafc;
+  cursor: pointer;
+  transition: all 0.25s ease-in-out;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+
+.mediaDropzone:hover, .mediaDropzoneActive {
+  border-color: #3b82f6;
+  background: #eff6ff;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.05);
+}
+
+.mediaDropzoneTitle {
+  font-weight: 700;
+  font-size: 15px;
+  color: #334155;
+}
+
+.mediaDropzoneSubtitle {
+  font-size: 12px;
+  color: #64748b;
+}
+
+.mediaUploadProgressContainer {
+  margin-top: 16px;
+}
+
+.mediaProgressBar {
+  width: 100%;
+  background: #e2e8f0;
+  height: 8px;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.mediaProgressFill {
+  background: linear-gradient(90deg, #3b82f6, #60a5fa);
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.3s ease;
+  animation: ltePulse 1.5s infinite;
+}
+
+@keyframes ltePulse {
+  0% { opacity: 1; }
+  50% { opacity: 0.7; }
+  100% { opacity: 1; }
+}
+
+.mediaGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 20px;
+  margin-top: 24px;
+}
+
+.mediaCard {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.mediaCard:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
+  border-color: #cbd5e1;
+}
+
+.mediaCardPreview {
+  width: 100%;
+  height: 140px;
+  background: #f1f5f9;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.mediaCardPreview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.mediaCardPreview video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.mediaCardTypeBadge {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  background: rgba(15, 23, 42, 0.75);
+  color: white;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 10px;
+  font-weight: 700;
+  backdrop-filter: blur(4px);
+}
+
+.mediaCardBody {
+  padding: 12px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.mediaCardName {
+  font-weight: 700;
+  font-size: 13px;
+  color: #1e293b;
+  word-break: break-all;
+  line-height: 1.4;
+  margin-bottom: 6px;
+}
+
+.mediaCardMeta {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  color: #64748b;
+  margin-bottom: 10px;
+}
+
+.mediaCardActions {
+  display: flex;
+  gap: 8px;
+  margin-top: auto;
+}
+
+.mediaCardBtn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 6px 10px;
+  font-size: 11.5px;
+  font-weight: 600;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: 1px solid;
+}
+
+.mediaCardBtnCopy {
+  background: #f1f5f9;
+  border-color: #e2e8f0;
+  color: #334155;
+}
+
+.mediaCardBtnCopy:hover {
+  background: #e2e8f0;
+  color: #0f172a;
+}
+
+.mediaCardBtnDelete {
+  background: #fef2f2;
+  border-color: #fee2e2;
+  color: #ef4444;
+}
+
+.mediaCardBtnDelete:hover {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+/* 🧠 Smart Automation Premium Rules Switches */
+.automationRuleContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.automationCard {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  padding: 20px 24px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  transition: all 0.3s ease;
+}
+
+.automationCard:hover {
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.08);
+  border-color: #cbd5e1;
+}
+
+.automationCardHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.automationTitleGroup {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.automationIconCircle {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.automationTitle {
+  font-weight: 700;
+  font-size: 16px;
+  color: #0f172a;
+}
+
+.automationDesc {
+  font-size: 12px;
+  color: #64748b;
+  margin-top: 2px;
+}
+
+/* Elegant Switch CSS Toggle */
+.lteSwitch {
+  position: relative;
+  display: inline-block;
+  width: 52px;
+  height: 28px;
+}
+
+.lteSwitch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.lteSlider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #cbd5e1;
+  transition: .4s;
+  border-radius: 34px;
+}
+
+.lteSlider:before {
+  position: absolute;
+  content: "";
+  height: 20px;
+  width: 20px;
+  left: 4px;
+  bottom: 4px;
+  background-color: white;
+  transition: .4s;
+  border-radius: 50%;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+.lteSwitch input:checked + .lteSlider {
+  background-color: #10b981;
+}
+
+.lteSwitch input:checked + .lteSlider:before {
+  transform: translateX(24px);
+}
+
+/* Automation Card Body */
+.automationCardBody {
+  border-top: 1px solid #f1f5f9;
+  padding-top: 16px;
+}
+
+.automationTextarea {
+  width: 100%;
+  min-height: 100px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 12px;
+  font-size: 13.5px;
+  color: #334155;
+  outline: none;
+  resize: vertical;
+  transition: all 0.2s;
+  font-family: inherit;
+  margin-top: 8px;
+}
+
+.automationTextarea:focus {
+  border-color: #3b82f6;
+  background: #ffffff;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+/* Stats Card Extra Premium Gradient Overrides */
+.gradientTextSuccess {
+  background: linear-gradient(135deg, #10b981, #059669);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.gradientTextPrimary {
+  background: linear-gradient(135deg, #3b82f6, #2563eb);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.gradientTextWarning {
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.gradientTextDanger {
+  background: linear-gradient(135deg, #ef4444, #dc2626);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* Modern Analytics Ring / Progress Ring */
+.progressRingContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  width: 120px;
+  height: 120px;
+}
+
+.progressRingInfo {
+  position: absolute;
+  text-align: center;
+}
+
+.progressRingTitle {
+  font-size: 20px;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.progressRingSubtitle {
+  font-size: 10px;
+  color: #64748b;
+  text-transform: uppercase;
+}
+
+/* Campaign logs visual modal classes */
+.logTableBadge {
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  display: inline-block;
+}
+
+.logBadgeSuccess {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.logBadgeFailed {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.logBadgeBlocked {
+  background: #f3f4f6;
+  color: #374151;
+}
+
+/* Fade In Animations */
+.lteFadeIn {
+  animation: lteFadeInKey 0.4s ease-out forwards;
+}
+
+@keyframes lteFadeInKey {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+

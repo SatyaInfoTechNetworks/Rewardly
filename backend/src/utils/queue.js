@@ -91,16 +91,15 @@ const worker = new Worker('broadcastQueue', async (job) => {
     formattedMessage = formattedMessage.replace(new RegExp(placeholder, 'g'), value);
   }
 
-  // Add click-tracking redirect to the inline button
+  // Use direct target URL for the inline button so Telegram displays a clean, trusted link
   let reply_markup = undefined;
   if (broadcast.button_text && broadcast.button_url) {
-    const trackUrl = `${API_URL}/api/broadcasts/track-click?logId=${log.id}&url=${encodeURIComponent(broadcast.button_url)}`;
     reply_markup = {
       inline_keyboard: [
         [
           {
             text: broadcast.button_text,
-            url: trackUrl
+            url: broadcast.button_url
           }
         ]
       ]

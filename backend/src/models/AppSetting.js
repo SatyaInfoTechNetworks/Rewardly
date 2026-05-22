@@ -74,6 +74,18 @@ const AppSetting = sequelize.define('AppSetting', {
   ad_entry_cooldown: {
     type: DataTypes.INTEGER,
     defaultValue: 60
+  },
+  inactive_reminder_enabled: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: true
+  },
+  wallet_reminder_enabled: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: true
+  },
+  referral_push_enabled: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: true
   }
 }, {
   tableName: 'app_settings',

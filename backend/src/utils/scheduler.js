@@ -6,6 +6,7 @@ const Broadcast = require('../models/Broadcast');
 const BroadcastLog = require('../models/BroadcastLog');
 const Referral = require('../models/Referral');
 const WithdrawalRequest = require('../models/WithdrawalRequest');
+const AppSetting = require('../models/AppSetting');
 
 // Helper to get target users based on segmentation
 const getTargetUsers = async (targetType) => {
@@ -120,6 +121,9 @@ const startAutomationScheduler = () => {
     try {
       const today = new Date();
 
+      // Fetch AppSettings to respect automation toggle state
+      const settings = await AppSetting.findByPk(1);
+
       // Ensure system templates exist or findOrCreate
       const [inactiveCampaign] = await Broadcast.findOrCreate({
         where: { title: 'System Automation: Inactive Reminder' },
@@ -158,67 +162,73 @@ const startAutomationScheduler = () => {
         }
 
         // --- AUTOMATION 1: Inactive Users (>3 days) ---
-        let lastActive = user.last_active_at ? new Date(user.last_active_at) : user.created_at;
-        const daysInactive = (today - new Date(lastActive)) / (1000 * 60 * 60 * 24);
-        if (daysInactive >= 3) {
-          // Check if already notified within 7 days for this automation to avoid spamming
-          const alreadyLogged = await BroadcastLog.findOne({
-            where: {
-              broadcast_id: inactiveCampaign.id,
-              user_id: user.telegram_id,
-              created_at: { [Op.gte]: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) }
-            }
-          });
-
-          if (!alreadyLogged) {
-            await broadcastQueue.add(`inactive_${user.telegram_id}`, {
-              broadcastId: inactiveCampaign.id,
-              telegramId: user.telegram_id,
-              userId: user.telegram_id
+        if (!settings || settings.inactive_reminder_enabled !== false) {
+          let lastActive = user.last_active_at ? new Date(user.last_active_at) : user.created_at;
+          const daysInactive = (today - new Date(lastActive)) / (1000 * 60 * 60 * 24);
+          if (daysInactive >= 3) {
+            // Check if already notified within 7 days for this automation to avoid spamming
+            const alreadyLogged = await BroadcastLog.findOne({
+              where: {
+                broadcast_id: inactiveCampaign.id,
+                user_id: user.telegram_id,
+                created_at: { [Op.gte]: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) }
+              }
             });
-            continue; // Skip other automations for today to keep it targeted
+
+            if (!alreadyLogged) {
+              await broadcastQueue.add(`inactive_${user.telegram_id}`, {
+                broadcastId: inactiveCampaign.id,
+                telegramId: user.telegram_id,
+                userId: user.telegram_id
+              });
+              continue; // Skip other automations for today to keep it targeted
+            }
           }
         }
 
         // --- AUTOMATION 2: Wallet Withdrawal Reminder ---
         // Minimum tier limit is usually around 5000 coins (Rs 50)
-        if (user.balance >= 5000) {
-          const alreadyLogged = await BroadcastLog.findOne({
-            where: {
-              broadcast_id: walletCampaign.id,
-              user_id: user.telegram_id,
-              created_at: { [Op.gte]: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000) } // Once every 2 weeks
-            }
-          });
-
-          if (!alreadyLogged) {
-            await broadcastQueue.add(`wallet_${user.telegram_id}`, {
-              broadcastId: walletCampaign.id,
-              telegramId: user.telegram_id,
-              userId: user.telegram_id
-            });
-            continue;
-          }
-        }
-
-        // --- AUTOMATION 3: Referral Push (Users with 0 referrals after 2 days)
-        const daysJoined = (today - new Date(user.created_at)) / (1000 * 60 * 60 * 24);
-        if (daysJoined >= 2) {
-          const refCount = await Referral.count({ where: { referrer_user_id: user.telegram_id } });
-          if (refCount === 0) {
+        if (!settings || settings.wallet_reminder_enabled !== false) {
+          if (user.balance >= 5000) {
             const alreadyLogged = await BroadcastLog.findOne({
               where: {
-                broadcast_id: referralCampaign.id,
-                user_id: user.telegram_id
+                broadcast_id: walletCampaign.id,
+                user_id: user.telegram_id,
+                created_at: { [Op.gte]: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000) } // Once every 2 weeks
               }
             });
 
             if (!alreadyLogged) {
-              await broadcastQueue.add(`referral_push_${user.telegram_id}`, {
-                broadcastId: referralCampaign.id,
+              await broadcastQueue.add(`wallet_${user.telegram_id}`, {
+                broadcastId: walletCampaign.id,
                 telegramId: user.telegram_id,
                 userId: user.telegram_id
               });
+              continue;
+            }
+          }
+        }
+
+        // --- AUTOMATION 3: Referral Push (Users with 0 referrals after 2 days)
+        if (!settings || settings.referral_push_enabled !== false) {
+          const daysJoined = (today - new Date(user.created_at)) / (1000 * 60 * 60 * 24);
+          if (daysJoined >= 2) {
+            const refCount = await Referral.count({ where: { referrer_user_id: user.telegram_id } });
+            if (refCount === 0) {
+              const alreadyLogged = await BroadcastLog.findOne({
+                where: {
+                  broadcast_id: referralCampaign.id,
+                  user_id: user.telegram_id
+                }
+              });
+
+              if (!alreadyLogged) {
+                await broadcastQueue.add(`referral_push_${user.telegram_id}`, {
+                  broadcastId: referralCampaign.id,
+                  telegramId: user.telegram_id,
+                  userId: user.telegram_id
+                });
+              }
             }
           }
         }

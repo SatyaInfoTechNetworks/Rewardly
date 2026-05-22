@@ -190,6 +190,9 @@ testConnection().then(async () => {
     // 7. Cooldown Settings Fields
     "ALTER TABLE `app_settings` ADD `watch_earn_cooldown` INTEGER DEFAULT 30;",
     "ALTER TABLE `app_settings` ADD `ad_entry_cooldown` INTEGER DEFAULT 60;",
+    "ALTER TABLE `app_settings` ADD `inactive_reminder_enabled` TINYINT(1) DEFAULT 1;",
+    "ALTER TABLE `app_settings` ADD `wallet_reminder_enabled` TINYINT(1) DEFAULT 1;",
+    "ALTER TABLE `app_settings` ADD `referral_push_enabled` TINYINT(1) DEFAULT 1;",,
 
     // 8. User Activity & Notification Tracking Columns
     "ALTER TABLE `users` ADD `last_active_at` DATETIME;",
@@ -232,6 +235,9 @@ testConnection().then(async () => {
       await sequelize.query("UPDATE `app_settings` SET `adsgram_visit_block_id` = 'int 30395' WHERE `adsgram_visit_block_id` IS NULL");
       await sequelize.query("UPDATE `app_settings` SET `watch_earn_cooldown` = 30 WHERE `watch_earn_cooldown` IS NULL;");
       await sequelize.query("UPDATE `app_settings` SET `ad_entry_cooldown` = 60 WHERE `ad_entry_cooldown` IS NULL;");
+      await sequelize.query("UPDATE `app_settings` SET `inactive_reminder_enabled` = 1 WHERE `inactive_reminder_enabled` IS NULL;");
+      await sequelize.query("UPDATE `app_settings` SET `wallet_reminder_enabled` = 1 WHERE `wallet_reminder_enabled` IS NULL;");
+      await sequelize.query("UPDATE `app_settings` SET `referral_push_enabled` = 1 WHERE `referral_push_enabled` IS NULL;");
     } catch (err) {
       console.log('ℹ️ Migration Note (Defaults):', err.message);
     }
@@ -266,7 +272,10 @@ testConnection().then(async () => {
           adsgram_draw_block_id: '30394',
           adsgram_visit_block_id: 'int 30395',
           watch_earn_cooldown: 30,
-          ad_entry_cooldown: 60
+          ad_entry_cooldown: 60,
+          inactive_reminder_enabled: true,
+          wallet_reminder_enabled: true,
+          referral_push_enabled: true
         }
       });
  

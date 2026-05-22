@@ -203,7 +203,15 @@ export default function AdminPanel() {
         if (refMilestonesRes.ok) setReferralMilestones(await refMilestonesRes.json());
         if (refStatsRes.ok) setReferralStats(await refStatsRes.json());
         if (contestsRes.ok) setContests(await contestsRes.json());
-        if (appSettingsRes.ok) setAppSettings(await appSettingsRes.json());
+        if (appSettingsRes.ok) {
+          const settingsData = await appSettingsRes.json();
+          setAppSettings(settingsData);
+          setAutomationSettings({
+            inactive_reminder: settingsData.inactive_reminder_enabled !== false,
+            wallet_reminder: settingsData.wallet_reminder_enabled !== false,
+            referral_push: settingsData.referral_push_enabled !== false
+          });
+        }
         
         // Fetch Lifafas
         const lifafasRes = await Promise.all([
@@ -2483,8 +2491,37 @@ export default function AdminPanel() {
               <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '10px' }}>
                 <button 
                   className={`${styles.lteBtn} ${styles.lteBtnPrimary}`}
-                  onClick={() => {
-                    showToast("Smart automation rule parameters saved successfully!");
+                  onClick={async () => {
+                    try {
+                      const authSecret = localStorage.getItem("admin_secret") || secret;
+                      const res = await fetch(`${API_URL}/api/admin/settings`, {
+                        method: 'PUT',
+                        headers: { 
+                          'Content-Type': 'application/json',
+                          'x-admin-secret': authSecret || ''
+                        },
+                        credentials: 'include',
+                        body: JSON.stringify({
+                          inactive_reminder_enabled: automationSettings.inactive_reminder,
+                          wallet_reminder_enabled: automationSettings.wallet_reminder,
+                          referral_push_enabled: automationSettings.referral_push
+                        })
+                      });
+                      if (res.ok) {
+                        showToast("Smart automation rule parameters saved successfully!");
+                        setAppSettings((prev: any) => prev ? {
+                          ...prev,
+                          inactive_reminder_enabled: automationSettings.inactive_reminder,
+                          wallet_reminder_enabled: automationSettings.wallet_reminder,
+                          referral_push_enabled: automationSettings.referral_push
+                        } : prev);
+                      } else {
+                        showToast("Failed to save automation rules", "error");
+                      }
+                    } catch (error) {
+                      console.error("Save Automation Rules Error:", error);
+                      showToast("Failed to save automation rules", "error");
+                    }
                   }}
                 >
                   Save Automation Rules

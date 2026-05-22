@@ -1051,7 +1051,23 @@ export default function AdminPanel() {
                 <li key={item.id} className={styles.lteNavListItem}>
                   <button 
                     className={`${styles.lteNavLinkButton} ${activeView === item.id ? styles.lteNavLinkActive : ''}`}
-                    onClick={() => setActiveView(item.id)}
+                    onClick={() => {
+                      setActiveView(item.id);
+                      if (item.id === 'broadcast_center') {
+                        setSelectedBroadcast(null);
+                        setBroadcastForm({
+                          title: "",
+                          message: "",
+                          media_type: "none",
+                          media_url: "",
+                          button_text: "",
+                          button_url: "",
+                          target_type: "all_users",
+                          schedule_time: "",
+                          status: "draft"
+                        });
+                      }
+                    }}
                   >
                     <item.icon size={18} className={styles.lteNavIcon} />
                     <p>{item.label}</p>
@@ -1829,7 +1845,9 @@ export default function AdminPanel() {
               {/* Left Side: Campaign Editor */}
               <div className={styles.lteCard}>
                 <div className={`${styles.lteCardHeader} ${styles.lteBorderPrimary}`}>
-                  <h3 className={styles.lteCardTitle}>📢 Broadcast Campaign Composer</h3>
+                  <h3 className={styles.lteCardTitle}>
+                    {selectedBroadcast ? `✏️ Edit Campaign: ${selectedBroadcast.title}` : "📢 Broadcast Campaign Composer"}
+                  </h3>
                 </div>
                 <div className={styles.lteCardBody}>
                   <div className={styles.lteFormGroup}>
@@ -4620,7 +4638,7 @@ export default function AdminPanel() {
           <div className={styles.lteModalBox} style={{ maxWidth: '750px' }}>
             <div className={styles.lteModalHeader}>
               <h4 className={styles.lteModalTitle}>Campaign Delivery Audit: {selectedBroadcast.title}</h4>
-              <button className={styles.lteModalClose} onClick={() => setIsBroadcastModalOpen(false)}>
+              <button className={styles.lteModalClose} onClick={() => { setIsBroadcastModalOpen(false); setSelectedBroadcast(null); }}>
                 <X size={20} />
               </button>
             </div>
@@ -4741,7 +4759,7 @@ export default function AdminPanel() {
 
             </div>
             <div className={styles.lteModalFooter}>
-              <button className={`${styles.lteBtn} ${styles.lteBtnPrimary}`} onClick={() => setIsBroadcastModalOpen(false)}>Close Audit Report</button>
+              <button className={`${styles.lteBtn} ${styles.lteBtnPrimary}`} onClick={() => { setIsBroadcastModalOpen(false); setSelectedBroadcast(null); }}>Close Audit Report</button>
             </div>
           </div>
         </div>

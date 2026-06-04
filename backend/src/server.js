@@ -32,6 +32,10 @@ const Lifafa = require('./models/Lifafa');
 const LifafaClaim = require('./models/LifafaClaim');
 const Broadcast = require('./models/Broadcast');
 const BroadcastLog = require('./models/BroadcastLog');
+const Offer = require('./models/Offer');
+const OfferTier = require('./models/OfferTier');
+const UserOfferProgress = require('./models/UserOfferProgress');
+const OfferCompletion = require('./models/OfferCompletion');
 const axios = require('axios');
 const path = require('path');
 
@@ -128,6 +132,17 @@ BroadcastLog.belongsTo(Broadcast, { foreignKey: 'broadcast_id' });
 BroadcastLog.belongsTo(User, { foreignKey: 'user_id', targetKey: 'telegram_id' });
 User.hasMany(BroadcastLog, { foreignKey: 'user_id', sourceKey: 'telegram_id' });
 
+// Custom Offers Associations
+Offer.hasMany(OfferTier, { as: 'tiers', foreignKey: 'offer_id', onDelete: 'CASCADE' });
+OfferTier.belongsTo(Offer, { foreignKey: 'offer_id' });
+Offer.hasMany(UserOfferProgress, { as: 'progress', foreignKey: 'offer_id', onDelete: 'CASCADE' });
+UserOfferProgress.belongsTo(Offer, { foreignKey: 'offer_id' });
+UserOfferProgress.belongsTo(User, { foreignKey: 'user_id', targetKey: 'telegram_id' });
+User.hasMany(UserOfferProgress, { foreignKey: 'user_id', sourceKey: 'telegram_id' });
+OfferCompletion.belongsTo(Offer, { foreignKey: 'offer_id' });
+OfferCompletion.belongsTo(User, { foreignKey: 'user_id', targetKey: 'telegram_id' });
+User.hasMany(OfferCompletion, { foreignKey: 'user_id', sourceKey: 'telegram_id' });
+
 // Start Server (Move this inside sync)
 
 // Test DB Connection & Sync Models
@@ -192,7 +207,7 @@ testConnection().then(async () => {
     "ALTER TABLE `app_settings` ADD `ad_entry_cooldown` INTEGER DEFAULT 60;",
     "ALTER TABLE `app_settings` ADD `inactive_reminder_enabled` TINYINT(1) DEFAULT 1;",
     "ALTER TABLE `app_settings` ADD `wallet_reminder_enabled` TINYINT(1) DEFAULT 1;",
-    "ALTER TABLE `app_settings` ADD `referral_push_enabled` TINYINT(1) DEFAULT 1;",,
+    "ALTER TABLE `app_settings` ADD `referral_push_enabled` TINYINT(1) DEFAULT 1;",
 
     // 8. User Activity & Notification Tracking Columns
     "ALTER TABLE `users` ADD `last_active_at` DATETIME;",
@@ -203,7 +218,16 @@ testConnection().then(async () => {
 
     // 9. Broadcast and Broadcast Log Tables
     "CREATE TABLE IF NOT EXISTS `broadcasts` (`id` INTEGER AUTO_INCREMENT PRIMARY KEY, `title` VARCHAR(255) NOT NULL, `message` TEXT NOT NULL, `media_type` VARCHAR(50) DEFAULT 'none', `media_url` TEXT NULL, `button_text` VARCHAR(255) NULL, `button_url` TEXT NULL, `target_type` VARCHAR(100) NOT NULL, `status` VARCHAR(50) DEFAULT 'draft', `scheduled_at` DATETIME NULL, `created_at` DATETIME NOT NULL, `updated_at` DATETIME NOT NULL);",
-    "CREATE TABLE IF NOT EXISTS `broadcast_logs` (`id` INTEGER AUTO_INCREMENT PRIMARY KEY, `broadcast_id` INTEGER NOT NULL, `user_id` BIGINT NOT NULL, `telegram_id` BIGINT NOT NULL, `status` VARCHAR(50) DEFAULT 'pending', `error_message` TEXT NULL, `sent_at` DATETIME NULL, `clicked` TINYINT DEFAULT 0, `opened` TINYINT DEFAULT 0, `created_at` DATETIME NOT NULL, `updated_at` DATETIME NOT NULL);"
+    "CREATE TABLE IF NOT EXISTS `broadcast_logs` (`id` INTEGER AUTO_INCREMENT PRIMARY KEY, `broadcast_id` INTEGER NOT NULL, `user_id` BIGINT NOT NULL, `telegram_id` BIGINT NOT NULL, `status` VARCHAR(50) DEFAULT 'pending', `error_message` TEXT NULL, `sent_at` DATETIME NULL, `clicked` TINYINT DEFAULT 0, `opened` TINYINT DEFAULT 0, `created_at` DATETIME NOT NULL, `updated_at` DATETIME NOT NULL);",
+
+    // 10. Custom Offer System Tables
+    "CREATE TABLE IF NOT EXISTS `offers` (`id` CHAR(36) PRIMARY KEY, `external_id` VARCHAR(255) NULL, `title` VARCHAR(255) NOT NULL, `description` TEXT NULL, `icon_url` TEXT NULL, `tracking_url` TEXT NULL, `total_reward` DECIMAL(10, 2) DEFAULT 0.00, `actual_price` DECIMAL(10, 2) DEFAULT 0.00, `category` VARCHAR(100) NULL, `is_active` TINYINT(1) DEFAULT 1, `likes_count` INT DEFAULT 0, `is_hot` TINYINT(1) DEFAULT 0, `type` VARCHAR(50) DEFAULT 'online', `input_type` VARCHAR(50) NULL, `input_instruction` TEXT NULL, `reward_type` VARCHAR(50) DEFAULT 'Multi Reward', `extra_label` VARCHAR(100) NULL, `estimated_time` VARCHAR(100) NULL, `difficulty` VARCHAR(50) DEFAULT 'Medium', `daily_completion_cap` INT DEFAULT 0, `country_targeting` VARCHAR(255) DEFAULT 'IN', `created_at` DATETIME NOT NULL, `updated_at` DATETIME NOT NULL);",
+    "CREATE TABLE IF NOT EXISTS `offer_tiers` (`id` CHAR(36) PRIMARY KEY, `offer_id` CHAR(36) NOT NULL, `title` VARCHAR(255) NULL, `tier_title` VARCHAR(255) NULL, `app_tier_title` VARCHAR(255) NULL, `reward` DECIMAL(10, 2) DEFAULT 0.00, `steps` JSON NULL, `sequence` INT DEFAULT 1, `status` VARCHAR(50) DEFAULT 'ACTIVE', `created_at` DATETIME NOT NULL, `updated_at` DATETIME NOT NULL, FOREIGN KEY (offer_id) REFERENCES offers(id) ON DELETE CASCADE);",
+    "CREATE TABLE IF NOT EXISTS `user_offer_progress` (`id` CHAR(36) PRIMARY KEY, `user_id` BIGINT NOT NULL, `offer_id` CHAR(36) NOT NULL, `click_id` VARCHAR(255) UNIQUE NULL, `status` ENUM('STARTED', 'COMPLETED') DEFAULT 'STARTED', `completed_tiers` JSON NULL, `user_input` TEXT NULL, `admin_status` VARCHAR(50) DEFAULT 'PENDING', `admin_remark` TEXT NULL, `created_at` DATETIME NOT NULL, `updated_at` DATETIME NOT NULL, FOREIGN KEY (user_id) REFERENCES users(telegram_id) ON DELETE CASCADE, FOREIGN KEY (offer_id) REFERENCES offers(id) ON DELETE CASCADE);",
+    "CREATE TABLE IF NOT EXISTS `offer_completions` (`id` CHAR(36) PRIMARY KEY, `user_id` BIGINT NOT NULL, `offer_id` CHAR(36) NOT NULL, `click_id` VARCHAR(255) NULL, `reward_coins` INT DEFAULT 0, `created_at` DATETIME NOT NULL, `updated_at` DATETIME NOT NULL, FOREIGN KEY (user_id) REFERENCES users(telegram_id) ON DELETE CASCADE, FOREIGN KEY (offer_id) REFERENCES offers(id) ON DELETE CASCADE);",
+    "CREATE INDEX `idx_user_offer_status` ON user_offer_progress (user_id, offer_id, status);",
+    "CREATE INDEX `idx_offer_type_status` ON user_offer_progress (admin_status, updated_at DESC);",
+    "CREATE INDEX `idx_offer_active_hot` ON offers (is_active, is_hot);"
   ];
 
   for (const sql of migrations) {
@@ -339,6 +363,8 @@ app.get('/api/settings', async (req, res) => {
 });
 
 // Routes
+app.use('/api/offers', require('./routes/offers'));
+app.use('/api/admin', require('./routes/adminOffers'));
 app.use('/api/surveys', require('./routes/surveys'));
 app.use('/api/games', require('./routes/games'));
 app.use('/api/postbacks', require('./routes/postbacks'));

@@ -58,7 +58,7 @@ router.get('/cpx', async (req, res) => {
 
 /**
  * Unified Surveys Endpoint
- * Combines CPX Research and Opinion Universe
+ * Combines CPX Research and Opinion Universe (Removed Opinion Universe per client request)
  */
 router.get('/all', async (req, res) => {
   const userId = req.query.userId || '1981634693';
@@ -74,43 +74,15 @@ router.get('/all', async (req, res) => {
 
   try {
     // 1. Fetch from CPX
-    const cpxPromise = fetch(`https://live-api.cpx-research.com/api/get-surveys.php?app_id=${cpxAppId}&ext_user_id=${userId}&output_method=api&ip_user=${ip}&user_agent=${userAgent}&limit=10&secure_hash=${secureHash}`)
-      .then(r => r.json())
-      .catch(err => ({ status: 'error', surveys: [] }));
+    const cpxResponse = await fetch(`https://live-api.cpx-research.com/api/get-surveys.php?app_id=${cpxAppId}&ext_user_id=${userId}&output_method=api&ip_user=${ip}&user_agent=${userAgent}&limit=10&secure_hash=${secureHash}`);
+    const cpxData = await cpxResponse.json();
 
-    // 2. Fetch from Opinion Universe
-    const ouParams = {
-      key: OU_CONFIG.KEY,
-      pubid: OU_CONFIG.PUBID,
-      app_id: OU_CONFIG.APP_ID,
-      country: 'IN', // Reverted back to IN per working link
-      platform: 'All',
-      type: 'live_surveys'
-    };
-
-    const ouPromise = axios.get(OU_CONFIG.BASE_URL, {
-      params: ouParams,
-      timeout: 8000,
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
-      }
-    }).then(res => {
-      console.log(`📡 OU Request URL: ${OU_CONFIG.BASE_URL}?${new URLSearchParams(ouParams).toString()}`);
-      return res;
-    }).catch(err => {
-      console.error('OU Fetch Error:', err.message);
-      return { data: { response: { offers: [] } } };
-    });
-
-    const [cpxData, ouResponse] = await Promise.all([cpxPromise, ouPromise]);
-
-    const unifiedSurveys = [];
-    console.log(`🔍 Surveys Fetch: CPX=${cpxData?.surveys?.length || 0}, OU=${ouResponse?.data?.data?.response?.offers?.length || 0}`);
+    const finalSurveys = [];
 
     // Map CPX Surveys
     if (cpxData.status === 'success' && cpxData.surveys) {
       cpxData.surveys.forEach(s => {
-        unifiedSurveys.push({
+        finalSurveys.push({
           id: `cpx-${s.id}`,
           title: s.category ? `${s.category} Survey` : "Market Research",
           time: `${s.loi} mins`,
@@ -121,46 +93,6 @@ router.get('/all', async (req, res) => {
         });
       });
     }
-
-    // Map Opinion Universe Surveys
-    const ouOffers = ouResponse.data?.data?.response?.offers || [];
-    ouOffers.forEach(o => {
-      // Replace Tracking Placeholders
-      let finalLink = o.offer_url_easy || '';
-      finalLink = finalLink.replace(/{YOUR_CLICK_ID}/g, userId);
-      finalLink = finalLink.replace(/{YOUR_SOURCE_ID}/g, userId);
-
-      unifiedSurveys.push({
-        id: `ou-${o.offer_id}`,
-        title: `Survey ${o.offer_id}`, // As requested
-        time: `${Math.round(parseFloat(o.loi || 10))} mins`,
-        rating: (o.ir || 95).toString(),
-        reward: Math.floor(parseFloat(o.amount)), // amount is coins
-        href: finalLink,
-        image: o.image_url,
-        source: 'opinion_universe'
-      });
-    });
-
-    // Sorting Logic: 
-    // 1. CPX Surveys First (maintained in their original order)
-    // 2. OU Surveys Second, sorted by Rating DESC and Time ASC
-    const cpxSurveys = unifiedSurveys.filter(s => s.source === 'cpx');
-    const ouSurveys = unifiedSurveys.filter(s => s.source === 'opinion_universe');
-
-    ouSurveys.sort((a, b) => {
-      // Sort by rating (desc)
-      const ratingA = parseInt(a.rating) || 0;
-      const ratingB = parseInt(b.rating) || 0;
-      if (ratingB !== ratingA) return ratingB - ratingA;
-      
-      // Then by time (asc)
-      const timeA = parseInt(a.time) || 0;
-      const timeB = parseInt(b.time) || 0;
-      return timeA - timeB;
-    });
-
-    const finalSurveys = [...cpxSurveys, ...ouSurveys];
 
     res.json({
       status: 'success',

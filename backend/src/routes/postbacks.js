@@ -625,9 +625,250 @@ router.get('/adsgram-draw', async (req, res) => {
     console.log(`✅ [AdsGram Draw Postback Success] User ${user_id} registered Draw Entry for "${activeDraw.title}"`);
     return res.send('OK');
 
+
   } catch (err) {
     await t.rollback();
     console.error('❌ [AdsGram Draw Postback Error]', err);
+    return res.status(500).send('Internal Error');
+  }
+});
+
+/**
+ * Custom Offer S2S Postback
+ * Credits coins for online custom tasks completions/milestones.
+ * Mounted at: GET /api/postbacks/custom-offer
+ */
+router.get('/custom-offer', async (req, res) => {
+  const { click_id, clickId, trans_id, tier } = req.query;
+  const targetClickId = click_id || clickId || trans_id;
+
+  console.log(`📥 [Custom Offer Postback] Click=${targetClickId}, Tier=${tier}`);
+
+  if (!targetClickId) {
+    console.error('[Custom Offer Postback] Missing click_id');
+    return res.status(400).send('Missing click_id');
+  }
+
+  const Offer = require('../models/Offer');
+  const OfferTier = require('../models/OfferTier');
+  const UserOfferProgress = require('../models/UserOfferProgress');
+  const OfferCompletion = require('../models/OfferCompletion');
+  const User = require('../models/User');
+  const Transaction = require('../models/Transaction');
+
+  const t = await sequelize.transaction();
+
+  try {
+    // 1. Find UserOfferProgress session
+    const progress = await UserOfferProgress.findOne({
+      where: { click_id: targetClickId },
+      transaction: t
+    });
+
+    if (!progress) {
+      console.error(`❌ [Custom Offer Postback] Progress not found for Click ID: ${targetClickId}`);
+      await t.rollback();
+      return res.status(404).send('Click session not found');
+    }
+
+    if (progress.status === 'COMPLETED' || progress.admin_status === 'APPROVED') {
+      console.log(`ℹ️ [Custom Offer Postback] Click ID ${targetClickId} already fully completed.`);
+      await t.rollback();
+      return res.send('OK');
+    }
+
+    // 2. Load Offer and User
+    const offer = await Offer.findByPk(progress.offer_id, {
+      include: [{ model: OfferTier, as: 'tiers' }],
+      transaction: t
+    });
+
+    if (!offer) {
+      console.error(`❌ [Custom Offer Postback] Offer not found for session`);
+      await t.rollback();
+      return res.status(404).send('Offer not found');
+    }
+
+    const user = await User.findByPk(progress.user_id, { transaction: t });
+    if (!user) {
+      console.error(`❌ [Custom Offer Postback] User not found for session`);
+      await t.rollback();
+      return res.status(404).send('User not found');
+    }
+
+    const BOT_TOKEN = '8441190461:AAErfv2dgLp7DiWuo85RmnFL7AS3HwHu1W0';
+    const axios = require('axios');
+
+    // 3. Process completion
+    if (offer.reward_type === 'Single Reward' || !tier) {
+      // Complete the entire offer
+      const rewardAmount = Math.floor(parseFloat(offer.total_reward));
+
+      await user.update({ balance: user.balance + rewardAmount }, { transaction: t });
+
+      await Transaction.create({
+        telegram_id: user.telegram_id,
+        amount: rewardAmount,
+        type: 'offerwall',
+        description: `Offer Completed: "${offer.title}" (Instant S2S)`,
+        reference_id: targetClickId,
+        external_id: targetClickId,
+        status: 'completed'
+      }, { transaction: t });
+
+      await progress.update({
+        status: 'COMPLETED',
+        admin_status: 'APPROVED',
+        admin_remark: 'Approved by S2S Postback'
+      }, { transaction: t });
+
+      await OfferCompletion.create({
+        user_id: user.telegram_id,
+        offer_id: offer.id,
+        click_id: targetClickId,
+        reward_coins: rewardAmount
+      }, { transaction: t });
+
+      await t.commit();
+
+      // Trigger Leaderboards and referrals
+      try {
+        await trackContestActivity(user.telegram_id, 'earnings', rewardAmount);
+        await validateReferral(user.telegram_id);
+      } catch (err) {
+        console.error('[Custom Offer Postback Post-Process] Error:', err.message);
+      }
+
+      // Send User Notification
+      try {
+        const message = `🎉 <b>Task Completed!</b>\n\nYour task <b>"${offer.title}"</b> has been successfully verified via postback!\n💰 <b>+${rewardAmount} Coins</b> credited to your wallet balance.`;
+        await axios.post(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+          chat_id: user.telegram_id.toString(),
+          text: message,
+          parse_mode: 'HTML'
+        });
+      } catch (tgErr) {
+        console.warn('⚠️ Could not send Telegram notification:', tgErr.message);
+      }
+
+      console.log(`✅ [Custom Offer Postback Success] User ${user.telegram_id} credited with ${rewardAmount} coins.`);
+      return res.send('OK');
+    } else {
+      // Multi-reward (Tiers) completion
+      const activeTiers = (offer.tiers || []).filter(t => t.status === 'ACTIVE').sort((a, b) => a.sequence - b.sequence);
+      if (activeTiers.length === 0) {
+        console.warn(`⚠️ [Custom Offer Postback] No active tiers found for Multi-Reward Offer: ${offer.id}`);
+        await t.rollback();
+        return res.send('OK');
+      }
+
+      // Determine target tier
+      let targetTier = null;
+      if (isNaN(Number(tier))) {
+        // Find tier by title/backend_title matching
+        targetTier = activeTiers.find(t => t.tier_title === tier || t.title === tier);
+      } else {
+        // Find tier by sequence number matching
+        targetTier = activeTiers.find(t => t.sequence === parseInt(tier));
+      }
+
+      // Fallback: If not matched, complete the next pending tier in sequence
+      const completedTiersList = progress.completed_tiers ? JSON.parse(progress.completed_tiers) : [];
+      if (!targetTier) {
+        targetTier = activeTiers.find(at => !completedTiersList.some(ct => ct.title === at.title || ct.title === at.tier_title));
+      }
+
+      if (!targetTier) {
+        // All tiers already completed
+        console.log(`ℹ️ [Custom Offer Postback] All tiers already completed for Click ID ${targetClickId}`);
+        await t.rollback();
+        return res.send('OK');
+      }
+
+      // Check if already completed this specific tier
+      const isAlreadyCompleted = completedTiersList.some(ct => ct.title === targetTier.title || ct.title === targetTier.tier_title);
+      if (isAlreadyCompleted) {
+        console.log(`ℹ️ [Custom Offer Postback] Tier "${targetTier.title}" already completed for Click ID ${targetClickId}`);
+        await t.rollback();
+        return res.send('OK');
+      }
+
+      // Add to completed list
+      const rewardAmount = Math.floor(parseFloat(targetTier.reward));
+      completedTiersList.push({
+        title: targetTier.title || targetTier.tier_title,
+        reward: rewardAmount,
+        completed_at: new Date().toISOString()
+      });
+
+      // Update User Balance
+      await user.update({ balance: user.balance + rewardAmount }, { transaction: t });
+
+      // Record transaction ledger
+      await Transaction.create({
+        telegram_id: user.telegram_id,
+        amount: rewardAmount,
+        type: 'offerwall',
+        description: `Task Milestone Completed: "${targetTier.title || targetTier.app_tier_title}" of "${offer.title}"`,
+        reference_id: `${targetClickId}_${targetTier.sequence}`,
+        external_id: `${targetClickId}_${targetTier.sequence}`,
+        status: 'completed'
+      }, { transaction: t });
+
+      // Check if this completes all active tiers
+      const allActiveCompleted = activeTiers.every(at => completedTiersList.some(ct => ct.title === at.title || ct.title === at.tier_title));
+      
+      const updateData = {
+        completed_tiers: JSON.stringify(completedTiersList)
+      };
+
+      if (allActiveCompleted) {
+        updateData.status = 'COMPLETED';
+        updateData.admin_status = 'APPROVED';
+        updateData.admin_remark = 'All tiers completed via S2S Postback';
+        
+        await OfferCompletion.create({
+          user_id: user.telegram_id,
+          offer_id: offer.id,
+          click_id: targetClickId,
+          reward_coins: Math.floor(parseFloat(offer.total_reward)) // Log total reward stats
+        }, { transaction: t });
+      }
+
+      await progress.update(updateData, { transaction: t });
+
+      await t.commit();
+
+      // Trigger post-reward calculations
+      try {
+        await trackContestActivity(user.telegram_id, 'earnings', rewardAmount);
+        await validateReferral(user.telegram_id);
+      } catch (err) {
+        console.error('[Custom Offer Postback Post-Process Tier] Error:', err.message);
+      }
+
+      // Send User Notification
+      try {
+        const message = allActiveCompleted
+          ? `🎉 <b>Full Task Completed!</b>\n\nYou completed the final milestone <b>"${targetTier.title}"</b> for <b>"${offer.title}"</b>!\n💰 <b>+${rewardAmount} Coins</b> credited to your balance.`
+          : `🎉 <b>Milestone Completed!</b>\n\nYou completed step <b>"${targetTier.title}"</b> for <b>"${offer.title}"</b>!\n💰 <b>+${rewardAmount} Coins</b> credited to your balance.`;
+        
+        await axios.post(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+          chat_id: user.telegram_id.toString(),
+          text: message,
+          parse_mode: 'HTML'
+        });
+      } catch (tgErr) {
+        console.warn('⚠️ Could not send Telegram notification:', tgErr.message);
+      }
+
+      console.log(`✅ [Custom Offer Postback Success] User ${user.telegram_id} credited with ${rewardAmount} coins for Tier "${targetTier.title}".`);
+      return res.send('OK');
+    }
+
+  } catch (error) {
+    await t.rollback();
+    console.error('❌ [AdsGram Draw Postback Error]', error);
     return res.status(500).send('Internal Error');
   }
 });

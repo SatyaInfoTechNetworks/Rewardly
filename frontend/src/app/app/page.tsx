@@ -9,7 +9,7 @@ import { DailyCheckInScreen } from "@/components/earn/DailyCheckInScreen";
 import { VisitAndEarnScreen } from "@/components/earn/VisitAndEarnScreen";
 import { GameModuleView } from "@/modules/games/GameModuleView";
 import { analytics } from "@/modules/analytics/tracker";
-import { PlayCircle, Gamepad2, ChevronRight, Flame, Zap, Inbox, CalendarCheck, Globe } from "lucide-react";
+import { PlayCircle, Gamepad2, ChevronRight, Flame, Zap, Inbox, CalendarCheck, Globe, X, ExternalLink, CheckCircle, Coins } from "lucide-react";
 
 // Components
 import { CoinBadge } from "@/components/ui/CoinBadge";
@@ -42,10 +42,53 @@ export default function AppDashboard() {
     opinion_universe_url: 'https://opinionuniverse.com/offerwall?pubId=1863&SID={SID}&appId=ID_eb1f5bea3e8caadcfcf6ccb5d35a1d1d'
   });
   
+  // Custom Offer States
+  const [customOffers, setCustomOffers] = useState<any[]>([]);
+  const [loadingOffers, setLoadingOffers] = useState<boolean>(true);
+  const [selectedOffer, setSelectedOffer] = useState<any>(null);
+  const [showOfferDetail, setShowOfferDetail] = useState<boolean>(false);
+  const [proofInput, setProofInput] = useState<string>('');
+  const [submittingProof, setSubmittingProof] = useState<boolean>(false);
+
   // Dynamic API URL
   const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://rewardlyapi.satyainfotechnetworks.com';
 
   const { surveys, loading: surveysLoading, refetch: refreshSurveys } = useSurveys(user?.id ? user.id.toString() : undefined);
+
+  const fetchCustomOffers = async () => {
+    try {
+      setLoadingOffers(true);
+      const userId = user?.id ? user.id.toString() : '';
+      const res = await fetch(`${API_URL}/api/offers?user_id=${userId}`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success) {
+          setCustomOffers(data.offers);
+        }
+      }
+    } catch (err) {
+      console.error("Error fetching custom offers:", err);
+    } finally {
+      setLoadingOffers(false);
+    }
+  };
+
+  const handleSelectOffer = async (offerId: string) => {
+    try {
+      const userId = user?.id ? user.id.toString() : '';
+      const res = await fetch(`${API_URL}/api/offers/${offerId}?user_id=${userId}`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success) {
+          setSelectedOffer(data.offer);
+          setShowOfferDetail(true);
+          setProofInput('');
+        }
+      }
+    } catch (err) {
+      console.error("Error fetching offer detail:", err);
+    }
+  };
 
   const handleSyncUser = async () => {
     try {
@@ -101,12 +144,15 @@ export default function AppDashboard() {
     return () => clearInterval(interval);
   }, [API_URL]);
 
-  // 2. Refresh surveys whenever the Earn tab is clicked
+  // 2. Refresh surveys and custom offers whenever the Earn tab is clicked
   useEffect(() => {
     if (activeTab === "earn") {
       refreshSurveys();
+      if (user?.id) {
+        fetchCustomOffers();
+      }
     }
-  }, [activeTab]);
+  }, [activeTab, user?.id]);
 
   // 3. Track Screen Views
   useEffect(() => {
@@ -289,6 +335,79 @@ export default function AppDashboard() {
               </div>
             </section>
 
+            {/* Offerwalls Section */}
+            {user && (appSettings.pubscale_enabled || appSettings.opinion_universe_enabled) && (
+              <section className={styles.surveysSection} style={{ paddingTop: 0, paddingBottom: '8px' }}>
+                <SectionHeader 
+                  title="Offerwalls" 
+                  icon={Globe} 
+                  badgeText="HIGH PAYING"
+                />
+                
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '8px' }}>
+                  {appSettings.pubscale_enabled && (
+                    <div 
+                      className={`${styles.highRewardCard} card`} 
+                      style={{ padding: '14px', display: 'flex', flexDirection: 'column', gap: '8px', minHeight: 'auto', margin: 0, cursor: 'pointer' }}
+                      onClick={() => {
+                        const href = `https://wow.pubscale.com?app_id=${appSettings.pubscale_app_id || '78594689'}&user_id=${user.id}${user.google_aid ? `&ga_id=${user.google_aid}` : ''}${user.ios_idfa ? `&idfa=${user.ios_idfa}` : ''}${appSettings.pubscale_sandbox ? '&sandbox=true' : ''}`;
+                        window.open(href, '_blank');
+                      }}
+                    >
+                      <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                        <div style={{ width: '28px', height: '28px', borderRadius: '6px', overflow: 'hidden' }}>
+                          <img src="https://i.ibb.co/pB5NZtyz/download.png" alt="PubScale" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                        </div>
+                        <h4 style={{ fontSize: '12px', fontWeight: 700, margin: 0 }}>PubScale</h4>
+                      </div>
+                      <p style={{ fontSize: '10px', color: '#64748b', margin: 0, height: '30px', overflow: 'hidden' }}>High-value offers & games. Earn 50K+ coins.</p>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '2px' }}>
+                        <span style={{ background: '#eef2ff', color: '#6366f1', fontSize: '8px', fontWeight: 700, padding: '2px 5px', borderRadius: '4px' }}>HOT</span>
+                        <span style={{ fontSize: '11px', fontWeight: 800, color: '#f59e0b' }}>🪙 50K+</span>
+                      </div>
+                    </div>
+                  )}
+
+                  {appSettings.opinion_universe_enabled && (
+                    <div 
+                      className={`${styles.highRewardCard} card`} 
+                      style={{ padding: '14px', display: 'flex', flexDirection: 'column', gap: '8px', minHeight: 'auto', margin: 0, cursor: 'pointer' }}
+                      onClick={() => {
+                        let url = appSettings.opinion_universe_url || 'https://opinionuniverse.com/offerwall?pubId=1863&SID={SID}&appId=ID_eb1f5bea3e8caadcfcf6ccb5d35a1d1d';
+                        url = url.replace('app_id=', 'appId=');
+                        if (url.includes('{SID}')) {
+                          url = url.replace(/{SID}/g, user.id.toString());
+                        } else if (url.includes('[userId]')) {
+                          url = url.replace(/\[userId\]/g, user.id.toString());
+                        } else if (url.includes('{userId}')) {
+                          url = url.replace(/{userId}/g, user.id.toString());
+                        } else if (url.includes('{user_id}')) {
+                          url = url.replace(/{user_id}/g, user.id.toString());
+                        }
+                        if (!url.includes('SID=')) {
+                          url = url.includes('?') ? `${url}&SID=${user.id}` : `${url}?SID=${user.id}`;
+                        } else {
+                          url = url.replace(/SID=[^&]*/, `SID=${user.id}`);
+                        }
+                        window.open(url, '_blank');
+                      }}
+                    >
+                      <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                        <div style={{ width: '28px', height: '28px', borderRadius: '6px', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f8fafc' }}>
+                          <span style={{ fontSize: '16px' }}>📊</span>
+                        </div>
+                        <h4 style={{ fontSize: '12px', fontWeight: 700, margin: 0 }}>Opinion Univ.</h4>
+                      </div>
+                      <p style={{ fontSize: '10px', color: '#64748b', margin: 0, height: '30px', overflow: 'hidden' }}>Express opinions and earn 10K+ coins.</p>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '2px' }}>
+                        <span style={{ background: '#ecfdf5', color: '#10b981', fontSize: '8px', fontWeight: 700, padding: '2px 5px', borderRadius: '4px' }}>POPULAR</span>
+                        <span style={{ fontSize: '11px', fontWeight: 800, color: '#f59e0b' }}>🪙 10K+</span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </section>
+            )}
 
             {/* Hot Reward Tasks Section */}
             {user && (
@@ -300,57 +419,64 @@ export default function AppDashboard() {
                 />
                 
                 <div className={styles.taskVerticalList}>
-                  {appSettings.pubscale_enabled && (
-                    <TaskCard 
-                      title="PubScale Offerwall"
-                      desc="Complete High-Value offers and earn 50K+ Coins"
-                      reward="50K+"
-                      time="10-30 min"
-                      tag="HOT"
-                      urgency="Very High Paying"
-                      icon="https://i.ibb.co/pB5NZtyz/download.png"
-                      href={`https://wow.pubscale.com?app_id=${appSettings.pubscale_app_id || '78594689'}&user_id=${user.id}${user.google_aid ? `&ga_id=${user.google_aid}` : ''}${user.ios_idfa ? `&idfa=${user.ios_idfa}` : ''}${appSettings.pubscale_sandbox ? '&sandbox=true' : ''}`}
-                    />
+                  {loadingOffers ? (
+                    Array(2).fill(0).map((_, i) => (
+                      <div key={`offer-skeleton-${i}`} className={`${styles.highRewardCard} card ${styles.skeletonCard}`} style={{ height: '120px', padding: '16px' }}>
+                        <div className={styles.taskCardTop}>
+                          <div className={`${styles.taskLogo} ${styles.skeleton}`} style={{ width: '40px', height: '40px', borderRadius: '12px' }} />
+                          <div className={styles.taskHeaderMain} style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                            <div className={`${styles.skeletonText} ${styles.skeletonTitle} ${styles.skeleton}`} />
+                            <div className={`${styles.skeletonText} ${styles.skeletonMeta} ${styles.skeleton}`} style={{ width: '50%' }} />
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                  ) : customOffers.length > 0 ? (
+                    customOffers.map((offer) => (
+                      <div 
+                        key={offer.id} 
+                        className={`${styles.highRewardCard} card`} 
+                        onClick={() => handleSelectOffer(offer.id)}
+                        style={{ cursor: 'pointer' }}
+                      >
+                        <div className={styles.taskCardTop}>
+                          <div className={styles.taskLogo} style={{ width: '44px', height: '44px', background: '#f8fafc', borderRadius: '12px', overflow: 'hidden' }}>
+                            {offer.icon_url ? (
+                              <img src={offer.icon_url} alt={offer.title} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                            ) : (
+                              '🔥'
+                            )}
+                          </div>
+                          <div className={styles.taskHeaderMain}>
+                            <div className={styles.taskTitleRow}>
+                              <h3 style={{ fontSize: '14px', fontWeight: 700 }}>{offer.title}</h3>
+                              {offer.extra_label && <span className={styles.offerTag} style={{ background: '#fffbeb', color: '#d97706', border: '1px solid #fef3c7' }}>{offer.extra_label}</span>}
+                            </div>
+                            <p style={{ fontSize: '11.5px', color: '#64748b', marginTop: '2px', lineClamp: 2, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                              {offer.description}
+                            </p>
+                          </div>
+                          <div className={styles.taskRewardLarge}>
+                            <Coins size={14} className={styles.iconYellow} fill="currentColor" />
+                            <span style={{ fontSize: '14px', fontWeight: 800, color: '#f59e0b' }}>{offer.total_reward}</span>
+                          </div>
+                        </div>
+                        <div className={styles.taskCardBottom}>
+                          <div className={styles.taskMetaCol}>
+                            <span className={styles.estimatedTime} style={{ fontSize: '10px' }}>⏱ {offer.estimated_time || '5 mins'} | {offer.difficulty || 'Medium'}</span>
+                            <span className={styles.taskUrgencyLabel} style={{ fontSize: '10px' }}>{offer.type === 'offline' ? 'Manual Verification' : 'Instant Verification'}</span>
+                          </div>
+                          <button className={styles.startEarningBtnWide} style={{ fontSize: '11px', padding: '6px 12px' }}>View Details</button>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className={styles.noSurveysBox} style={{ height: '120px' }}>
+                      <Zap size={32} opacity={0.3} />
+                      <p style={{ fontSize: '12px', margin: 0 }}>No hot custom tasks available today</p>
+                    </div>
                   )}
 
-                  {appSettings.opinion_universe_enabled && (
-                    <TaskCard 
-                      title="Opinion Universe"
-                      desc="Complete Tasks and earn Coins"
-                      reward="10K+"
-                      time="5-20 min"
-                      tag="POPULAR"
-                      urgency="High Paying"
-                      icon="/opinionuniverse.png"
-                      href={(() => {
-                        let url = appSettings.opinion_universe_url || 'https://opinionuniverse.com/offerwall?pubId=1863&SID={SID}&appId=ID_eb1f5bea3e8caadcfcf6ccb5d35a1d1d';
-                        
-                        // Sanitize snake_case app_id to camelCase appId if configured incorrectly
-                        url = url.replace('app_id=', 'appId=');
-
-                        // Replace all placeholder options globally
-                        if (url.includes('{SID}')) {
-                          url = url.replace(/{SID}/g, user.id.toString());
-                        } else if (url.includes('[userId]')) {
-                          url = url.replace(/\[userId\]/g, user.id.toString());
-                        } else if (url.includes('{userId}')) {
-                          url = url.replace(/{userId}/g, user.id.toString());
-                        } else if (url.includes('{user_id}')) {
-                          url = url.replace(/{user_id}/g, user.id.toString());
-                        }
-
-                        // Enforce correct SID mapping
-                        if (!url.includes('SID=')) {
-                          url = url.includes('?') ? `${url}&SID=${user.id}` : `${url}?SID=${user.id}`;
-                        } else {
-                          url = url.replace(/SID=[^&]*/, `SID=${user.id}`);
-                        }
-                        
-                        return url;
-                      })()}
-                    />
-                  )}
-                  
                   {TASKS.map((task) => (
                     <TaskCard key={task.id} {...task} />
                   ))}
@@ -402,6 +528,211 @@ export default function AppDashboard() {
         setActiveTab(tab);
         if (tab !== "wallet") setWalletSubTab('main');
       }} />
+
+      {/* Custom Offer Detail Modal */}
+      {showOfferDetail && selectedOffer && (
+        <div className={styles.modalOverlay} style={{ padding: '16px' }}>
+          <div className={styles.modalBox} style={{ maxHeight: '85vh', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '16px', maxWidth: '400px', width: '100%', borderRadius: '24px' }}>
+            
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #f1f5f9', paddingBottom: '12px' }}>
+              <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                <div style={{ width: '36px', height: '36px', background: '#f8fafc', borderRadius: '10px', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  {selectedOffer.icon_url ? (
+                    <img src={selectedOffer.icon_url} alt={selectedOffer.title} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                  ) : (
+                    '🔥'
+                  )}
+                </div>
+                <div>
+                  <h3 style={{ fontSize: '15px', fontWeight: 800, color: '#0f172a', margin: 0 }}>{selectedOffer.title}</h3>
+                  <span style={{ background: '#f1f5f9', color: '#64748b', fontSize: '9px', fontWeight: 700, padding: '2px 6px', borderRadius: '4px' }}>{selectedOffer.category || 'Offers'}</span>
+                </div>
+              </div>
+              <button 
+                onClick={() => { setShowOfferDetail(false); setSelectedOffer(null); }}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8' }}
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <div style={{ fontSize: '12px', color: '#475569', lineHeight: 1.5 }}>
+              <p style={{ margin: 0 }}>{selectedOffer.description}</p>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', padding: '10px', background: '#f8fafc', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
+              <div>
+                <span style={{ fontSize: '10px', color: '#64748b', display: 'block' }}>REWARD</span>
+                <span style={{ fontSize: '14px', fontWeight: 800, color: '#f59e0b' }}>🪙 {selectedOffer.total_reward} Coins</span>
+              </div>
+              <div>
+                <span style={{ fontSize: '10px', color: '#64748b', display: 'block' }}>DIFFICULTY</span>
+                <span style={{ fontSize: '13px', fontWeight: 700, color: '#4f46e5' }}>{selectedOffer.difficulty || 'Medium'}</span>
+              </div>
+            </div>
+
+            {/* Milestones / Tiers List */}
+            {selectedOffer.tiers && selectedOffer.tiers.length > 0 && (
+              <div>
+                <h4 style={{ fontSize: '12px', fontWeight: 700, color: '#0f172a', marginBottom: '8px' }}>Milestones / Steps</h4>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  {selectedOffer.tiers.map((tier: any) => (
+                    <div key={tier.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px', background: tier.is_completed ? '#f0fdf4' : '#ffffff', border: '1px solid', borderColor: tier.is_completed ? '#bcf0da' : '#e2e8f0', borderRadius: '10px' }}>
+                      <div>
+                        <span style={{ fontSize: '12px', fontWeight: 700, color: '#1e293b' }}>{tier.app_tier_title || tier.title}</span>
+                        {tier.steps && tier.steps.length > 0 && (
+                          <div style={{ fontSize: '10px', color: '#64748b', marginTop: '2px' }}>
+                            {tier.steps.join(', ')}
+                          </div>
+                        )}
+                      </div>
+                      <span style={{ fontSize: '11px', fontWeight: 800, color: tier.is_completed ? '#16a34a' : '#4f46e5' }}>
+                        {tier.is_completed ? '✓ Completed' : `+${tier.reward} Coins`}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Call to Action Section */}
+            <div style={{ marginTop: '10px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              {!selectedOffer.click_id ? (
+                <button
+                  onClick={async () => {
+                    try {
+                      const tg = (window as any).Telegram?.WebApp;
+                      const gaid = user?.google_aid || '';
+                      const device_model = tg?.platform || '';
+                      const res = await fetch(`${API_URL}/api/offers/start`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                          user_id: user.id.toString(),
+                          offer_id: selectedOffer.id,
+                          gaid,
+                          device_model
+                        })
+                      });
+                      if (res.ok) {
+                        const data = await res.json();
+                        if (data.success) {
+                          // Open redirect link
+                          window.open(data.url, '_blank');
+                          // Reload detail
+                          handleSelectOffer(selectedOffer.id);
+                          // Reload offer list
+                          fetchCustomOffers();
+                        }
+                      }
+                    } catch (e) {
+                      console.error(e);
+                    }
+                  }}
+                  className={styles.startEarningBtnWide}
+                  style={{ width: '100%', padding: '14px', borderRadius: '12px', fontSize: '13px', fontWeight: 800 }}
+                >
+                  🚀 Start Offer
+                </button>
+              ) : (
+                <>
+                  <div style={{ padding: '10px', background: '#eff6ff', borderRadius: '10px', border: '1px solid #bfdbfe', fontSize: '11px', color: '#1e40af', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span>Session: STARTED</span>
+                    <button 
+                      onClick={() => {
+                        const url = selectedOffer.tracking_url
+                          .replace(/{click_id}/g, selectedOffer.click_id)
+                          .replace(/{clickId}/g, selectedOffer.click_id)
+                          .replace(/{user_id}/g, user.id.toString())
+                          .replace(/{uid}/g, user.id.toString());
+                        window.open(url, '_blank');
+                      }}
+                      style={{ background: 'none', border: 'none', color: '#2563eb', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
+                    >
+                      Resume <ExternalLink size={12} />
+                    </button>
+                  </div>
+
+                  {selectedOffer.type === 'offline' && (
+                    <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: '12px' }}>
+                      <h4 style={{ fontSize: '12px', fontWeight: 700, color: '#0f172a', marginBottom: '6px' }}>Submit Verification Proof</h4>
+                      <p style={{ fontSize: '10px', color: '#64748b', margin: '0 0 8px 0' }}>
+                        👉 <b>Instructions:</b> {selectedOffer.input_instruction || 'Enter transaction details or screenshot path below.'}
+                      </p>
+
+                      {selectedOffer.adminStatus === 'PENDING' && (
+                        <div style={{ padding: '12px', background: '#fffbeb', border: '1px solid #fef3c7', borderRadius: '10px', color: '#b45309', fontSize: '11px', textAlign: 'center', fontWeight: 700 }}>
+                          ⏳ Proof submitted. Under admin verification.
+                        </div>
+                      )}
+
+                      {selectedOffer.adminStatus === 'APPROVED' && (
+                        <div style={{ padding: '12px', background: '#f0fdf4', border: '1px solid #bcf0da', borderRadius: '10px', color: '#16a34a', fontSize: '11px', textAlign: 'center', fontWeight: 700 }}>
+                          ✅ Approved & Paid
+                        </div>
+                      )}
+
+                      {(selectedOffer.adminStatus !== 'PENDING' && selectedOffer.adminStatus !== 'APPROVED') && (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                          {selectedOffer.adminStatus === 'REJECTED' && (
+                            <div style={{ padding: '8px 10px', background: '#fef2f2', border: '1px solid #fca5a5', borderRadius: '8px', color: '#991b1b', fontSize: '10px', marginBottom: '4px' }}>
+                              ⚠️ <b>Rejected:</b> {selectedOffer.rejectionReason} (You can re-submit proof)
+                            </div>
+                          )}
+
+                          <input
+                            type="text"
+                            placeholder={selectedOffer.inputType === 'screenshot' ? 'Enter Screenshot Link / Image URL' : 'Enter Transaction ID / Answer'}
+                            className={styles.modalInput}
+                            style={{ padding: '10px', fontSize: '12px' }}
+                            value={proofInput}
+                            onChange={(e) => setProofInput(e.target.value)}
+                          />
+
+                          <button
+                            onClick={async () => {
+                              if (!proofInput.trim()) {
+                                alert("Please enter the required proof text.");
+                                return;
+                              }
+                              try {
+                                setSubmittingProof(true);
+                                const res = await fetch(`${API_URL}/api/offers/submit-proof`, {
+                                  method: 'POST',
+                                  headers: { 'Content-Type': 'application/json' },
+                                  body: JSON.stringify({
+                                    click_id: selectedOffer.click_id,
+                                    input_data: { user_proof: proofInput }
+                                  })
+                                });
+                                if (res.ok) {
+                                  alert("Proof submitted successfully!");
+                                  handleSelectOffer(selectedOffer.id);
+                                }
+                              } catch (err) {
+                                console.error(err);
+                              } finally {
+                                setSubmittingProof(false);
+                              }
+                            }}
+                            disabled={submittingProof}
+                            className={styles.startEarningBtnWide}
+                            style={{ width: '100%', padding: '12px', borderRadius: '10px', background: '#10b981', fontSize: '12px', fontWeight: 700 }}
+                          >
+                            {submittingProof ? 'Submitting...' : 'Submit Verification Evidence'}
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }

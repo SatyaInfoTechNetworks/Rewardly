@@ -5,7 +5,7 @@ import styles from "./admin.module.css";
 import { 
   Users, Coins, Activity, ShieldCheck, Search, 
   LayoutDashboard, History, Settings, LogOut, 
-  Edit3, Trash2, Ban, CheckCircle2, X, Gift, ArrowUpRight, Menu, Trophy, Calendar, Globe, Plus, Filter, Save, Key, Ticket,
+  Edit3, Trash2, Ban, CheckCircle2, X, Gift, ArrowUpRight, Menu, Trophy, Calendar, Globe, Plus, Filter, Save, Key, Ticket, Zap,
   Megaphone, BarChart3, Clock, BrainCircuit, Play, FolderClosed, Image, AlertTriangle, Eye, RefreshCw
 } from "lucide-react";
 
@@ -92,6 +92,37 @@ export default function AdminPanel() {
   const [selectedDrawEntries, setSelectedDrawEntries] = useState<any[]>([]);
   const [isEntriesModalOpen, setIsEntriesModalOpen] = useState(false);
   const [viewingDrawId, setViewingDrawId] = useState<number | null>(null);
+
+  // Custom Offer States
+  const [customOffers, setCustomOffers] = useState<any[]>([]);
+  const [customProofs, setCustomProofs] = useState<any[]>([]);
+  const [isOfferModalOpen, setIsOfferModalOpen] = useState(false);
+  const [editingOffer, setEditingOffer] = useState<any>(null);
+  const [isOfferRejectionModalOpen, setIsOfferRejectionModalOpen] = useState(false);
+  const [rejectingClickId, setRejectingClickId] = useState<string>('');
+  const [offerRejectionReason, setOfferRejectionReason] = useState<string>('');
+  const [offerForm, setOfferForm] = useState({
+    title: '',
+    external_id: '',
+    description: '',
+    category: 'Top Offers',
+    icon_url: '',
+    tracking_url: '',
+    total_reward: 0,
+    actual_price: 0,
+    is_active: true,
+    type: 'online',
+    reward_type: 'Multi Reward',
+    estimated_time: '5 mins',
+    difficulty: 'Medium',
+    is_hot: false,
+    extra_label: '',
+    input_type: 'text',
+    input_instruction: '',
+    tiers: [] as any[],
+    daily_completion_cap: 0,
+    country_targeting: 'IN'
+  });
 
   // Visit Tasks State
   const [visitTasks, setVisitTasks] = useState<any[]>([]);
@@ -245,6 +276,26 @@ export default function AdminPanel() {
           console.error("Failed to load analytics data", err);
         }
         
+        // Fetch Custom Offers
+        try {
+          const offersRes = await fetch(`${API_URL}/api/admin/offers`, options);
+          if (offersRes.ok) {
+            setCustomOffers(await offersRes.json());
+          }
+        } catch (offerErr) {
+          console.error("Failed to load custom offers", offerErr);
+        }
+
+        // Fetch Custom Proofs
+        try {
+          const proofsRes = await fetch(`${API_URL}/api/admin/proofs`, options);
+          if (proofsRes.ok) {
+            setCustomProofs(await proofsRes.json());
+          }
+        } catch (proofErr) {
+          console.error("Failed to load custom proofs", proofErr);
+        }
+
         setIsAuthenticated(true);
         localStorage.setItem("admin_secret", authSecret);
         fetchBroadcasts(authSecret);
@@ -257,6 +308,111 @@ export default function AdminPanel() {
       showToast("Connection failed", "error");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleSaveOffer = async () => {
+    if (!offerForm.title.trim()) {
+      showToast("Offer title is required", "error");
+      return;
+    }
+    try {
+      const url = editingOffer 
+        ? `${API_URL}/api/admin/offers/${editingOffer.id}`
+        : `${API_URL}/api/admin/offers`;
+      
+      const method = editingOffer ? 'PUT' : 'POST';
+      
+      const res = await fetch(url, {
+        method,
+        headers: {
+          'Content-Type': 'application/json',
+          'x-admin-secret': secret
+        },
+        credentials: 'include',
+        body: JSON.stringify(offerForm)
+      });
+
+      if (res.ok) {
+        showToast(editingOffer ? "Offer updated successfully!" : "Offer created successfully!");
+        setIsOfferModalOpen(false);
+        setEditingOffer(null);
+        fetchAllData(secret);
+      } else {
+        const errData = await res.json();
+        showToast(errData.error || "Failed to save offer", "error");
+      }
+    } catch (err) {
+      showToast("Failed to save offer", "error");
+    }
+  };
+
+  const handleDeleteOffer = async (id: string) => {
+    if (!confirm("Are you sure you want to permanently delete this custom offer? This will delete all user progress logs for it.")) return;
+    try {
+      const res = await fetch(`${API_URL}/api/admin/offers/${id}`, {
+        method: 'DELETE',
+        headers: { 'x-admin-secret': secret },
+        credentials: 'include'
+      });
+      if (res.ok) {
+        showToast("Offer deleted successfully!");
+        fetchAllData(secret);
+      } else {
+        showToast("Failed to delete offer", "error");
+      }
+    } catch (err) {
+      showToast("Failed to delete offer", "error");
+    }
+  };
+
+  const handleApproveProof = async (clickId: string) => {
+    if (!confirm("Approve this proof and credit coins to the user?")) return;
+    try {
+      const res = await fetch(`${API_URL}/api/admin/proofs/${clickId}/approve`, {
+        method: 'POST',
+        headers: { 'x-admin-secret': secret },
+        credentials: 'include'
+      });
+      if (res.ok) {
+        showToast("Proof approved and coins credited!");
+        fetchAllData(secret);
+      } else {
+        const errData = await res.json();
+        showToast(errData.error || "Failed to approve proof", "error");
+      }
+    } catch (err) {
+      showToast("Failed to approve proof", "error");
+    }
+  };
+
+  const handleRejectProofSubmit = async () => {
+    if (!offerRejectionReason.trim()) {
+      showToast("Rejection reason is required", "error");
+      return;
+    }
+    try {
+      const res = await fetch(`${API_URL}/api/admin/proofs/${rejectingClickId}/reject`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-admin-secret': secret
+        },
+        credentials: 'include',
+        body: JSON.stringify({ reason: offerRejectionReason })
+      });
+      if (res.ok) {
+        showToast("Proof rejected successfully!");
+        setIsOfferRejectionModalOpen(false);
+        setRejectingClickId('');
+        setOfferRejectionReason('');
+        fetchAllData(secret);
+      } else {
+        const errData = await res.json();
+        showToast(errData.error || "Failed to reject proof", "error");
+      }
+    } catch (err) {
+      showToast("Failed to reject proof", "error");
     }
   };
 
@@ -1043,6 +1199,9 @@ export default function AdminPanel() {
                 { id: 'referrals', icon: Users, label: 'Referral Engine' },
                 { id: 'contests', icon: Trophy, label: 'Tournament Panel' },
                 { id: 'lucky_draws', icon: Ticket, label: 'Lucky Draws & Jackpot' },
+                { id: 'custom_offers', icon: Zap, label: 'Custom Offers' },
+                { id: 'custom_proofs', icon: ShieldCheck, label: 'Custom Proofs' },
+                { id: 'postback_guide', icon: Globe, label: 'S2S Postbacks' },
                 { id: 'transactions', icon: History, label: 'Global Audit Logs' },
                 { id: 'daily_rewards', icon: Calendar, label: 'Check-in Rewards' },
                 { id: 'visit_tasks', icon: Globe, label: 'Visit Tasks Manager' },
@@ -3607,6 +3766,286 @@ export default function AdminPanel() {
             </div>
           )}
 
+          {/* ──── VIEW: CUSTOM OFFERS ──── */}
+          {activeView === 'custom_offers' && (
+            <div>
+              <div className={styles.lteCard}>
+                <div className={styles.lteCardHeader} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <h3 className={styles.lteCardTitle}>Custom Offers Management</h3>
+                  <button 
+                    className={`${styles.lteBtn} ${styles.lteBtnPrimary}`}
+                    onClick={() => {
+                      setEditingOffer(null);
+                      setOfferForm({
+                        title: '',
+                        external_id: '',
+                        description: '',
+                        category: 'Top Offers',
+                        icon_url: '',
+                        tracking_url: '',
+                        total_reward: 0,
+                        actual_price: 0,
+                        is_active: true,
+                        type: 'online',
+                        reward_type: 'Multi Reward',
+                        estimated_time: '5 mins',
+                        difficulty: 'Medium',
+                        is_hot: false,
+                        extra_label: '',
+                        input_type: 'text',
+                        input_instruction: '',
+                        tiers: [],
+                        daily_completion_cap: 0,
+                        country_targeting: 'IN'
+                      });
+                      setIsOfferModalOpen(true);
+                    }}
+                  >
+                    <Plus size={16} style={{ marginRight: '6px' }} /> Create Custom Offer
+                  </button>
+                </div>
+                <div className={`${styles.lteCardBody} ${styles.lteTableResponsive}`}>
+                  <table className={`${styles.lteTable} ${styles.lteTableStriped}`}>
+                    <thead>
+                      <tr>
+                        <th>Offer Details</th>
+                        <th>Category & Region</th>
+                        <th>Rewards</th>
+                        <th>Type & Limit</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {customOffers.map(offer => (
+                        <tr key={offer.id}>
+                          <td>
+                            <strong>{offer.title}</strong>
+                            <div style={{ fontSize: '11px', color: '#6c757d' }}>ID: {offer.id}</div>
+                            {offer.is_hot && <span className={styles.lteBadge} style={{ background: '#fef3c7', color: '#d97706', fontSize: '9px', fontWeight: 'bold', marginLeft: '6px' }}>🔥 HOT</span>}
+                          </td>
+                          <td>
+                            <span className={styles.lteBadge} style={{ background: '#e0f2fe', color: '#0369a1' }}>{offer.category}</span>
+                            <div style={{ fontSize: '11px', color: '#6c757d', marginTop: '4px' }}>Geo: {offer.country_targeting}</div>
+                          </td>
+                          <td>
+                            <div style={{ color: '#28a745', fontWeight: '800' }}>🪙 {offer.total_reward}</div>
+                            <div style={{ fontSize: '11px', color: '#6c757d' }}>Price: ${offer.actual_price}</div>
+                          </td>
+                          <td>
+                            <span className={styles.lteBadge} style={{ background: '#f1f5f9', color: '#475569' }}>{offer.type}</span>
+                            <div style={{ fontSize: '11.5px', color: '#475569', marginTop: '4px' }}>
+                              Cap: {offer.daily_completion_cap > 0 ? offer.daily_completion_cap : 'unlimited'} (done: {offer.completions_count || 0})
+                            </div>
+                          </td>
+                          <td>
+                            <span className={`${styles.lteBadge} ${offer.is_active ? styles.lteBadgeSuccess : styles.lteBadgeDanger}`}>
+                              {offer.is_active ? 'ACTIVE' : 'INACTIVE'}
+                            </span>
+                          </td>
+                          <td>
+                            <div className={styles.lteBtnGroup}>
+                              <button
+                                className={`${styles.lteBtn} ${styles.lteBtnWarning}`}
+                                onClick={() => {
+                                  setEditingOffer(offer);
+                                  setOfferForm({
+                                    ...offer,
+                                    tiers: offer.tiers || []
+                                  });
+                                  setIsOfferModalOpen(true);
+                                }}
+                              >
+                                <Edit3 size={14} />
+                              </button>
+                              <button
+                                className={`${styles.lteBtn} ${styles.lteBtnDanger}`}
+                                onClick={() => handleDeleteOffer(offer.id)}
+                              >
+                                <Trash2 size={14} />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ──── VIEW: CUSTOM PROOFS ──── */}
+          {activeView === 'custom_proofs' && (
+            <div>
+              <div className={styles.lteCard}>
+                <div className={styles.lteCardHeader}>
+                  <h3 className={styles.lteCardTitle}>Verification Proofs Manager</h3>
+                </div>
+                <div className={`${styles.lteCardBody} ${styles.lteTableResponsive}`}>
+                  <table className={`${styles.lteTable} ${styles.lteTableStriped}`}>
+                    <thead>
+                      <tr>
+                        <th>Player Info</th>
+                        <th>Task / Custom Offer</th>
+                        <th>Submitted Evidence</th>
+                        <th>Time Submitted</th>
+                        <th>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {customProofs.length > 0 ? (
+                        customProofs.map(proof => (
+                          <tr key={proof.click_id}>
+                            <td>
+                              <strong>{proof.User?.first_name}</strong>
+                              <div style={{ fontSize: '11px', color: '#6c757d' }}>@{proof.User?.username} (tg: {proof.user_id})</div>
+                              <div style={{ fontSize: '11px', color: '#6c757d' }}>Wallet: {proof.User?.balance} c</div>
+                            </td>
+                            <td>
+                              <strong>{proof.Offer?.title}</strong>
+                              <div style={{ fontSize: '11px', color: '#28a745', fontWeight: 'bold' }}>Reward: 🪙 {proof.Offer?.total_reward} Coins</div>
+                              <div style={{ fontSize: '10px', color: '#94a3b8' }}>Type: {proof.Offer?.input_type} ({proof.Offer?.input_instruction})</div>
+                            </td>
+                            <td>
+                              <div style={{ background: '#f8fafc', padding: '8px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '11px', wordBreak: 'break-all' }}>
+                                {proof.user_input?.user_proof || JSON.stringify(proof.user_input)}
+                                {proof.user_input?.screenshot_url && (
+                                  <div style={{ marginTop: '4px' }}>
+                                    <a href={proof.user_input.screenshot_url} target="_blank" rel="noreferrer" style={{ color: '#3b82f6', fontWeight: 'bold', textDecoration: 'underline' }}>View Screenshot 🔗</a>
+                                  </div>
+                                )}
+                              </div>
+                            </td>
+                            <td>
+                              <div style={{ fontSize: '12px' }}>{new Date(proof.last_updated).toLocaleString()}</div>
+                            </td>
+                            <td>
+                              <div className={styles.lteBtnGroup}>
+                                <button
+                                  className={`${styles.lteBtn} ${styles.lteBtnSuccess}`}
+                                  onClick={() => handleApproveProof(proof.click_id)}
+                                >
+                                  Approve
+                                </button>
+                                <button
+                                  className={`${styles.lteBtn} ${styles.lteBtnDanger}`}
+                                  onClick={() => {
+                                    setRejectingClickId(proof.click_id);
+                                    setOfferRejectionReason('');
+                                    setIsOfferRejectionModalOpen(true);
+                                  }}
+                                >
+                                  Reject
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))
+                      ) : (
+                        <tr>
+                          <td colSpan={5} style={{ textAlign: 'center', padding: '24px', color: '#64748b' }}>
+                            No pending custom task proofs to verify
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ──── VIEW: POSTBACK GUIDE ──── */}
+          {activeView === 'postback_guide' && (
+            <div>
+              <div className={styles.lteCard}>
+                <div className={styles.lteCardHeader}>
+                  <h3 className={styles.lteCardTitle}>S2S Postback Integration Guide</h3>
+                </div>
+                <div className={styles.lteCardBody} style={{ color: '#334155', lineHeight: 1.6 }}>
+                  <p style={{ marginBottom: '16px', fontSize: '14px' }}>
+                    Use the Server-to-Server (S2S) postback webhook endpoint below to dynamically verify and reward completed online tasks or tier-based achievements.
+                  </p>
+
+                  <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '16px', marginBottom: '24px' }}>
+                    <h4 style={{ margin: '0 0 8px 0', fontSize: '11px', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px' }}>GLOBAL POSTBACK WEBHOOK URL</h4>
+                    <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                      <code style={{ background: '#0f172a', color: '#38bdf8', padding: '10px 14px', borderRadius: '8px', flex: 1, fontSize: '12.5px', fontFamily: 'monospace', overflowX: 'auto', whiteSpace: 'nowrap' }}>
+                        https://rewardlyapi.satyainfotechnetworks.com/api/postbacks/custom-offer?click_id={"{click_id}"}&tier={"{sequence_or_title}"}
+                      </code>
+                      <button 
+                        className={`${styles.lteBtn} ${styles.lteBtnPrimary}`}
+                        style={{ padding: '10px 16px', whiteSpace: 'nowrap', margin: 0 }}
+                        onClick={() => {
+                          navigator.clipboard.writeText("https://rewardlyapi.satyainfotechnetworks.com/api/postbacks/custom-offer?click_id={click_id}&tier={sequence_or_title}");
+                          alert("URL copied to clipboard!");
+                        }}
+                      >
+                        Copy URL
+                      </button>
+                    </div>
+                  </div>
+
+                  <h4 style={{ fontSize: '15px', fontWeight: 700, marginBottom: '12px' }}>Query Parameters</h4>
+                  <div className={styles.lteTableResponsive} style={{ marginBottom: '24px' }}>
+                    <table className={styles.lteTable} style={{ width: '100%' }}>
+                      <thead>
+                        <tr>
+                          <th>Parameter</th>
+                          <th>Type</th>
+                          <th>Requirement</th>
+                          <th>Description</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr>
+                          <td><code>click_id</code> <span style={{ color: '#64748b', fontSize: '11px' }}>or <code>clickId</code>, <code>trans_id</code></span></td>
+                          <td><span style={{ background: '#eef2ff', color: '#6366f1', padding: '2px 6px', borderRadius: '4px', fontSize: '10px' }}>STRING</span></td>
+                          <td><span style={{ color: '#ef4444', fontWeight: 'bold', fontSize: '11px' }}>REQUIRED</span></td>
+                          <td>The unique click UUID generated when the user started the task (ex. <code>{"{click_id}"}</code> macro in redirect URLs).</td>
+                        </tr>
+                        <tr>
+                          <td><code>tier</code></td>
+                          <td><span style={{ background: '#f0fdf4', color: '#16a34a', padding: '2px 6px', borderRadius: '4px', fontSize: '10px' }}>INT / STRING</span></td>
+                          <td><span style={{ color: '#64748b', fontWeight: 'bold', fontSize: '11px' }}>OPTIONAL</span></td>
+                          <td>
+                            The specific milestone to reward. Can be:
+                            <ul style={{ margin: '4px 0 0 16px', padding: 0 }}>
+                              <li>Sequence Number: <code>1</code>, <code>2</code>, etc.</li>
+                              <li>Backend Title: <code>install_app</code>, <code>level_10</code>, etc.</li>
+                              <li>If omitted, the full reward is credited and the offer completes.</li>
+                            </ul>
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+
+                  <h4 style={{ fontSize: '15px', fontWeight: 700, marginBottom: '12px' }}>Integration Examples</h4>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                    <div style={{ background: '#fafafa', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '16px' }}>
+                      <h5 style={{ margin: '0 0 6px 0', fontWeight: 'bold', fontSize: '13px' }}>Example 1: Single Reward Offer</h5>
+                      <p style={{ fontSize: '11px', color: '#64748b', margin: '0 0 10px 0' }}>Fires webhook to complete the entire offer and credit all coins instantly.</p>
+                      <pre style={{ background: '#1e293b', color: '#f8fafc', padding: '10px', borderRadius: '8px', fontSize: '11px', overflowX: 'auto', margin: 0 }}>
+                        GET /api/postbacks/custom-offer?click_id=4a8e28c5-335a-4bfa-b7e7-09285210a890
+                      </pre>
+                    </div>
+
+                    <div style={{ background: '#fafafa', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '16px' }}>
+                      <h5 style={{ margin: '0 0 6px 0', fontWeight: 'bold', fontSize: '13px' }}>Example 2: Multi-Milestone Offer</h5>
+                      <p style={{ fontSize: '11px', color: '#64748b', margin: '0 0 10px 0' }}>Fires webhook to reward Step 1 (sequence 1) of a tiered game/app.</p>
+                      <pre style={{ background: '#1e293b', color: '#f8fafc', padding: '10px', borderRadius: '8px', fontSize: '11px', overflowX: 'auto', margin: 0 }}>
+                        GET /api/postbacks/custom-offer?click_id=4a8e28c5-335a-4bfa-b7e7-09285210a890&tier=1
+                      </pre>
+                    </div>
+                  </div>
+
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* ──── VIEW: SETTINGS ──── */}
           {activeView === 'settings' && appSettings && (
             <div className={styles.lteCard}>
@@ -4440,6 +4879,376 @@ export default function AdminPanel() {
             <div className={styles.lteModalFooter}>
               <button className={`${styles.lteBtn} ${styles.lteBtnSecondary}`} onClick={() => setIsDrawModalOpen(false)}>Discard</button>
               <button className={`${styles.lteBtn} ${styles.lteBtnPrimary}`} onClick={handleSaveDraw}>Commit Sweepstakes Event</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ──── MODAL: EDIT/CREATE CUSTOM OFFER ──── */}
+      {isOfferModalOpen && (
+        <div className={styles.lteModalOverlay}>
+          <div className={styles.lteModalBox} style={{ maxWidth: '650px', maxHeight: '90vh', overflowY: 'auto' }}>
+            <div className={styles.lteModalHeader}>
+              <h4 className={styles.lteModalTitle}>{editingOffer ? 'Edit Custom Offer' : 'Create Custom Offer'}</h4>
+              <button className={styles.lteModalClose} onClick={() => { setIsOfferModalOpen(false); setEditingOffer(null); }}>
+                <X size={20} />
+              </button>
+            </div>
+            <div className={styles.lteModalBody}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
+                <div className={styles.lteFormGroup}>
+                  <label className={styles.lteFormLabel}>Offer Title</label>
+                  <input 
+                    className={styles.lteFormControl}
+                    placeholder="e.g. Register on StuEarn"
+                    value={offerForm.title}
+                    onChange={(e) => setOfferForm({...offerForm, title: e.target.value})}
+                  />
+                </div>
+                <div className={styles.lteFormGroup}>
+                  <label className={styles.lteFormLabel}>External ID (optional)</label>
+                  <input 
+                    className={styles.lteFormControl}
+                    placeholder="e.g. stuearn_reg_01"
+                    value={offerForm.external_id || ''}
+                    onChange={(e) => setOfferForm({...offerForm, external_id: e.target.value})}
+                  />
+                </div>
+              </div>
+
+              <div className={styles.lteFormGroup} style={{ marginTop: '10px' }}>
+                <label className={styles.lteFormLabel}>Description</label>
+                <textarea 
+                  className={styles.lteFormControl}
+                  style={{ height: '60px', resize: 'none' }}
+                  placeholder="Explain steps to complete the offer..."
+                  value={offerForm.description}
+                  onChange={(e) => setOfferForm({...offerForm, description: e.target.value})}
+                />
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '15px', marginTop: '10px' }}>
+                <div className={styles.lteFormGroup}>
+                  <label className={styles.lteFormLabel}>Category</label>
+                  <input 
+                    className={styles.lteFormControl}
+                    placeholder="e.g. Top Offers, Gaming"
+                    value={offerForm.category || ''}
+                    onChange={(e) => setOfferForm({...offerForm, category: e.target.value})}
+                  />
+                </div>
+                <div className={styles.lteFormGroup}>
+                  <label className={styles.lteFormLabel}>Difficulty</label>
+                  <select 
+                    className={styles.lteFormControl}
+                    value={offerForm.difficulty}
+                    onChange={(e) => setOfferForm({...offerForm, difficulty: e.target.value})}
+                  >
+                    <option value="Easy">Easy</option>
+                    <option value="Medium">Medium</option>
+                    <option value="Hard">Hard</option>
+                  </select>
+                </div>
+                <div className={styles.lteFormGroup}>
+                  <label className={styles.lteFormLabel}>Est. Time</label>
+                  <input 
+                    className={styles.lteFormControl}
+                    placeholder="e.g. 5 mins"
+                    value={offerForm.estimated_time || ''}
+                    onChange={(e) => setOfferForm({...offerForm, estimated_time: e.target.value})}
+                  />
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '15px', marginTop: '10px' }}>
+                <div className={styles.lteFormGroup}>
+                  <label className={styles.lteFormLabel}>Total Coins Reward</label>
+                  <input 
+                    type="number"
+                    className={styles.lteFormControl}
+                    value={offerForm.total_reward}
+                    onChange={(e) => setOfferForm({...offerForm, total_reward: parseFloat(e.target.value) || 0})}
+                  />
+                </div>
+                <div className={styles.lteFormGroup}>
+                  <label className={styles.lteFormLabel}>Internal Price / Cost</label>
+                  <input 
+                    type="number"
+                    step="0.01"
+                    className={styles.lteFormControl}
+                    value={offerForm.actual_price}
+                    onChange={(e) => setOfferForm({...offerForm, actual_price: parseFloat(e.target.value) || 0})}
+                  />
+                </div>
+                <div className={styles.lteFormGroup}>
+                  <label className={styles.lteFormLabel}>Daily Completion Cap</label>
+                  <input 
+                    type="number"
+                    className={styles.lteFormControl}
+                    value={offerForm.daily_completion_cap}
+                    onChange={(e) => setOfferForm({...offerForm, daily_completion_cap: parseInt(e.target.value) || 0})}
+                  />
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px', marginTop: '10px' }}>
+                <div className={styles.lteFormGroup}>
+                  <label className={styles.lteFormLabel}>Icon URL</label>
+                  <input 
+                    className={styles.lteFormControl}
+                    placeholder="https://..."
+                    value={offerForm.icon_url || ''}
+                    onChange={(e) => setOfferForm({...offerForm, icon_url: e.target.value})}
+                  />
+                </div>
+                <div className={styles.lteFormGroup}>
+                  <label className={styles.lteFormLabel}>Tracking / Redirect URL</label>
+                  <input 
+                    className={styles.lteFormControl}
+                    placeholder="https://...{click_id}..."
+                    value={offerForm.tracking_url || ''}
+                    onChange={(e) => setOfferForm({...offerForm, tracking_url: e.target.value})}
+                  />
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '15px', marginTop: '10px' }}>
+                <div className={styles.lteFormGroup}>
+                  <label className={styles.lteFormLabel}>Task Type</label>
+                  <select 
+                    className={styles.lteFormControl}
+                    value={offerForm.type}
+                    onChange={(e) => setOfferForm({...offerForm, type: e.target.value})}
+                  >
+                    <option value="online">Online Task (Redirect)</option>
+                    <option value="offline">Offline Task (Manual proof)</option>
+                  </select>
+                </div>
+                <div className={styles.lteFormGroup}>
+                  <label className={styles.lteFormLabel}>Proof Type Required</label>
+                  <select 
+                    className={styles.lteFormControl}
+                    value={offerForm.input_type || 'text'}
+                    onChange={(e) => setOfferForm({...offerForm, input_type: e.target.value})}
+                    disabled={offerForm.type !== 'offline'}
+                  >
+                    <option value="text">Text ID / Transaction Hash</option>
+                    <option value="screenshot">Screenshot Link / URL</option>
+                  </select>
+                </div>
+                <div className={styles.lteFormGroup}>
+                  <label className={styles.lteFormLabel}>Target Region / Country</label>
+                  <input 
+                    className={styles.lteFormControl}
+                    placeholder="e.g. IN or * for all"
+                    value={offerForm.country_targeting}
+                    onChange={(e) => setOfferForm({...offerForm, country_targeting: e.target.value})}
+                  />
+                </div>
+              </div>
+
+              {offerForm.type === 'offline' && (
+                <div className={styles.lteFormGroup} style={{ marginTop: '10px' }}>
+                  <label className={styles.lteFormLabel}>Instructions for Submitting Proof</label>
+                  <input 
+                    className={styles.lteFormControl}
+                    placeholder="Tell user what to input (e.g. Share your phone number used to register)"
+                    value={offerForm.input_instruction || ''}
+                    onChange={(e) => setOfferForm({...offerForm, input_instruction: e.target.value})}
+                  />
+                </div>
+              )}
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '15px', marginTop: '10px' }}>
+                <div className={styles.lteFormGroup}>
+                  <label className={styles.lteFormLabel}>Reward Structure</label>
+                  <input 
+                    className={styles.lteFormControl}
+                    placeholder="e.g. Multi Reward or Single"
+                    value={offerForm.reward_type}
+                    onChange={(e) => setOfferForm({...offerForm, reward_type: e.target.value})}
+                  />
+                </div>
+                <div className={styles.lteFormGroup}>
+                  <label className={styles.lteFormLabel}>Badge Label (optional)</label>
+                  <input 
+                    className={styles.lteFormControl}
+                    placeholder="e.g. 🔥 Limited"
+                    value={offerForm.extra_label || ''}
+                    onChange={(e) => setOfferForm({...offerForm, extra_label: e.target.value})}
+                  />
+                </div>
+                <div style={{ display: 'flex', gap: '15px', alignItems: 'center', marginTop: '20px' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', fontSize: '12px' }}>
+                    <input 
+                      type="checkbox" 
+                      checked={offerForm.is_active} 
+                      onChange={(e) => setOfferForm({...offerForm, is_active: e.target.checked})} 
+                    />
+                    Active Offer
+                  </label>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', fontSize: '12px' }}>
+                    <input 
+                      type="checkbox" 
+                      checked={offerForm.is_hot} 
+                      onChange={(e) => setOfferForm({...offerForm, is_hot: e.target.checked})} 
+                    />
+                    Hot / Featured
+                  </label>
+                </div>
+              </div>
+
+              {/* Milestones/Tiers Builder */}
+              <div style={{ borderTop: '1px solid #dee2e6', marginTop: '20px', paddingTop: '15px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                  <h5 style={{ margin: 0, fontSize: '14px', fontWeight: 'bold' }}>Reward Milestones / Tiers</h5>
+                  <button 
+                    type="button"
+                    className={`${styles.lteBtn} ${styles.lteBtnInfo}`} 
+                    onClick={() => {
+                      const nextSeq = offerForm.tiers.length + 1;
+                      setOfferForm({
+                        ...offerForm,
+                        tiers: [
+                          ...offerForm.tiers,
+                          { 
+                            title: `Step ${nextSeq}`, 
+                            backend_title: `step_${nextSeq}`, 
+                            reward: 10, 
+                            steps: '', 
+                            sequence: nextSeq 
+                          }
+                        ]
+                      });
+                    }}
+                  >
+                    + Add Milestone Step
+                  </button>
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  {offerForm.tiers.map((tier, idx) => (
+                    <div key={idx} style={{ padding: '12px', background: '#f8fafc', borderRadius: '10px', border: '1px solid #e2e8f0', position: 'relative' }}>
+                      <button 
+                        type="button"
+                        onClick={() => {
+                          const newTiers = offerForm.tiers.filter((_, i) => i !== idx);
+                          setOfferForm({ ...offerForm, tiers: newTiers });
+                        }}
+                        style={{ position: 'absolute', top: '8px', right: '8px', background: 'none', border: 'none', color: '#ef4444', fontWeight: 'bold', cursor: 'pointer' }}
+                      >
+                        ✕
+                      </button>
+                      <div style={{ display: 'grid', gridTemplateColumns: '2fr 2fr 1fr 1fr', gap: '10px' }}>
+                        <div className={styles.lteFormGroup}>
+                          <label style={{ fontSize: '11px' }}>Display Title</label>
+                          <input 
+                            className={styles.lteFormControl}
+                            style={{ padding: '5px 8px', fontSize: '12px' }}
+                            value={tier.title || ''}
+                            onChange={(e) => {
+                              const newTiers = [...offerForm.tiers];
+                              newTiers[idx].title = e.target.value;
+                              setOfferForm({ ...offerForm, tiers: newTiers });
+                            }}
+                          />
+                        </div>
+                        <div className={styles.lteFormGroup}>
+                          <label style={{ fontSize: '11px' }}>System Identifier</label>
+                          <input 
+                            className={styles.lteFormControl}
+                            style={{ padding: '5px 8px', fontSize: '12px' }}
+                            value={tier.backend_title || tier.tier_title || ''}
+                            onChange={(e) => {
+                              const newTiers = [...offerForm.tiers];
+                              newTiers[idx].backend_title = e.target.value;
+                              newTiers[idx].tier_title = e.target.value;
+                              setOfferForm({ ...offerForm, tiers: newTiers });
+                            }}
+                          />
+                        </div>
+                        <div className={styles.lteFormGroup}>
+                          <label style={{ fontSize: '11px' }}>Coins Payout</label>
+                          <input 
+                            type="number"
+                            className={styles.lteFormControl}
+                            style={{ padding: '5px 8px', fontSize: '12px' }}
+                            value={tier.reward}
+                            onChange={(e) => {
+                              const newTiers = [...offerForm.tiers];
+                              newTiers[idx].reward = parseFloat(e.target.value) || 0;
+                              setOfferForm({ ...offerForm, tiers: newTiers });
+                            }}
+                          />
+                        </div>
+                        <div className={styles.lteFormGroup}>
+                          <label style={{ fontSize: '11px' }}>Sequence</label>
+                          <input 
+                            type="number"
+                            className={styles.lteFormControl}
+                            style={{ padding: '5px 8px', fontSize: '12px' }}
+                            value={tier.sequence}
+                            onChange={(e) => {
+                              const newTiers = [...offerForm.tiers];
+                              newTiers[idx].sequence = parseInt(e.target.value) || 1;
+                              setOfferForm({ ...offerForm, tiers: newTiers });
+                            }}
+                          />
+                        </div>
+                      </div>
+                      <div className={styles.lteFormGroup} style={{ marginTop: '8px', marginBottom: 0 }}>
+                        <label style={{ fontSize: '11px' }}>Milestone Requirements / Instructions (one per line or comma-separated)</label>
+                        <input 
+                          className={styles.lteFormControl}
+                          style={{ padding: '5px 8px', fontSize: '12px' }}
+                          placeholder="e.g. Download App, Complete verification"
+                          value={Array.isArray(tier.steps) ? tier.steps.join(', ') : tier.steps || ''}
+                          onChange={(e) => {
+                            const newTiers = [...offerForm.tiers];
+                            newTiers[idx].steps = e.target.value.split(',').map(s => s.trim());
+                            setOfferForm({ ...offerForm, tiers: newTiers });
+                          }}
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+            </div>
+            <div className={styles.lteModalFooter}>
+              <button className={`${styles.lteBtn} ${styles.lteBtnSecondary}`} onClick={() => { setIsOfferModalOpen(false); setEditingOffer(null); }}>Discard</button>
+              <button className={`${styles.lteBtn} ${styles.lteBtnPrimary}`} onClick={handleSaveOffer}>Save Custom Offer</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ──── MODAL: REJECT CUSTOM PROOF ──── */}
+      {isOfferRejectionModalOpen && (
+        <div className={styles.lteModalOverlay}>
+          <div className={styles.lteModalBox} style={{ maxWidth: '400px' }}>
+            <div className={styles.lteModalHeader}>
+              <h4 className={styles.lteModalTitle} style={{ color: '#ef4444' }}>Reject Submission Proof</h4>
+              <button className={styles.lteModalClose} onClick={() => { setIsOfferRejectionModalOpen(false); setRejectingClickId(''); }}>
+                <X size={20} />
+              </button>
+            </div>
+            <div className={styles.lteModalBody}>
+              <div className={styles.lteFormGroup}>
+                <label className={styles.lteFormLabel}>Specify Reason for Rejection</label>
+                <textarea 
+                  className={styles.lteFormControl}
+                  style={{ height: '100px', resize: 'none' }}
+                  placeholder="e.g. Submitted transaction hash does not match, screenshot blurred..."
+                  value={offerRejectionReason}
+                  onChange={(e) => setOfferRejectionReason(e.target.value)}
+                />
+              </div>
+            </div>
+            <div className={styles.lteModalFooter}>
+              <button className={`${styles.lteBtn} ${styles.lteBtnSecondary}`} onClick={() => { setIsOfferRejectionModalOpen(false); setRejectingClickId(''); }}>Cancel</button>
+              <button className={`${styles.lteBtn} ${styles.lteBtnDanger}`} onClick={handleRejectProofSubmit}>Reject Proof</button>
             </div>
           </div>
         </div>

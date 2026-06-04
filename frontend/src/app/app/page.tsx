@@ -575,22 +575,114 @@ export default function AppDashboard() {
             {selectedOffer.tiers && selectedOffer.tiers.length > 0 && (
               <div>
                 <h4 style={{ fontSize: '12px', fontWeight: 700, color: '#0f172a', marginBottom: '8px' }}>Milestones / Steps</h4>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                  {selectedOffer.tiers.map((tier: any) => (
-                    <div key={tier.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px', background: tier.is_completed ? '#f0fdf4' : '#ffffff', border: '1px solid', borderColor: tier.is_completed ? '#bcf0da' : '#e2e8f0', borderRadius: '10px' }}>
-                      <div>
-                        <span style={{ fontSize: '12px', fontWeight: 700, color: '#1e293b' }}>{tier.app_tier_title || tier.title}</span>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  {selectedOffer.tiers.map((tier: any, tIdx: number) => {
+                    const isTierCompleted = tier.is_completed || tier.isCompleted;
+                    return (
+                      <div 
+                        key={tier.id || tIdx} 
+                        style={{
+                          padding: '12px 14px',
+                          background: isTierCompleted ? 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)' : '#ffffff',
+                          border: '1px solid',
+                          borderColor: isTierCompleted ? '#bbf7d0' : '#e2e8f0',
+                          borderRadius: '14px',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: '8px',
+                          boxShadow: isTierCompleted ? '0 4px 10px rgba(22, 163, 74, 0.04)' : '0 4px 10px rgba(0,0,0,0.01)'
+                        }}
+                      >
+                        {/* Milestone Header Row */}
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px' }}>
+                          <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <span style={{
+                              width: '18px',
+                              height: '18px',
+                              borderRadius: '50%',
+                              background: isTierCompleted ? '#16a34a' : '#6366f1',
+                              color: '#ffffff',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              fontSize: '9px',
+                              fontWeight: 800,
+                              flexShrink: 0
+                            }}>
+                              {tier.sequence || (tIdx + 1)}
+                            </span>
+                            <h5 style={{ fontSize: '12px', fontWeight: 700, color: '#0f172a', margin: 0, wordBreak: 'break-word' }}>
+                              {tier.app_tier_title || tier.title}
+                            </h5>
+                          </div>
+                          <div style={{ flexShrink: 0 }}>
+                            {isTierCompleted ? (
+                              <span style={{
+                                background: '#dcfce7',
+                                color: '#15803d',
+                                fontSize: '9px',
+                                fontWeight: 800,
+                                padding: '3px 8px',
+                                borderRadius: '12px',
+                                border: '1px solid #bbf7d0',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '3px'
+                              }}>
+                                <CheckCircle size={9} fill="currentColor" color="#dcfce7" /> Completed
+                              </span>
+                            ) : (
+                              <span style={{
+                                background: '#fef3c7',
+                                color: '#d97706',
+                                fontSize: '9.5px',
+                                fontWeight: 800,
+                                padding: '3px 8px',
+                                borderRadius: '12px',
+                                border: '1px solid #fde68a',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '2px',
+                                whiteSpace: 'nowrap'
+                              }}>
+                                🪙 +{tier.reward} Coins
+                              </span>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Milestone Steps / Instructions List */}
                         {tier.steps && tier.steps.length > 0 && (
-                          <div style={{ fontSize: '10px', color: '#64748b', marginTop: '2px' }}>
-                            {tier.steps.join(', ')}
+                          <div style={{
+                            background: isTierCompleted ? 'rgba(255,255,255,0.4)' : '#f8fafc',
+                            padding: '8px 10px',
+                            borderRadius: '8px',
+                            border: '1px solid',
+                            borderColor: isTierCompleted ? 'rgba(22, 163, 74, 0.08)' : '#f1f5f9'
+                          }}>
+                            <ul style={{ margin: 0, padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                              {tier.steps.map((step: string, sIdx: number) => (
+                                <li 
+                                  key={sIdx} 
+                                  style={{
+                                    fontSize: '10.5px',
+                                    color: '#475569',
+                                    display: 'flex',
+                                    alignItems: 'flex-start',
+                                    gap: '4px',
+                                    lineHeight: 1.3
+                                  }}
+                                >
+                                  <span style={{ color: isTierCompleted ? '#16a34a' : '#94a3b8', marginTop: '1px', flexShrink: 0 }}>•</span>
+                                  <span>{step}</span>
+                                </li>
+                              ))}
+                            </ul>
                           </div>
                         )}
                       </div>
-                      <span style={{ fontSize: '11px', fontWeight: 800, color: tier.is_completed ? '#16a34a' : '#4f46e5' }}>
-                        {tier.is_completed ? '✓ Completed' : `+${tier.reward} Coins`}
-                      </span>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
             )}

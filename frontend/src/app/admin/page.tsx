@@ -323,6 +323,19 @@ export default function AdminPanel() {
       
       const method = editingOffer ? 'PUT' : 'POST';
       
+      // Clean and trim steps right before sending
+      const cleanedTiers = (offerForm.tiers || []).map(tier => ({
+        ...tier,
+        steps: Array.isArray(tier.steps)
+          ? tier.steps.map(s => typeof s === 'string' ? s.trim() : '').filter(s => s.length > 0)
+          : []
+      }));
+
+      const payload = {
+        ...offerForm,
+        tiers: cleanedTiers
+      };
+
       const res = await fetch(url, {
         method,
         headers: {
@@ -330,7 +343,7 @@ export default function AdminPanel() {
           'x-admin-secret': secret
         },
         credentials: 'include',
-        body: JSON.stringify(offerForm)
+        body: JSON.stringify(payload)
       });
 
       if (res.ok) {
@@ -5197,15 +5210,15 @@ export default function AdminPanel() {
                         </div>
                       </div>
                       <div className={styles.lteFormGroup} style={{ marginTop: '8px', marginBottom: 0 }}>
-                        <label style={{ fontSize: '11px' }}>Milestone Requirements / Instructions (one per line or comma-separated)</label>
-                        <input 
+                        <label style={{ fontSize: '11px' }}>Milestone Requirements / Instructions (one per line)</label>
+                        <textarea 
                           className={styles.lteFormControl}
-                          style={{ padding: '5px 8px', fontSize: '12px' }}
-                          placeholder="e.g. Download App, Complete verification"
-                          value={Array.isArray(tier.steps) ? tier.steps.join(', ') : tier.steps || ''}
+                          style={{ padding: '8px 10px', fontSize: '12px', minHeight: '60px', resize: 'vertical' }}
+                          placeholder="e.g.&#10;Download App&#10;Complete verification"
+                          value={Array.isArray(tier.steps) ? tier.steps.join('\n') : tier.steps || ''}
                           onChange={(e) => {
                             const newTiers = [...offerForm.tiers];
-                            newTiers[idx].steps = e.target.value.split(',').map(s => s.trim());
+                            newTiers[idx].steps = e.target.value.split('\n');
                             setOfferForm({ ...offerForm, tiers: newTiers });
                           }}
                         />

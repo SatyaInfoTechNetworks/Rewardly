@@ -327,7 +327,7 @@ export default function AdminPanel() {
       const cleanedTiers = (offerForm.tiers || []).map(tier => ({
         ...tier,
         steps: Array.isArray(tier.steps)
-          ? tier.steps.map(s => typeof s === 'string' ? s.trim() : '').filter(s => s.length > 0)
+          ? tier.steps.map((s: any) => typeof s === 'string' ? s.trim() : '').filter((s: any) => s.length > 0)
           : []
       }));
 

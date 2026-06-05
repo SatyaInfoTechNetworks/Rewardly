@@ -227,7 +227,11 @@ testConnection().then(async () => {
     "CREATE TABLE IF NOT EXISTS `offer_completions` (`id` CHAR(36) PRIMARY KEY, `user_id` BIGINT NOT NULL, `offer_id` CHAR(36) NOT NULL, `click_id` VARCHAR(255) NULL, `reward_coins` INT DEFAULT 0, `created_at` DATETIME NOT NULL, `updated_at` DATETIME NOT NULL, FOREIGN KEY (user_id) REFERENCES users(telegram_id) ON DELETE CASCADE, FOREIGN KEY (offer_id) REFERENCES offers(id) ON DELETE CASCADE);",
     "CREATE INDEX `idx_user_offer_status` ON user_offer_progress (user_id, offer_id, status);",
     "CREATE INDEX `idx_offer_type_status` ON user_offer_progress (admin_status, updated_at DESC);",
-    "CREATE INDEX `idx_offer_active_hot` ON offers (is_active, is_hot);"
+    "CREATE INDEX `idx_offer_active_hot` ON offers (is_active, is_hot);",
+    "ALTER TABLE `app_settings` ADD `growdeck_enabled` TINYINT(1) DEFAULT 1;",
+    "ALTER TABLE `app_settings` ADD `growdeck_app_id` VARCHAR(255) DEFAULT '299';",
+    "ALTER TABLE `app_settings` ADD `growdeck_secret_key` VARCHAR(255) DEFAULT '024264098bf86c23825d';",
+    "ALTER TABLE `app_settings` ADD `growdeck_postback_secret` VARCHAR(255) DEFAULT 'eb8d0721c2dfb60fcb3e6855e3a118';"
   ];
 
   for (const sql of migrations) {
@@ -262,6 +266,10 @@ testConnection().then(async () => {
       await sequelize.query("UPDATE `app_settings` SET `inactive_reminder_enabled` = 1 WHERE `inactive_reminder_enabled` IS NULL;");
       await sequelize.query("UPDATE `app_settings` SET `wallet_reminder_enabled` = 1 WHERE `wallet_reminder_enabled` IS NULL;");
       await sequelize.query("UPDATE `app_settings` SET `referral_push_enabled` = 1 WHERE `referral_push_enabled` IS NULL;");
+      await sequelize.query("UPDATE `app_settings` SET `growdeck_enabled` = 1 WHERE `growdeck_enabled` IS NULL;");
+      await sequelize.query("UPDATE `app_settings` SET `growdeck_app_id` = '299' WHERE `growdeck_app_id` IS NULL;");
+      await sequelize.query("UPDATE `app_settings` SET `growdeck_secret_key` = '024264098bf86c23825d' WHERE `growdeck_secret_key` IS NULL OR `growdeck_secret_key` = '5bc282ed15bbf833081f';");
+      await sequelize.query("UPDATE `app_settings` SET `growdeck_postback_secret` = 'eb8d0721c2dfb60fcb3e6855e3a118' WHERE `growdeck_postback_secret` IS NULL;");
     } catch (err) {
       console.log('ℹ️ Migration Note (Defaults):', err.message);
     }
@@ -299,7 +307,11 @@ testConnection().then(async () => {
           ad_entry_cooldown: 60,
           inactive_reminder_enabled: true,
           wallet_reminder_enabled: true,
-          referral_push_enabled: true
+          referral_push_enabled: true,
+          growdeck_enabled: true,
+          growdeck_app_id: '299',
+          growdeck_secret_key: '024264098bf86c23825d',
+          growdeck_postback_secret: 'eb8d0721c2dfb60fcb3e6855e3a118'
         }
       });
  
@@ -584,7 +596,8 @@ app.post('/api/auth/sync', async (req, res) => {
       settings: appSettings || {
         onboarding_verification_enabled: true,
         pubscale_enabled: true,
-        opinion_universe_enabled: true
+        opinion_universe_enabled: true,
+        growdeck_enabled: true
       }
     });
   } catch (error) {

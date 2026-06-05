@@ -873,4 +873,110 @@ router.get('/custom-offer', async (req, res) => {
   }
 });
 
+/**
+ * Growdeck Playtime SDK Postback Webhook
+ * Credits coins for completed offers/tasks on the Growdeck offerwall
+ * Signature: HMAC-SHA256(secretKey, `${secretKey}.${user_id}.${Math.trunc(reward)}.${transaction_id}`)
+ */
+router.get('/growdeck', async (req, res) => {
+  const { user_id, reward, transaction_id, signature, campaign_name } = req.query;
+
+  console.log(`📥 Growdeck Postback: User=${user_id}, Reward=${reward}, Trans=${transaction_id}`);
+
+  // 0. Safety Check
+  if (!user_id || !reward || !transaction_id || !signature) {
+    console.error('❌ Growdeck Postback: Missing required parameters');
+    return res.status(400).send('Missing Parameters');
+  }
+
+  const t = await sequelize.transaction();
+
+  try {
+    // 1. Signature Verification
+    const settings = await getSettings();
+    const secretKey = settings.growdeck_postback_secret || 'eb8d0721c2dfb60fcb3e6855e3a118';
+    
+    const amountFloat = parseFloat(reward);
+    if (isNaN(amountFloat)) {
+      console.error('❌ Growdeck Postback: Invalid reward amount');
+      await t.rollback();
+      return res.status(400).send('Invalid Reward');
+    }
+    const amountInt = Math.trunc(amountFloat);
+
+    const template = `${secretKey}.${user_id}.${amountInt}.${transaction_id}`;
+    const calculatedSig = crypto.createHmac('sha256', secretKey).update(template).digest('hex');
+
+    if (calculatedSig.toLowerCase() !== signature.toLowerCase()) {
+      console.error(`❌ Growdeck Signature Mismatch! Expected ${calculatedSig}, got ${signature}`);
+      if (process.env.NODE_ENV === 'production') {
+        await t.rollback();
+        return res.status(401).send('Invalid Signature');
+      }
+    }
+
+    // 2. Check if transaction already processed (transaction_id is the unique external_id)
+    const existing = await Transaction.findOne({ where: { external_id: transaction_id } });
+    if (existing) {
+      console.log(`ℹ️ Growdeck Postback: Transaction ${transaction_id} already processed`);
+      await t.rollback();
+      return res.send('OK'); // Return OK to avoid retry loops
+    }
+
+    // 3. Find User
+    const user = await User.findByPk(user_id);
+    if (!user) {
+      console.error(`❌ Growdeck User ${user_id} not found`);
+      await t.rollback();
+      return res.status(404).send('User not found');
+    }
+
+    // 4. Update Balance
+    await user.update({ balance: user.balance + amountInt }, { transaction: t });
+
+    // 5. Record Transaction
+    await Transaction.create({
+      telegram_id: user.telegram_id,
+      amount: amountInt,
+      type: 'offerwall',
+      description: campaign_name ? `Growdeck: ${campaign_name}` : 'Growdeck Playtime Reward',
+      external_id: transaction_id,
+      status: 'completed'
+    }, { transaction: t });
+
+    await t.commit();
+
+    // 6. Post-reward processing
+    try {
+      await trackContestActivity(user.telegram_id, 'earnings', amountInt);
+      await validateReferral(user.telegram_id);
+    } catch (postErr) {
+      console.error('[Growdeck Postback Post-Process] Error:', postErr.message);
+    }
+
+    // Send Telegram Alert to Admin
+    try {
+      const { sendCompletionAlert } = require('../utils/telegramAlerter');
+      sendCompletionAlert({
+        offerName: campaign_name || 'Growdeck Playtime Reward',
+        offerwall: 'Growdeck',
+        amount: amountInt,
+        transactionId: transaction_id,
+        username: user.username,
+        firstName: user.first_name,
+        telegramId: user.telegram_id
+      });
+    } catch (alertErr) {
+      console.warn('⚠️ Could not send Telegram notification to admin:', alertErr.message);
+    }
+
+    console.log(`✅ Growdeck Reward: User ${user_id} credited with ${amountInt} coins.`);
+    return res.send('OK');
+  } catch (error) {
+    if (t) await t.rollback();
+    console.error('❌ Growdeck Postback Error:', error);
+    return res.status(500).send('Internal Error');
+  }
+});
+
 module.exports = router;

@@ -39,7 +39,11 @@ export default function AppDashboard() {
     pubscale_enabled: true,
     opinion_universe_enabled: true,
     pubscale_app_id: '78594689',
-    opinion_universe_url: 'https://opinionuniverse.com/offerwall?pubId=1863&SID={SID}&appId=ID_eb1f5bea3e8caadcfcf6ccb5d35a1d1d'
+    opinion_universe_url: 'https://opinionuniverse.com/offerwall?pubId=1863&SID={SID}&appId=ID_eb1f5bea3e8caadcfcf6ccb5d35a1d1d',
+    growdeck_enabled: true,
+    growdeck_app_id: '299',
+    growdeck_secret_key: '024264098bf86c23825d',
+    growdeck_postback_secret: 'eb8d0721c2dfb60fcb3e6855e3a118'
   });
   
   // Custom Offer States
@@ -336,7 +340,7 @@ export default function AppDashboard() {
             </section>
 
             {/* Offerwalls Section */}
-            {user && (appSettings.pubscale_enabled || appSettings.opinion_universe_enabled) && (
+            {user && (appSettings.pubscale_enabled || appSettings.opinion_universe_enabled || appSettings.growdeck_enabled) && (
               <section className={styles.surveysSection} style={{ paddingTop: 0, paddingBottom: '8px' }}>
                 <SectionHeader 
                   title="Offerwalls" 
@@ -402,6 +406,29 @@ export default function AppDashboard() {
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '2px' }}>
                         <span style={{ background: '#ecfdf5', color: '#10b981', fontSize: '8px', fontWeight: 700, padding: '2px 5px', borderRadius: '4px' }}>POPULAR</span>
                         <span style={{ fontSize: '11px', fontWeight: 800, color: '#f59e0b' }}>🪙 10K+</span>
+                      </div>
+                    </div>
+                  )}
+
+                  {appSettings.growdeck_enabled && (
+                    <div 
+                      className={`${styles.highRewardCard} card`} 
+                      style={{ padding: '14px', display: 'flex', flexDirection: 'column', gap: '8px', minHeight: 'auto', margin: 0, cursor: 'pointer' }}
+                      onClick={() => {
+                        const href = `https://websdk.growdeck.io/?app-id=${appSettings.growdeck_app_id || '299'}&secret-key=${appSettings.growdeck_secret_key || '024264098bf86c23825d'}&external-id=${user.id}&device-id=${user.id}`;
+                        window.open(href, '_blank');
+                      }}
+                    >
+                      <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                        <div style={{ width: '28px', height: '28px', borderRadius: '6px', overflow: 'hidden' }}>
+                          <img src="https://i.ibb.co/8nDPxw1q/download.png" alt="Growdeck" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                        </div>
+                        <h4 style={{ fontSize: '12px', fontWeight: 700, margin: 0 }}>Growdeck</h4>
+                      </div>
+                      <p style={{ fontSize: '10px', color: '#64748b', margin: 0, height: '30px', overflow: 'hidden' }}>Play fun games & earn rewards. Earn 100K+ coins.</p>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '2px' }}>
+                        <span style={{ background: '#fef3c7', color: '#d97706', fontSize: '8px', fontWeight: 700, padding: '2px 5px', borderRadius: '4px' }}>NEW</span>
+                        <span style={{ fontSize: '11px', fontWeight: 800, color: '#f59e0b' }}>🪙 100K+</span>
                       </div>
                     </div>
                   )}

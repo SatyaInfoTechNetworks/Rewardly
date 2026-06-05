@@ -4168,6 +4168,36 @@ export default function AdminPanel() {
                   </div>
                 </div>
 
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '20px', marginTop: '15px' }}>
+                  <div className={styles.lteFormGroup}>
+                    <label className={styles.lteFormLabel}>Growdeck APP / Placement ID</label>
+                    <input 
+                      className={styles.lteFormControl}
+                      placeholder="e.g. 299"
+                      value={appSettings.growdeck_app_id || ''}
+                      onChange={(e) => setAppSettings({...appSettings, growdeck_app_id: e.target.value})}
+                    />
+                  </div>
+                  <div className={styles.lteFormGroup}>
+                    <label className={styles.lteFormLabel}>Growdeck SDK Client Secret</label>
+                    <input 
+                      className={styles.lteFormControl}
+                      placeholder="e.g. 024264098bf86c23825d"
+                      value={appSettings.growdeck_secret_key || ''}
+                      onChange={(e) => setAppSettings({...appSettings, growdeck_secret_key: e.target.value})}
+                    />
+                  </div>
+                  <div className={styles.lteFormGroup}>
+                    <label className={styles.lteFormLabel}>Growdeck Postback Secret Key</label>
+                    <input 
+                      className={styles.lteFormControl}
+                      placeholder="e.g. eb8d0721c2dfb60fcb3e6855e3a118"
+                      value={appSettings.growdeck_postback_secret || ''}
+                      onChange={(e) => setAppSettings({...appSettings, growdeck_postback_secret: e.target.value})}
+                    />
+                  </div>
+                </div>
+
                 <div className={styles.lteFormGroup} style={{ marginTop: '15px' }}>
                   <label className={styles.lteFormLabel}>Opinion Universe Custom Offerwall Link</label>
                   <input 
@@ -4200,6 +4230,10 @@ export default function AdminPanel() {
                   <div className={styles.lteToggleBox}>
                     <span>Enable Opinion Universe Offerwalls</span>
                     <input type="checkbox" checked={appSettings.opinion_universe_enabled ?? true} onChange={(e) => setAppSettings({...appSettings, opinion_universe_enabled: e.target.checked})} />
+                  </div>
+                  <div className={styles.lteToggleBox}>
+                    <span>Enable Growdeck Offerwall</span>
+                    <input type="checkbox" checked={appSettings.growdeck_enabled ?? true} onChange={(e) => setAppSettings({...appSettings, growdeck_enabled: e.target.checked})} />
                   </div>
                   <div className={styles.lteToggleBox}>
                     <span>Onboarding Membership Overlay</span>

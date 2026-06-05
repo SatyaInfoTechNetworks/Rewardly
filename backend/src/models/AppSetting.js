@@ -86,6 +86,22 @@ const AppSetting = sequelize.define('AppSetting', {
   referral_push_enabled: {
     type: DataTypes.BOOLEAN,
     defaultValue: true
+  },
+  growdeck_enabled: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: true
+  },
+  growdeck_app_id: {
+    type: DataTypes.STRING,
+    defaultValue: '299'
+  },
+  growdeck_secret_key: {
+    type: DataTypes.STRING,
+    defaultValue: '024264098bf86c23825d'
+  },
+  growdeck_postback_secret: {
+    type: DataTypes.STRING,
+    defaultValue: 'eb8d0721c2dfb60fcb3e6855e3a118'
   }
 }, {
   tableName: 'app_settings',

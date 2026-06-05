@@ -102,6 +102,18 @@ const AppSetting = sequelize.define('AppSetting', {
   growdeck_postback_secret: {
     type: DataTypes.STRING,
     defaultValue: 'eb8d0721c2dfb60fcb3e6855e3a118'
+  },
+  timewall_enabled: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: true
+  },
+  timewall_app_id: {
+    type: DataTypes.STRING,
+    defaultValue: 'f60262456562e85e'
+  },
+  timewall_postback_secret: {
+    type: DataTypes.STRING,
+    defaultValue: 'e32f83ff0e9a6a6f05abb3e1035d5001'
   }
 }, {
   tableName: 'app_settings',

@@ -231,7 +231,10 @@ testConnection().then(async () => {
     "ALTER TABLE `app_settings` ADD `growdeck_enabled` TINYINT(1) DEFAULT 1;",
     "ALTER TABLE `app_settings` ADD `growdeck_app_id` VARCHAR(255) DEFAULT '299';",
     "ALTER TABLE `app_settings` ADD `growdeck_secret_key` VARCHAR(255) DEFAULT '024264098bf86c23825d';",
-    "ALTER TABLE `app_settings` ADD `growdeck_postback_secret` VARCHAR(255) DEFAULT 'eb8d0721c2dfb60fcb3e6855e3a118';"
+    "ALTER TABLE `app_settings` ADD `growdeck_postback_secret` VARCHAR(255) DEFAULT 'eb8d0721c2dfb60fcb3e6855e3a118';",
+    "ALTER TABLE `app_settings` ADD `timewall_enabled` TINYINT(1) DEFAULT 1;",
+    "ALTER TABLE `app_settings` ADD `timewall_app_id` VARCHAR(255) DEFAULT 'f60262456562e85e';",
+    "ALTER TABLE `app_settings` ADD `timewall_postback_secret` VARCHAR(255) DEFAULT 'e32f83ff0e9a6a6f05abb3e1035d5001';"
   ];
 
   for (const sql of migrations) {
@@ -270,6 +273,9 @@ testConnection().then(async () => {
       await sequelize.query("UPDATE `app_settings` SET `growdeck_app_id` = '299' WHERE `growdeck_app_id` IS NULL;");
       await sequelize.query("UPDATE `app_settings` SET `growdeck_secret_key` = '024264098bf86c23825d' WHERE `growdeck_secret_key` IS NULL OR `growdeck_secret_key` = '5bc282ed15bbf833081f';");
       await sequelize.query("UPDATE `app_settings` SET `growdeck_postback_secret` = 'eb8d0721c2dfb60fcb3e6855e3a118' WHERE `growdeck_postback_secret` IS NULL;");
+      await sequelize.query("UPDATE `app_settings` SET `timewall_enabled` = 1 WHERE `timewall_enabled` IS NULL;");
+      await sequelize.query("UPDATE `app_settings` SET `timewall_app_id` = 'f60262456562e85e' WHERE `timewall_app_id` IS NULL;");
+      await sequelize.query("UPDATE `app_settings` SET `timewall_postback_secret` = 'e32f83ff0e9a6a6f05abb3e1035d5001' WHERE `timewall_postback_secret` IS NULL;");
     } catch (err) {
       console.log('ℹ️ Migration Note (Defaults):', err.message);
     }
@@ -311,7 +317,10 @@ testConnection().then(async () => {
           growdeck_enabled: true,
           growdeck_app_id: '299',
           growdeck_secret_key: '024264098bf86c23825d',
-          growdeck_postback_secret: 'eb8d0721c2dfb60fcb3e6855e3a118'
+          growdeck_postback_secret: 'eb8d0721c2dfb60fcb3e6855e3a118',
+          timewall_enabled: true,
+          timewall_app_id: 'f60262456562e85e',
+          timewall_postback_secret: 'e32f83ff0e9a6a6f05abb3e1035d5001'
         }
       });
  
@@ -597,7 +606,8 @@ app.post('/api/auth/sync', async (req, res) => {
         onboarding_verification_enabled: true,
         pubscale_enabled: true,
         opinion_universe_enabled: true,
-        growdeck_enabled: true
+        growdeck_enabled: true,
+        timewall_enabled: true
       }
     });
   } catch (error) {

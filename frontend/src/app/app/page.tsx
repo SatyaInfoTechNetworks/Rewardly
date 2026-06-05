@@ -43,7 +43,10 @@ export default function AppDashboard() {
     growdeck_enabled: true,
     growdeck_app_id: '299',
     growdeck_secret_key: '024264098bf86c23825d',
-    growdeck_postback_secret: 'eb8d0721c2dfb60fcb3e6855e3a118'
+    growdeck_postback_secret: 'eb8d0721c2dfb60fcb3e6855e3a118',
+    timewall_enabled: true,
+    timewall_app_id: 'f60262456562e85e',
+    timewall_postback_secret: 'e32f83ff0e9a6a6f05abb3e1035d5001'
   });
   
   // Custom Offer States
@@ -340,7 +343,7 @@ export default function AppDashboard() {
             </section>
 
             {/* Offerwalls Section */}
-            {user && (appSettings.pubscale_enabled || appSettings.opinion_universe_enabled || appSettings.growdeck_enabled) && (
+            {user && (appSettings.pubscale_enabled || appSettings.opinion_universe_enabled || appSettings.growdeck_enabled || appSettings.timewall_enabled) && (
               <section className={styles.surveysSection} style={{ paddingTop: 0, paddingBottom: '8px' }}>
                 <SectionHeader 
                   title="Offerwalls" 
@@ -429,6 +432,29 @@ export default function AppDashboard() {
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '2px' }}>
                         <span style={{ background: '#fef3c7', color: '#d97706', fontSize: '8px', fontWeight: 700, padding: '2px 5px', borderRadius: '4px' }}>NEW</span>
                         <span style={{ fontSize: '11px', fontWeight: 800, color: '#f59e0b' }}>🪙 100K+</span>
+                      </div>
+                    </div>
+                  )}
+
+                  {appSettings.timewall_enabled && (
+                    <div 
+                      className={`${styles.highRewardCard} card`} 
+                      style={{ padding: '14px', display: 'flex', flexDirection: 'column', gap: '8px', minHeight: 'auto', margin: 0, cursor: 'pointer' }}
+                      onClick={() => {
+                        const href = `https://timewall.io/users/login?oid=${appSettings.timewall_app_id || 'f60262456562e85e'}&uid=${user.id}`;
+                        window.open(href, '_blank');
+                      }}
+                    >
+                      <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                        <div style={{ width: '28px', height: '28px', borderRadius: '6px', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#eff6ff', color: '#1d4ed8' }}>
+                          <span style={{ fontSize: '16px' }}>⏱</span>
+                        </div>
+                        <h4 style={{ fontSize: '12px', fontWeight: 700, margin: 0 }}>TimeWall</h4>
+                      </div>
+                      <p style={{ fontSize: '10px', color: '#64748b', margin: 0, height: '30px', overflow: 'hidden' }}>Complete tasks, clicks & surveys. Earn 80K+ coins.</p>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '2px' }}>
+                        <span style={{ background: '#dbeafe', color: '#1e40af', fontSize: '8px', fontWeight: 700, padding: '2px 5px', borderRadius: '4px' }}>POPULAR</span>
+                        <span style={{ fontSize: '11px', fontWeight: 800, color: '#f59e0b' }}>🪙 80K+</span>
                       </div>
                     </div>
                   )}

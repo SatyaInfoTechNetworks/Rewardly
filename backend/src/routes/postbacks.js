@@ -1005,4 +1005,200 @@ router.get('/growdeck', async (req, res) => {
   }
 });
 
+/**
+ * TimeWall S2S Postback Webhook
+ * Credits/Deducts coins for completed tasks/surveys on TimeWall
+ * Whitelisted IPs: 51.81.120.73, 142.111.248.18
+ * Signature: SHA256(userID + revenue + SecretKey)
+ */
+router.get('/timewall', async (req, res) => {
+  const clientIp = req.headers['x-forwarded-for']?.split(',')[0] || req.socket.remoteAddress;
+  const cleanIp = clientIp.includes('::ffff:') ? clientIp.replace('::ffff:', '') : clientIp;
+  const allowedIps = ['51.81.120.73', '142.111.248.18'];
+
+  console.log(`📥 TimeWall Postback Received from IP: ${cleanIp}`);
+
+  if (process.env.NODE_ENV === 'production' && !allowedIps.includes(cleanIp)) {
+    console.warn(`⚠️ [TimeWall Postback] Unauthorized IP address access attempt: ${cleanIp}`);
+    return res.status(403).send('Forbidden: IP not whitelisted');
+  }
+
+  const { userID, revenue, currencyAmount, transactionID, type, hash, offername } = req.query;
+
+  // Clean parameters to support array types (e.g. from test callbacks)
+  let targetUserId = userID;
+  if (Array.isArray(userID)) {
+    targetUserId = userID.find(id => id && !id.includes('{') && !id.includes('%7B'));
+  }
+
+  let targetRevenue = revenue;
+  if (Array.isArray(revenue)) {
+    targetRevenue = revenue.find(r => r && !r.includes('{'));
+  }
+
+  let targetCurrencyAmount = currencyAmount;
+  if (Array.isArray(currencyAmount)) {
+    targetCurrencyAmount = currencyAmount.find(c => c && !c.includes('{'));
+  }
+
+  let targetTxId = transactionID;
+  if (Array.isArray(transactionID)) {
+    targetTxId = transactionID.find(t => t && !t.includes('{'));
+  }
+
+  let targetType = type;
+  if (Array.isArray(type)) {
+    targetType = type.find(t => t && !t.includes('{'));
+  }
+
+  let targetHash = hash;
+  if (Array.isArray(hash)) {
+    targetHash = hash.find(h => h && !h.includes('{'));
+  }
+
+  let targetOfferName = offername;
+  if (Array.isArray(offername)) {
+    targetOfferName = offername.find(o => o && !o.includes('{'));
+  }
+
+  // 0. Safety Check
+  if (!targetUserId || !targetRevenue || !targetCurrencyAmount || !targetTxId || !targetHash) {
+    console.error('❌ TimeWall Postback: Missing required parameters', { targetUserId, targetRevenue, targetCurrencyAmount, targetTxId, targetHash });
+    return res.status(400).send('Missing Parameters');
+  }
+
+  const t = await sequelize.transaction();
+
+  try {
+    // 1. Signature Verification
+    const settings = await getSettings();
+    const secretKey = settings.timewall_postback_secret || 'e32f83ff0e9a6a6f05abb3e1035d5001';
+
+    const template = `${targetUserId}${targetRevenue}${secretKey}`;
+    const calculatedHash = crypto.createHash('sha256').update(template).digest('hex');
+
+    if (calculatedHash.toLowerCase() !== targetHash.toLowerCase()) {
+      console.error(`❌ TimeWall Signature Mismatch! Expected ${calculatedHash}, got ${targetHash}`);
+      if (process.env.NODE_ENV === 'production') {
+        await t.rollback();
+        return res.status(401).send('Invalid Signature');
+      }
+    }
+
+    // 2. Check if transaction already processed (transactionID is the unique external_id)
+    const existing = await Transaction.findOne({ where: { external_id: targetTxId } });
+    if (existing) {
+      console.log(`ℹ️ TimeWall Postback: Transaction ${targetTxId} already processed`);
+      await t.rollback();
+      return res.send('OK'); // Return OK to avoid retry loops
+    }
+
+    // 3. Find User
+    const user = await User.findByPk(targetUserId);
+    if (!user) {
+      console.error(`❌ TimeWall User ${targetUserId} not found`);
+      await t.rollback();
+      return res.status(404).send('User not found');
+    }
+
+    const amountFloat = parseFloat(targetCurrencyAmount);
+    if (isNaN(amountFloat)) {
+      console.error('❌ TimeWall Postback: Invalid currencyAmount');
+      await t.rollback();
+      return res.status(400).send('Invalid Amount');
+    }
+    const amountInt = Math.trunc(amountFloat);
+
+    // 4. Handle Lifecycle Types (credit, chargeback, hold, hold_cancelled)
+    if (targetType === 'chargeback' || amountInt < 0) {
+      // Reversal / Chargeback
+      const deductAmount = Math.abs(amountInt);
+      await user.update({ balance: user.balance - deductAmount }, { transaction: t });
+      
+      await Transaction.create({
+        telegram_id: user.telegram_id,
+        amount: -deductAmount,
+        type: 'offerwall',
+        description: `FRAUD REVERSAL: TimeWall - ${targetOfferName || 'Offer Reversal'}`,
+        external_id: targetTxId,
+        status: 'completed'
+      }, { transaction: t });
+      
+      await t.commit();
+      
+      // Send alert to admin
+      try {
+        const { sendChargebackAlert } = require('../utils/telegramAlerter');
+        sendChargebackAlert({
+          offerName: targetOfferName || 'TimeWall Offer Reversal',
+          offerwall: 'TimeWall',
+          amount: deductAmount,
+          transactionId: targetTxId,
+          username: user.username,
+          firstName: user.first_name,
+          telegramId: user.telegram_id,
+          reason: 'TimeWall Chargeback (Reversal)'
+        });
+      } catch (alertErr) {
+        console.warn('⚠️ Could not send Telegram chargeback alert to admin:', alertErr.message);
+      }
+      
+      console.log(`⚠️ TimeWall Reversal: Deducted ${deductAmount} coins from User ${targetUserId}.`);
+      return res.send('OK');
+    }
+
+    if (targetType === 'hold' || targetType === 'hold_cancelled') {
+      console.log(`ℹ️ TimeWall Postback: Received transaction type '${targetType}', acknowledged.`);
+      await t.rollback();
+      return res.send('OK');
+    }
+
+    // 5. Normal Credit Transaction
+    await user.update({ balance: user.balance + amountInt }, { transaction: t });
+
+    await Transaction.create({
+      telegram_id: user.telegram_id,
+      amount: amountInt,
+      type: 'offerwall',
+      description: targetOfferName ? `TimeWall: ${targetOfferName}` : 'TimeWall Offer Completion',
+      external_id: targetTxId,
+      status: 'completed'
+    }, { transaction: t });
+
+    await t.commit();
+
+    // 6. Post-reward processing
+    try {
+      await trackContestActivity(user.telegram_id, 'earnings', amountInt);
+      await validateReferral(user.telegram_id);
+    } catch (postErr) {
+      console.error('[TimeWall Postback Post-Process] Error:', postErr.message);
+    }
+
+    // Send Telegram Alert to Admin
+    try {
+      const { sendCompletionAlert } = require('../utils/telegramAlerter');
+      sendCompletionAlert({
+        offerName: targetOfferName || 'TimeWall Offer Completion',
+        offerwall: 'TimeWall',
+        amount: amountInt,
+        transactionId: targetTxId,
+        username: user.username,
+        firstName: user.first_name,
+        telegramId: user.telegram_id
+      });
+    } catch (alertErr) {
+      console.warn('⚠️ Could not send Telegram notification to admin:', alertErr.message);
+    }
+
+    console.log(`✅ TimeWall Reward: User ${targetUserId} credited with ${amountInt} coins.`);
+    return res.send('OK');
+  } catch (error) {
+    if (t) await t.rollback();
+    console.error('❌ TimeWall Postback Error:', error);
+    return res.status(500).send('Internal Error');
+  }
+});
+
 module.exports = router;
+

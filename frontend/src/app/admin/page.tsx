@@ -4198,6 +4198,27 @@ export default function AdminPanel() {
                   </div>
                 </div>
 
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginTop: '15px' }}>
+                  <div className={styles.lteFormGroup}>
+                    <label className={styles.lteFormLabel}>TimeWall APP / OID (Placement ID)</label>
+                    <input 
+                      className={styles.lteFormControl}
+                      placeholder="e.g. f60262456562e85e"
+                      value={appSettings.timewall_app_id || ''}
+                      onChange={(e) => setAppSettings({...appSettings, timewall_app_id: e.target.value})}
+                    />
+                  </div>
+                  <div className={styles.lteFormGroup}>
+                    <label className={styles.lteFormLabel}>TimeWall Postback Secret Key</label>
+                    <input 
+                      className={styles.lteFormControl}
+                      placeholder="e.g. e32f83ff0e9a6a6f05abb3e1035d5001"
+                      value={appSettings.timewall_postback_secret || ''}
+                      onChange={(e) => setAppSettings({...appSettings, timewall_postback_secret: e.target.value})}
+                    />
+                  </div>
+                </div>
+
                 <div className={styles.lteFormGroup} style={{ marginTop: '15px' }}>
                   <label className={styles.lteFormLabel}>Opinion Universe Custom Offerwall Link</label>
                   <input 
@@ -4234,6 +4255,10 @@ export default function AdminPanel() {
                   <div className={styles.lteToggleBox}>
                     <span>Enable Growdeck Offerwall</span>
                     <input type="checkbox" checked={appSettings.growdeck_enabled ?? true} onChange={(e) => setAppSettings({...appSettings, growdeck_enabled: e.target.checked})} />
+                  </div>
+                  <div className={styles.lteToggleBox}>
+                    <span>Enable TimeWall Offerwall</span>
+                    <input type="checkbox" checked={appSettings.timewall_enabled ?? true} onChange={(e) => setAppSettings({...appSettings, timewall_enabled: e.target.checked})} />
                   </div>
                   <div className={styles.lteToggleBox}>
                     <span>Onboarding Membership Overlay</span>

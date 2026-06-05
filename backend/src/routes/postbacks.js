@@ -881,11 +881,37 @@ router.get('/custom-offer', async (req, res) => {
 router.get('/growdeck', async (req, res) => {
   const { user_id, reward, transaction_id, signature, campaign_name } = req.query;
 
-  console.log(`📥 Growdeck Postback: User=${user_id}, Reward=${reward}, Trans=${transaction_id}`);
+  console.log(`📥 Growdeck Postback Raw: User=${user_id}, Reward=${reward}, Trans=${transaction_id}`);
+
+  // Clean parameters to support array types (e.g. from Growdeck's dashboard test callback)
+  let targetUserId = user_id;
+  if (Array.isArray(user_id)) {
+    targetUserId = user_id.find(id => id && !id.includes('{') && !id.includes('%7B'));
+  }
+  
+  let targetReward = reward;
+  if (Array.isArray(reward)) {
+    targetReward = reward.find(r => r && !r.includes('{'));
+  }
+  
+  let targetTxId = transaction_id;
+  if (Array.isArray(transaction_id)) {
+    targetTxId = transaction_id.find(t => t && !t.includes('{'));
+  }
+  
+  let targetSignature = signature;
+  if (Array.isArray(signature)) {
+    targetSignature = signature.find(s => s && !s.includes('{'));
+  }
+  
+  let targetCampaignName = campaign_name;
+  if (Array.isArray(campaign_name)) {
+    targetCampaignName = campaign_name.find(c => c && !c.includes('{'));
+  }
 
   // 0. Safety Check
-  if (!user_id || !reward || !transaction_id || !signature) {
-    console.error('❌ Growdeck Postback: Missing required parameters');
+  if (!targetUserId || !targetReward || !targetTxId || !targetSignature) {
+    console.error('❌ Growdeck Postback: Missing required parameters', { targetUserId, targetReward, targetTxId, targetSignature });
     return res.status(400).send('Missing Parameters');
   }
 
@@ -896,7 +922,7 @@ router.get('/growdeck', async (req, res) => {
     const settings = await getSettings();
     const secretKey = settings.growdeck_postback_secret || 'eb8d0721c2dfb60fcb3e6855e3a118';
     
-    const amountFloat = parseFloat(reward);
+    const amountFloat = parseFloat(targetReward);
     if (isNaN(amountFloat)) {
       console.error('❌ Growdeck Postback: Invalid reward amount');
       await t.rollback();
@@ -904,11 +930,11 @@ router.get('/growdeck', async (req, res) => {
     }
     const amountInt = Math.trunc(amountFloat);
 
-    const template = `${secretKey}.${user_id}.${amountInt}.${transaction_id}`;
+    const template = `${secretKey}.${targetUserId}.${amountInt}.${targetTxId}`;
     const calculatedSig = crypto.createHmac('sha256', secretKey).update(template).digest('hex');
 
-    if (calculatedSig.toLowerCase() !== signature.toLowerCase()) {
-      console.error(`❌ Growdeck Signature Mismatch! Expected ${calculatedSig}, got ${signature}`);
+    if (calculatedSig.toLowerCase() !== targetSignature.toLowerCase()) {
+      console.error(`❌ Growdeck Signature Mismatch! Expected ${calculatedSig}, got ${targetSignature}`);
       if (process.env.NODE_ENV === 'production') {
         await t.rollback();
         return res.status(401).send('Invalid Signature');
@@ -916,17 +942,17 @@ router.get('/growdeck', async (req, res) => {
     }
 
     // 2. Check if transaction already processed (transaction_id is the unique external_id)
-    const existing = await Transaction.findOne({ where: { external_id: transaction_id } });
+    const existing = await Transaction.findOne({ where: { external_id: targetTxId } });
     if (existing) {
-      console.log(`ℹ️ Growdeck Postback: Transaction ${transaction_id} already processed`);
+      console.log(`ℹ️ Growdeck Postback: Transaction ${targetTxId} already processed`);
       await t.rollback();
       return res.send('OK'); // Return OK to avoid retry loops
     }
 
     // 3. Find User
-    const user = await User.findByPk(user_id);
+    const user = await User.findByPk(targetUserId);
     if (!user) {
-      console.error(`❌ Growdeck User ${user_id} not found`);
+      console.error(`❌ Growdeck User ${targetUserId} not found`);
       await t.rollback();
       return res.status(404).send('User not found');
     }
@@ -939,8 +965,8 @@ router.get('/growdeck', async (req, res) => {
       telegram_id: user.telegram_id,
       amount: amountInt,
       type: 'offerwall',
-      description: campaign_name ? `Growdeck: ${campaign_name}` : 'Growdeck Playtime Reward',
-      external_id: transaction_id,
+      description: targetCampaignName ? `Growdeck: ${targetCampaignName}` : 'Growdeck Playtime Reward',
+      external_id: targetTxId,
       status: 'completed'
     }, { transaction: t });
 
@@ -958,10 +984,10 @@ router.get('/growdeck', async (req, res) => {
     try {
       const { sendCompletionAlert } = require('../utils/telegramAlerter');
       sendCompletionAlert({
-        offerName: campaign_name || 'Growdeck Playtime Reward',
+        offerName: targetCampaignName || 'Growdeck Playtime Reward',
         offerwall: 'Growdeck',
         amount: amountInt,
-        transactionId: transaction_id,
+        transactionId: targetTxId,
         username: user.username,
         firstName: user.first_name,
         telegramId: user.telegram_id
@@ -970,7 +996,7 @@ router.get('/growdeck', async (req, res) => {
       console.warn('⚠️ Could not send Telegram notification to admin:', alertErr.message);
     }
 
-    console.log(`✅ Growdeck Reward: User ${user_id} credited with ${amountInt} coins.`);
+    console.log(`✅ Growdeck Reward: User ${targetUserId} credited with ${amountInt} coins.`);
     return res.send('OK');
   } catch (error) {
     if (t) await t.rollback();

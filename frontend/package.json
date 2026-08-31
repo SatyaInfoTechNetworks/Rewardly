@@ -9,6 +9,7 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "deskapp": "^0.0.2",
     "framer-motion": "^11.0.0",
     "lucide-react": "^1.14.0",
     "next": "16.2.5",

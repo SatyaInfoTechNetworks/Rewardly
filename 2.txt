@@ -1,0 +1,2806 @@
+# Rewardly V2
+
+## Scalable Telegram Mini App Platform — Complete Technical Architecture & Database Specification
+
+**Version:** 2.0
+**Platform:** Telegram Mini App
+**Frontend:** Next.js 14+ / React
+**Backend:** Node.js / Express.js
+**Database:** PostgreSQL
+**ORM:** Sequelize
+**Cache:** Redis
+**Automation:** n8n
+**AI:** Optional Agentic AI Layer
+**Primary Communication:** Telegram Bot API
+**Admin:** Single Supreme Admin
+**Architecture:** Modular Monolith + Event-Driven Extensions
+
+---
+
+# 1. Executive Summary
+
+Rewardly V2 is a scalable rewards and engagement platform designed primarily as a Telegram Mini App.
+
+The platform allows users to:
+
+* Earn coins through offers, tasks, games and activities
+* Complete offer tiers
+* Participate in contests
+* Participate in lucky draws
+* Claim daily rewards
+* Refer other users
+* Maintain streaks
+* Manage their wallet
+* Request withdrawals
+* Receive Telegram notifications
+
+The platform also provides a powerful Supreme Admin Panel for:
+
+* User management
+* Earning management
+* Financial management
+* Withdrawal review
+* Fraud investigation
+* Referral management
+* Broadcasts
+* Analytics
+* System configuration
+* Audit logs
+
+The architecture is designed to support future automation through n8n without making n8n responsible for core business logic.
+
+The central principle is:
+
+> **Rewardly must operate normally even when n8n or AI is completely unavailable.**
+
+n8n and AI are extension layers, not dependencies of the core platform.
+
+---
+
+# 2. Core Architecture Principles
+
+Rewardly V2 follows these principles:
+
+### 2.1 PostgreSQL is the source of truth
+
+All important business data lives in PostgreSQL.
+
+Examples:
+
+* Users
+* Wallets
+* Transactions
+* Withdrawals
+* Offers
+* Referrals
+* Contests
+* Notifications
+* Audit logs
+
+Redis must never become the authoritative source for financial data.
+
+---
+
+### 2.2 Business logic belongs in the backend
+
+Core rules must be implemented inside Express services.
+
+Examples:
+
+* Can the user withdraw?
+* How many coins can be deducted?
+* Is a referral valid?
+* Is an offer completion valid?
+* Can a user claim a reward?
+* Can a withdrawal be approved?
+
+These must not depend on n8n or an LLM.
+
+---
+
+### 2.3 n8n is an automation layer
+
+n8n handles:
+
+* Scheduled workflows
+* Event-triggered workflows
+* Notifications
+* Analytics automation
+* AI workflows
+* External integrations
+
+n8n should call controlled backend APIs instead of directly modifying PostgreSQL.
+
+---
+
+### 2.4 AI is optional
+
+The platform should continue functioning if:
+
+* AI API is unavailable
+* n8n is unavailable
+* an AI workflow fails
+* an automation times out
+
+---
+
+### 2.5 Financial operations must be atomic
+
+Wallet and withdrawal operations must use database transactions.
+
+A financial operation should either:
+
+**completely succeed**
+
+or
+
+**completely fail**
+
+Never leave half-completed state.
+
+---
+
+### 2.6 Every important action must be traceable
+
+The platform must answer:
+
+> Who did what, when, to which entity, and why?
+
+This applies to:
+
+* Admin actions
+* Wallet changes
+* Withdrawals
+* Fraud decisions
+* Automated actions
+
+---
+
+# 3. High-Level System Architecture
+
+```text
+                         TELEGRAM
+                            |
+                            v
+                 +---------------------+
+                 | Telegram Mini App   |
+                 |      Next.js        |
+                 +----------+----------+
+                            |
+                            v
+                 +---------------------+
+                 |    Express API      |
+                 +----------+----------+
+                            |
+       +--------------------+---------------------+
+       |                    |                     |
+       v                    v                     v
+   User Domain         Earning Domain        Finance Domain
+       |                    |                     |
+       +--------------------+---------------------+
+                            |
+                            v
+                      PostgreSQL
+                     SOURCE OF TRUTH
+                            |
+              +-------------+-------------+
+              |             |             |
+              v             v             v
+           Redis         Events       Analytics
+                            |
+                            v
+                          n8n
+                            |
+                 +----------+----------+
+                 |                     |
+                 v                     v
+             Automation             AI Agent
+                 |                     |
+                 +----------+----------+
+                            |
+                            v
+                    Notification API
+                            |
+                            v
+                         Telegram
+```
+
+---
+
+# 4. Technology Stack
+
+## Frontend
+
+* Next.js 14+
+* React
+* App Router
+* TypeScript
+* Responsive Telegram Mini App UI
+
+The existing Rewardly frontend is based on Next.js and has separate User and Admin experiences.
+
+---
+
+## Backend
+
+* Node.js
+* Express.js
+* TypeScript recommended
+* Sequelize ORM
+* REST API
+
+The current backend is already structured as an Express REST API with models, routes, middleware, configuration and utilities.
+
+---
+
+## Database
+
+**PostgreSQL**
+
+Recommended because the platform requires:
+
+* Strong relational integrity
+* Transactions
+* JSONB
+* Indexing
+* Constraints
+* Concurrent operations
+* Reliable financial records
+
+---
+
+## Cache
+
+**Redis**
+
+Use Redis for:
+
+* Rate limiting
+* Temporary cache
+* Sessions where appropriate
+* Short-lived locks
+* Frequently accessed data
+* Background job coordination
+
+Do not use Redis as the financial source of truth.
+
+---
+
+## Automation
+
+**n8n**
+
+Used for:
+
+* Scheduled workflows
+* Event-driven automation
+* External APIs
+* Notifications
+* AI workflows
+
+---
+
+# 5. User Architecture
+
+The existing `users` table currently contains identity, balances, streaks, activity, notification statistics, device identifiers and quality/fraud-related fields.
+
+For V2, these responsibilities should gradually be separated.
+
+---
+
+## 5.1 users
+
+```text
+users
+--------------------------------
+id                  BIGINT PK
+telegram_id         BIGINT UNIQUE
+username            VARCHAR
+status              VARCHAR
+is_banned           BOOLEAN
+created_at          TIMESTAMPTZ
+updated_at          TIMESTAMPTZ
+last_login_at       TIMESTAMPTZ
+```
+
+Purpose:
+
+Store the user's core identity.
+
+---
+
+## 5.2 user_profiles
+
+```text
+user_profiles
+--------------------------------
+user_id             BIGINT PK/FK
+first_name          VARCHAR
+last_name           VARCHAR
+photo_url            TEXT
+phone_number        VARCHAR
+phone_verified      BOOLEAN
+updated_at          TIMESTAMPTZ
+```
+
+---
+
+## 5.3 user_preferences
+
+```text
+user_preferences
+--------------------------------
+user_id
+notifications_enabled
+marketing_enabled
+language
+timezone
+created_at
+updated_at
+```
+
+---
+
+## 5.4 user_devices
+
+```text
+user_devices
+--------------------------------
+id
+user_id
+device_id
+platform
+app_version
+ip_address
+last_seen_at
+created_at
+```
+
+---
+
+# 6. Multi-Application Architecture
+
+Rewardly should be prepared to support:
+
+* Rewardly
+* Stuearn
+* RewardVerse
+* Future Telegram Mini Apps
+
+Instead of creating completely separate user databases, create a shared application layer.
+
+---
+
+## applications
+
+```text
+applications
+--------------------------------
+id
+name
+slug UNIQUE
+status
+created_at
+updated_at
+```
+
+---
+
+## user_applications
+
+```text
+user_applications
+--------------------------------
+user_id
+application_id
+status
+joined_at
+last_active_at
+
+UNIQUE(user_id, application_id)
+```
+
+This allows:
+
+```text
+User #1001
+   |
+   +--- Rewardly
+   |
+   +--- Stuearn
+   |
+   +--- RewardVerse
+```
+
+---
+
+# 7. Telegram Authentication
+
+Rewardly is a Telegram Mini App.
+
+Authentication flow:
+
+```text
+Telegram
+   |
+   v
+Mini App
+   |
+   v
+Telegram initData
+   |
+   v
+Express Backend
+   |
+   v
+Verify Telegram signature
+   |
+   v
+Find/Create User
+   |
+   v
+Create application session
+```
+
+The frontend must never be trusted for:
+
+* User identity
+* Wallet balance
+* Reward amount
+* Admin status
+* Withdrawal eligibility
+
+The backend determines these values.
+
+---
+
+# 8. Session Management
+
+Recommended:
+
+```text
+sessions
+--------------------------------
+id
+user_id
+application_id
+session_token_hash
+expires_at
+created_at
+last_used_at
+revoked_at
+```
+
+Session tokens should be handled securely.
+
+For Admin authentication, use a secure HttpOnly cookie rather than exposing an admin secret in browser localStorage.
+
+---
+
+# 9. Wallet Architecture
+
+The current system stores a `balance` and `pending_balance` directly on users and maintains transaction records.
+
+V2 should move toward a dedicated wallet.
+
+---
+
+## wallets
+
+```text
+wallets
+--------------------------------
+id
+user_id
+currency
+available_balance
+pending_balance
+created_at
+updated_at
+
+UNIQUE(user_id, currency)
+```
+
+---
+
+## wallet_transactions
+
+```text
+wallet_transactions
+--------------------------------
+id
+wallet_id
+user_id
+type
+amount
+balance_before
+balance_after
+reference_type
+reference_id
+status
+description
+created_at
+```
+
+Transaction types:
+
+```text
+TASK_REWARD
+OFFER_REWARD
+GAME_REWARD
+REFERRAL_REWARD
+DAILY_REWARD
+BONUS
+WITHDRAWAL
+REFUND
+ADJUSTMENT
+CONTEST_REWARD
+LUCKY_DRAW_REWARD
+```
+
+---
+
+# 10. Wallet Rules
+
+Every balance-changing operation must:
+
+1. Start a database transaction
+2. Lock the relevant wallet row
+3. Validate balance
+4. Create ledger entry
+5. Update wallet balance
+6. Create corresponding event
+7. Commit
+
+Example:
+
+```text
+Withdrawal
+    |
+    v
+BEGIN TRANSACTION
+    |
+    v
+Lock Wallet
+    |
+    v
+Check Balance
+    |
+    v
+Deduct Coins
+    |
+    v
+Create Ledger Record
+    |
+    v
+Create Withdrawal
+    |
+    v
+Create Outbox Event
+    |
+    v
+COMMIT
+```
+
+---
+
+# 11. Idempotency
+
+Critical operations must be idempotent.
+
+Examples:
+
+* Withdrawal
+* Reward credit
+* Offer completion
+* Referral reward
+* Notification action
+* n8n-triggered operations
+
+Create idempotency keys where required.
+
+```text
+idempotency_key
+----------------------------
+UNIQUE
+```
+
+If the same request arrives twice:
+
+```text
+Request #1 → Process
+Request #2 → Return existing result
+```
+
+This prevents duplicate rewards and duplicate withdrawals.
+
+---
+
+# 12. Earning Architecture
+
+The existing platform contains multiple earning mechanisms:
+
+* Offers
+* Offer tiers
+* Visit tasks
+* Games
+* Daily rewards
+* Lifafas
+* Contests
+* Lucky draws
+
+These should remain separate business domains.
+
+---
+
+# 13. Offers
+
+Existing:
+
+```text
+offers
+offer_tiers
+offer_completions
+user_offer_progress
+```
+
+This separation should remain.
+
+Recommended relationships:
+
+```text
+offers
+   |
+   +--- offer_tiers
+   |
+   +--- user_offer_progress
+   |
+   +--- offer_completions
+```
+
+Important indexes:
+
+```text
+offer_id
+user_id
+click_id
+status
+created_at
+```
+
+---
+
+# 14. Visit Tasks
+
+```text
+visit_tasks
+--------------------------------
+id
+title
+url
+reward_amount
+icon
+timer_seconds
+status
+created_at
+updated_at
+```
+
+```text
+user_visits
+--------------------------------
+id
+user_id
+task_id
+completed_at
+created_at
+```
+
+Add appropriate uniqueness rules to prevent duplicate completion where required.
+
+---
+
+# 15. Games
+
+```text
+games
+--------------------------------
+id
+name
+slug
+type
+thumbnail_url
+config JSONB
+status
+created_at
+updated_at
+```
+
+```text
+game_sessions
+--------------------------------
+id
+user_id
+game_id
+contest_id
+score
+duration
+is_valid
+metadata JSONB
+status
+created_at
+```
+
+---
+
+# 16. Daily Rewards
+
+```text
+daily_rewards
+--------------------------------
+day
+reward_amount
+```
+
+Daily reward claims should have a user-specific claim record if required for reliable enforcement.
+
+---
+
+# 17. Lifafas
+
+Existing lifafa functionality:
+
+```text
+lifafas
+lifafa_claims
+```
+
+Recommended:
+
+```text
+lifafas
+--------------------------------
+id
+code
+reward_coins
+max_uses
+current_uses
+status
+expires_at
+created_at
+```
+
+```text
+lifafa_claims
+--------------------------------
+id
+lifafa_id
+user_id
+claimed_at
+
+UNIQUE(lifafa_id, user_id)
+```
+
+---
+
+# 18. Contests
+
+Existing structure:
+
+```text
+contests
+contest_participants
+contest_rewards
+```
+
+Keep this model.
+
+Important indexes:
+
+```text
+contest_id
+user_id
+status
+rank
+```
+
+---
+
+# 19. Lucky Draw
+
+Existing:
+
+```text
+lucky_draws
+lucky_draw_entries
+lucky_draw_winners
+```
+
+Maintain separation.
+
+Ensure:
+
+```text
+lucky_draw_id
+user_id
+entry_source
+```
+
+are properly indexed.
+
+---
+
+# 20. Referral System
+
+Existing:
+
+```text
+referrals
+referral_milestones
+referral_settings
+```
+
+This is a good foundation.
+
+---
+
+## referrals
+
+```text
+referrals
+--------------------------------
+id
+referrer_user_id
+referred_user_id
+status
+is_valid
+validated_at
+ip_address
+device_id
+created_at
+```
+
+Indexes:
+
+```text
+referrer_user_id
+referred_user_id
+status
+```
+
+---
+
+# 21. Referral Fraud
+
+Existing functionality already considers:
+
+* Same device blocking
+* VPN detection
+* IP/device information
+* Quality score
+
+V2 should make fraud a dedicated domain.
+
+---
+
+## fraud_signals
+
+```text
+fraud_signals
+--------------------------------
+id
+user_id
+type
+severity
+score
+metadata JSONB
+created_at
+```
+
+Possible types:
+
+```text
+MULTIPLE_ACCOUNTS
+SAME_DEVICE
+VPN
+SUSPICIOUS_REFERRAL
+ABNORMAL_EARNING
+FAKE_PROOF
+UNUSUAL_ACTIVITY
+```
+
+---
+
+## fraud_cases
+
+```text
+fraud_cases
+--------------------------------
+id
+user_id
+status
+risk_score
+reason
+admin_note
+reviewed_at
+created_at
+updated_at
+```
+
+---
+
+# 22. Withdrawal Architecture
+
+Existing withdrawal entities:
+
+```text
+payout_methods
+payout_tiers
+withdrawal_requests
+```
+
+Keep them.
+
+---
+
+## Withdrawal lifecycle
+
+```text
+PENDING
+   |
+   v
+UNDER_REVIEW
+   |
+   +-------> REJECTED
+   |             |
+   |             v
+   |          REFUNDED
+   |
+   v
+APPROVED
+   |
+   v
+PAID
+```
+
+---
+
+# 23. Withdrawal Security
+
+When a user requests withdrawal:
+
+```text
+Check authentication
+        |
+Check account status
+        |
+Check fraud status
+        |
+Check wallet balance
+        |
+Check minimum withdrawal
+        |
+Lock wallet
+        |
+Deduct/freeze amount
+        |
+Create withdrawal
+        |
+Create transaction
+        |
+Create event
+        |
+Commit
+```
+
+The existing specification already uses a pending withdrawal state, deducts coins and records a transaction before admin review.
+
+---
+
+# 24. Admin Panel
+
+There is only **one Supreme Admin**.
+
+Therefore no unnecessary:
+
+* Role hierarchy
+* Admin management
+* RBAC system
+* Admin invitation system
+
+is required right now.
+
+However, strong authentication and audit logging are still required.
+
+---
+
+# 25. Supreme Admin Authentication
+
+Recommended flow:
+
+```text
+Admin Login
+     |
+     v
+Backend verifies credentials
+     |
+     v
+Create secure session
+     |
+     v
+HttpOnly Secure Cookie
+     |
+     v
+Admin Middleware
+     |
+     v
+Admin API
+```
+
+Never expose the primary admin secret through frontend JavaScript.
+
+---
+
+# 26. Admin Panel Structure
+
+```text
+ADMIN
+|
++-- Dashboard
+|
++-- Users
+|   +-- All Users
+|   +-- Active
+|   +-- Banned
+|   +-- Suspicious
+|   +-- User Details
+|
++-- Earning
+|   +-- Offers
+|   +-- Offer Tiers
+|   +-- Visit Tasks
+|   +-- Games
+|   +-- Contests
+|   +-- Lucky Draws
+|   +-- Daily Rewards
+|
++-- Finance
+|   +-- Wallets
+|   +-- Transactions
+|   +-- Withdrawals
+|   +-- Payout Methods
+|   +-- Payout Tiers
+|
++-- Referrals
+|
++-- Fraud
+|
++-- Notifications
+|
++-- Broadcasts
+|
++-- Analytics
+|
++-- Automation
+|
++-- AI
+|
++-- Audit Logs
+|
++-- Settings
+```
+
+---
+
+# 27. Admin Dashboard
+
+The dashboard should display:
+
+### Users
+
+* Total users
+* New users
+* Active users
+* Banned users
+* Returning users
+
+### Economy
+
+* Coins distributed
+* Coins withdrawn
+* Pending withdrawals
+* Total transactions
+
+### Earning
+
+* Tasks completed
+* Offers completed
+* Games played
+* Contest participation
+
+### Growth
+
+* Referrals
+* Referral conversion
+* New registrations
+
+### Notifications
+
+* Sent
+* Opened
+* Clicked
+
+### Fraud
+
+* High-risk users
+* Open fraud cases
+* Suspicious referrals
+
+### Retention
+
+* DAU
+* WAU
+* MAU
+* D1 retention
+* D7 retention
+* D30 retention
+
+---
+
+# 28. User Management
+
+Admin should be able to search by:
+
+```text
+Telegram ID
+Username
+First Name
+Last Name
+```
+
+User detail page:
+
+```text
+USER PROFILE
+-------------------------
+Telegram ID
+Username
+Name
+Status
+Joined
+Last Active
+
+WALLET
+-------------------------
+Available Balance
+Pending Balance
+Lifetime Earned
+Lifetime Withdrawn
+
+EARNING
+-------------------------
+Offers Completed
+Tasks Completed
+Games Played
+
+REFERRALS
+-------------------------
+Successful Referrals
+
+ACTIVITY
+-------------------------
+Recent Events
+
+FRAUD
+-------------------------
+Risk Score
+Fraud Signals
+
+ACTIONS
+-------------------------
+Ban User
+Unban User
+Freeze Wallet
+View Transactions
+View Withdrawals
+```
+
+---
+
+# 29. Admin Audit Logs
+
+Create:
+
+```text
+admin_audit_logs
+--------------------------------
+id
+action
+entity_type
+entity_id
+old_data JSONB
+new_data JSONB
+reason
+ip_address
+created_at
+```
+
+Examples:
+
+```text
+BAN_USER
+UNBAN_USER
+FREEZE_WALLET
+UNFREEZE_WALLET
+APPROVE_WITHDRAWAL
+REJECT_WITHDRAWAL
+ADJUST_BALANCE
+UPDATE_OFFER
+DELETE_TASK
+CHANGE_SETTINGS
+```
+
+This creates an immutable operational history.
+
+---
+
+# 30. Notification System
+
+The existing platform already has broadcasts and broadcast logs with sent/click/open tracking.
+
+Separate:
+
+### Admin broadcasts
+
+Large campaigns sent by the Supreme Admin.
+
+### Individual notifications
+
+System-generated or automated messages.
+
+---
+
+## notifications
+
+```text
+notifications
+--------------------------------
+id
+user_id
+application_id
+type
+title
+body
+data JSONB
+status
+sent_at
+delivered_at
+opened_at
+created_at
+```
+
+---
+
+# 31. Broadcast System
+
+Existing:
+
+```text
+broadcasts
+broadcast_logs
+```
+
+Keep them.
+
+Broadcast targeting can support:
+
+```text
+ALL_USERS
+ACTIVE_USERS
+INACTIVE_USERS
+NEW_USERS
+HIGH_VALUE_USERS
+CUSTOM_SEGMENT
+```
+
+---
+
+# 32. User Event System
+
+This is one of the most important V2 additions.
+
+Create:
+
+```text
+user_events
+--------------------------------
+id
+user_id
+application_id
+event_type
+event_id
+metadata JSONB
+created_at
+```
+
+Events:
+
+```text
+USER_REGISTERED
+USER_LOGIN
+APP_OPENED
+
+TASK_VIEWED
+TASK_STARTED
+TASK_COMPLETED
+
+OFFER_STARTED
+OFFER_COMPLETED
+
+GAME_STARTED
+GAME_COMPLETED
+
+REWARD_EARNED
+
+REFERRAL_CREATED
+REFERRAL_VALIDATED
+
+WITHDRAWAL_CREATED
+WITHDRAWAL_APPROVED
+WITHDRAWAL_REJECTED
+WITHDRAWAL_PAID
+
+NOTIFICATION_SENT
+NOTIFICATION_OPENED
+```
+
+This provides a centralized behavioral timeline.
+
+---
+
+# 33. Event Architecture
+
+Business services should publish events.
+
+Example:
+
+```text
+Offer Service
+     |
+     v
+Offer completed
+     |
+     +--> Database business record
+     |
+     +--> Event Publisher
+```
+
+Do not tightly couple every service directly to n8n.
+
+Bad:
+
+```text
+Offer Service
+     |
+     v
+Call n8n webhook
+```
+
+Better:
+
+```text
+Offer Service
+     |
+     v
+Event
+     |
+     v
+Outbox
+     |
+     v
+Event Worker
+     |
+     v
+n8n / Analytics / Fraud
+```
+
+---
+
+# 34. Transactional Outbox
+
+Create:
+
+```text
+outbox_events
+--------------------------------
+id
+event_type
+aggregate_type
+aggregate_id
+payload JSONB
+status
+retry_count
+created_at
+processed_at
+```
+
+When a business transaction occurs:
+
+```text
+BEGIN
+ |
+ +-- Update business data
+ |
+ +-- Create event in outbox
+ |
+COMMIT
+```
+
+Then a background worker publishes the event.
+
+This prevents:
+
+```text
+Database succeeded
++
+n8n notification failed
+=
+Lost event
+```
+
+---
+
+# 35. n8n Integration
+
+n8n should connect through a controlled interface.
+
+Recommended internal API:
+
+```text
+/api/internal/users/:id
+/api/internal/users/:id/activity
+/api/internal/users/:id/behavior
+/api/internal/users/:id/rewards
+/api/internal/users/:id/notifications
+
+/api/internal/notifications/send
+
+/api/internal/events
+```
+
+These endpoints require service authentication.
+
+---
+
+# 36. n8n Security
+
+Never give n8n unrestricted PostgreSQL credentials.
+
+Do not allow:
+
+```text
+n8n -> arbitrary SQL
+```
+
+Use:
+
+```text
+n8n
+ |
+ v
+Internal API
+ |
+ v
+Authentication
+ |
+ v
+Validation
+ |
+ v
+Service Layer
+ |
+ v
+PostgreSQL
+```
+
+---
+
+# 37. Automation Examples
+
+## Inactive User
+
+```text
+Scheduled Trigger
+      |
+      v
+Find inactive users
+      |
+      v
+Get user behavior
+      |
+      v
+Check notification history
+      |
+      v
+Check cooldown
+      |
+      v
+Generate message
+      |
+      v
+Send notification
+      |
+      v
+Record result
+```
+
+---
+
+## Withdrawal Created
+
+```text
+WITHDRAWAL_CREATED
+        |
+        v
+n8n
+        |
+        v
+Notify admin
+        |
+        v
+Admin reviews
+```
+
+---
+
+## Suspicious Referral
+
+```text
+REFERRAL_CREATED
+        |
+        v
+Fraud workflow
+        |
+        v
+Check device/IP signals
+        |
+        v
+Calculate risk
+        |
+        +---- LOW ----> Continue
+        |
+        +---- HIGH ---> Create fraud case
+```
+
+---
+
+# 38. AI Layer
+
+AI is optional and sits above the event/automation infrastructure.
+
+Example:
+
+```text
+User Events
+     |
+     v
+Behavior Processor
+     |
+     v
+User Behavior State
+     |
+     v
+n8n
+     |
+     v
+AI Agent
+     |
+     v
+Decision
+```
+
+Possible AI decisions:
+
+```text
+NO_ACTION
+SEND_REMINDER
+PROMOTE_TASK
+STREAK_REMINDER
+REWARD_REMINDER
+RE_ENGAGEMENT
+```
+
+AI must not directly manipulate wallets or core financial records.
+
+---
+
+# 39. User Behavior
+
+Create:
+
+```text
+user_behavior
+--------------------------------
+user_id
+application_id
+last_active_at
+
+sessions_1d
+sessions_7d
+sessions_30d
+
+tasks_1d
+tasks_7d
+tasks_30d
+
+earnings_7d
+earnings_30d
+
+withdrawals_count
+
+engagement_score
+retention_risk
+
+updated_at
+```
+
+This is useful for:
+
+* Admin analytics
+* Segmentation
+* Notifications
+* Automation
+* Future AI
+
+---
+
+# 40. Analytics Architecture
+
+Operational tables should not be overloaded with analytics.
+
+Create aggregation processes for:
+
+```text
+DAU
+WAU
+MAU
+
+New users
+Returning users
+
+Task completion
+Offer completion
+
+Coins earned
+Coins withdrawn
+
+Referral conversion
+
+Notification engagement
+
+Retention
+```
+
+As scale increases, use:
+
+* Materialized views
+* Aggregation tables
+* Background jobs
+* Analytics database if eventually required
+
+---
+
+# 41. Application Settings
+
+The existing `app_settings` currently contains many unrelated settings covering games, ads, onboarding, referrals and external integrations.
+
+Gradually separate:
+
+```text
+app_settings
+earning_settings
+game_settings
+referral_settings
+withdrawal_settings
+notification_settings
+fraud_settings
+automation_settings
+```
+
+---
+
+# 42. Database Relationships
+
+Core relationship structure:
+
+```text
+applications
+     |
+     +---- user_applications
+                    |
+                    v
+                  users
+                    |
+        +-----------+-----------+
+        |           |           |
+        v           v           v
+     profile     devices    preferences
+        |
+        |
+      wallet
+        |
+        v
+wallet_transactions
+```
+
+Business:
+
+```text
+users
+ |
+ +-- offer_progress
+ +-- offer_completions
+ +-- game_sessions
+ +-- user_visits
+ +-- contest_participants
+ +-- lucky_draw_entries
+ +-- referrals
+ +-- withdrawals
+ +-- notifications
+ +-- user_events
+ +-- fraud_signals
+```
+
+---
+
+# 43. Database Constraints
+
+Use database constraints aggressively.
+
+Examples:
+
+```text
+UNIQUE telegram_id
+
+UNIQUE application.slug
+
+UNIQUE user_id + application_id
+
+UNIQUE wallet user_id + currency
+
+UNIQUE lifafa_id + user_id
+```
+
+Use foreign keys wherever relationships are required.
+
+Use CHECK constraints where appropriate.
+
+Do not rely solely on application code for data integrity.
+
+---
+
+# 44. Indexing Strategy
+
+Important indexes include:
+
+```text
+users.telegram_id
+users.status
+users.created_at
+
+user_events.user_id
+user_events.event_type
+user_events.created_at
+
+wallet_transactions.user_id
+wallet_transactions.wallet_id
+wallet_transactions.created_at
+
+withdrawal_requests.user_id
+withdrawal_requests.status
+withdrawal_requests.created_at
+
+referrals.referrer_user_id
+referrals.referred_user_id
+
+notifications.user_id
+notifications.created_at
+
+fraud_cases.status
+fraud_signals.user_id
+```
+
+Indexes should be based on real query patterns.
+
+Do not blindly index every column.
+
+---
+
+# 45. Database Migrations
+
+Do not manually modify production databases.
+
+Use Sequelize migrations.
+
+Development:
+
+```text
+Migration
+   |
+   v
+Test Database
+   |
+   v
+Integration Testing
+   |
+   v
+Production
+```
+
+Every schema change should be version controlled.
+
+---
+
+# 46. Backend Structure
+
+Recommended Express architecture:
+
+```text
+src/
+|
++-- modules/
+|   |
+|   +-- auth/
+|   +-- users/
+|   +-- applications/
+|   +-- wallets/
+|   +-- transactions/
+|   +-- offers/
+|   +-- tasks/
+|   +-- games/
+|   +-- contests/
+|   +-- lucky-draws/
+|   +-- referrals/
+|   +-- withdrawals/
+|   +-- notifications/
+|   +-- broadcasts/
+|   +-- fraud/
+|   +-- analytics/
+|   +-- automation/
+|   +-- admin/
+|
++-- middleware/
++-- config/
++-- database/
++-- events/
++-- jobs/
++-- utils/
++-- app.ts
++-- server.ts
+```
+
+Each module:
+
+```text
+users/
+|
++-- controller.ts
++-- service.ts
++-- repository.ts
++-- model.ts
++-- routes.ts
++-- validation.ts
+```
+
+---
+
+# 47. Service Responsibilities
+
+## Controller
+
+Handles:
+
+* HTTP request
+* Input extraction
+* Response
+
+## Validation
+
+Validates:
+
+* Parameters
+* Body
+* Query
+* Types
+* Required fields
+
+## Service
+
+Contains business logic.
+
+## Repository
+
+Handles database access.
+
+This separation prevents controllers from becoming massive.
+
+---
+
+# 48. API Architecture
+
+Example:
+
+```text
+/api/auth
+/api/users
+/api/offers
+/api/tasks
+/api/games
+/api/contests
+/api/lucky-draws
+/api/referrals
+/api/wallet
+/api/transactions
+/api/withdrawals
+/api/notifications
+/api/broadcasts
+/api/analytics
+```
+
+Admin:
+
+```text
+/api/admin/dashboard
+/api/admin/users
+/api/admin/offers
+/api/admin/tasks
+/api/admin/transactions
+/api/admin/withdrawals
+/api/admin/referrals
+/api/admin/fraud
+/api/admin/notifications
+/api/admin/analytics
+/api/admin/audit-logs
+/api/admin/settings
+```
+
+Internal:
+
+```text
+/api/internal/users
+/api/internal/events
+/api/internal/notifications
+/api/internal/behavior
+```
+
+---
+
+# 49. API Security
+
+Implement:
+
+```text
+Telegram authentication verification
+Secure sessions
+Input validation
+Rate limiting
+CORS configuration
+Request size limits
+Error handling
+Authentication middleware
+Admin authentication
+Internal service authentication
+Idempotency
+Audit logging
+```
+
+Never trust frontend values for sensitive operations.
+
+---
+
+# 50. Error Handling
+
+Use consistent API responses.
+
+Example:
+
+```json
+{
+  "success": false,
+  "error": {
+    "code": "INSUFFICIENT_BALANCE",
+    "message": "Insufficient wallet balance"
+  }
+}
+```
+
+Do not expose:
+
+* Database errors
+* Stack traces
+* Secrets
+* Internal SQL
+* Infrastructure details
+
+to users.
+
+---
+
+# 51. Logging
+
+Backend logs should include:
+
+```text
+request_id
+user_id
+route
+method
+status_code
+duration
+error_code
+timestamp
+```
+
+Financial operations should have especially detailed operational logs.
+
+Never log sensitive secrets.
+
+---
+
+# 52. Background Jobs
+
+Use background jobs for work that doesn't need to block HTTP requests.
+
+Examples:
+
+```text
+Notification sending
+Analytics aggregation
+Event publishing
+Expired offer processing
+Expired lifafa processing
+Contest settlement
+Lucky draw processing
+Fraud analysis
+Data cleanup
+```
+
+Start with a lightweight job system.
+
+Introduce Kafka only when traffic/architecture actually requires it.
+
+---
+
+# 53. Redis Usage
+
+Recommended Redis use:
+
+```text
+rate limits
+short-lived cache
+temporary locks
+frequently requested user data
+job coordination
+```
+
+Example:
+
+```text
+user:123:summary
+offer:892:details
+```
+
+Cache invalidation must happen whenever underlying data changes.
+
+---
+
+# 54. Scalability Strategy
+
+Start with:
+
+```text
+Next.js
+   |
+Express
+   |
+PostgreSQL
+   |
+Redis
+```
+
+This is a **modular monolith**.
+
+Do not immediately split into dozens of microservices.
+
+When necessary, extract domains such as:
+
+```text
+Notification Service
+Analytics Service
+Fraud Service
+Event Service
+```
+
+The modular architecture makes future extraction easier.
+
+---
+
+# 55. Deployment Architecture
+
+Recommended production setup:
+
+```text
+                 Internet
+                    |
+                    v
+              Reverse Proxy
+                    |
+          +---------+---------+
+          |                   |
+          v                   v
+       Next.js             Express
+                              |
+                +-------------+-------------+
+                |             |             |
+                v             v             v
+           PostgreSQL       Redis         Worker
+                                             |
+                                             v
+                                            n8n
+```
+
+Use Docker for repeatable deployments.
+
+---
+
+# 56. Backups
+
+PostgreSQL backups are mandatory.
+
+Recommended:
+
+```text
+Automated daily backups
++
+Point-in-time recovery where available
++
+Periodic backup restoration test
+```
+
+A backup is not considered reliable until restoration has been tested.
+
+---
+
+# 57. Data Retention
+
+Not all data needs to remain indefinitely in the same operational tables.
+
+Define retention policies for:
+
+* Events
+* Logs
+* Notification logs
+* Old sessions
+* Temporary automation records
+
+Financial and audit records should have much stronger retention requirements.
+
+---
+
+# 58. Admin Automation Center
+
+Add an Admin section:
+
+```text
+AUTOMATION
+|
++-- Event Monitor
++-- Workflow Runs
++-- Failed Runs
++-- Notification Automations
++-- AI Decisions
++-- Automation Logs
+```
+
+Example:
+
+```text
+AUTOMATION RUN
+
+Trigger:
+USER_INACTIVE
+
+User:
+#18291
+
+Decision:
+SEND_NOTIFICATION
+
+Reason:
+Activity declined
+
+Action:
+Telegram notification
+
+Result:
+Opened
+```
+
+---
+
+# 59. AI Retention Architecture
+
+Future architecture:
+
+```text
+user_events
+      |
+      v
+user_behavior
+      |
+      v
+n8n
+      |
+      v
+AI Agent
+      |
+      +---- getUserBehavior()
+      +---- getRecentActivity()
+      +---- getRewards()
+      +---- getAvailableTasks()
+      +---- getNotificationHistory()
+      |
+      v
+Decision
+      |
+      v
+Notification API
+      |
+      v
+Telegram
+```
+
+The AI should use controlled tools.
+
+Never provide unrestricted SQL access.
+
+---
+
+# 60. Notification Guardrails
+
+Regardless of whether the message comes from:
+
+* Admin
+* Backend
+* n8n
+* AI
+
+the notification service should enforce:
+
+```text
+Daily limits
+Cooldown periods
+Quiet hours
+User preferences
+Duplicate prevention
+Spam prevention
+```
+
+Example:
+
+```text
+if notifications_today >= LIMIT
+    reject
+
+if last_notification < COOLDOWN
+    reject
+
+if notifications_enabled = false
+    reject
+```
+
+These rules belong in the backend, not the AI.
+
+---
+
+# 61. Admin Financial Controls
+
+Admin actions affecting money must require:
+
+```text
+Authentication
++
+Authorization
++
+Validation
++
+Database transaction
++
+Audit log
+```
+
+For example:
+
+```text
+Manual balance adjustment
+        |
+        v
+Reason required
+        |
+        v
+Ledger entry
+        |
+        v
+Wallet update
+        |
+        v
+Audit log
+```
+
+Never silently modify a balance.
+
+---
+
+# 62. Core Tables — V2 Target
+
+### Identity
+
+```text
+users
+user_profiles
+user_preferences
+user_devices
+sessions
+applications
+user_applications
+```
+
+### Economy
+
+```text
+wallets
+wallet_transactions
+```
+
+### Earning
+
+```text
+offers
+offer_tiers
+offer_completions
+user_offer_progress
+visit_tasks
+user_visits
+games
+game_sessions
+daily_rewards
+lifafas
+lifafa_claims
+```
+
+### Competition
+
+```text
+contests
+contest_participants
+contest_rewards
+lucky_draws
+lucky_draw_entries
+lucky_draw_winners
+```
+
+### Growth
+
+```text
+referrals
+referral_milestones
+referral_settings
+```
+
+### Finance
+
+```text
+payout_methods
+payout_tiers
+withdrawal_requests
+```
+
+### Communication
+
+```text
+notifications
+broadcasts
+broadcast_logs
+```
+
+### Activity
+
+```text
+user_events
+user_behavior
+```
+
+### Fraud
+
+```text
+fraud_signals
+fraud_cases
+```
+
+### Automation
+
+```text
+outbox_events
+automation_logs
+agent_decisions
+```
+
+### Administration
+
+```text
+admin_sessions
+admin_audit_logs
+```
+
+### Configuration
+
+```text
+app_settings
+earning_settings
+game_settings
+referral_settings
+withdrawal_settings
+notification_settings
+fraud_settings
+automation_settings
+```
+
+---
+
+# 63. What Should NOT Be Done
+
+## Do not create microservices immediately.
+
+Use a modular monolith first.
+
+## Do not give n8n database credentials.
+
+Use internal APIs.
+
+## Do not give AI unrestricted database access.
+
+Use controlled tools.
+
+## Do not put everything inside users.
+
+Separate domains.
+
+## Do not use Redis as financial truth.
+
+PostgreSQL is authoritative.
+
+## Do not rely only on frontend validation.
+
+Validate on the backend.
+
+## Do not directly edit balances.
+
+Use ledger operations.
+
+## Do not depend on n8n for core application functionality.
+
+The platform must operate independently.
+
+## Do not expose admin secrets in localStorage.
+
+Use secure authentication.
+
+---
+
+# 64. Migration Strategy From Current Rewardly
+
+Do not rewrite the whole platform in one shot.
+
+Use incremental migration.
+
+### Stage 1
+
+Keep current:
+
+```text
+users
+transactions
+withdrawals
+offers
+games
+...
+```
+
+and introduce migrations.
+
+### Stage 2
+
+Create:
+
+```text
+wallets
+user_profiles
+user_preferences
+user_devices
+```
+
+### Stage 3
+
+Move wallet operations to the new wallet service.
+
+### Stage 4
+
+Introduce:
+
+```text
+user_events
+```
+
+### Stage 5
+
+Introduce:
+
+```text
+user_behavior
+```
+
+### Stage 6
+
+Introduce:
+
+```text
+outbox_events
+```
+
+### Stage 7
+
+Build the new Admin Panel.
+
+### Stage 8
+
+Connect n8n.
+
+### Stage 9
+
+Add AI automation.
+
+This allows the application to remain operational throughout the migration.
+
+---
+
+# 65. Development Roadmap
+
+## Phase 1 — Database Foundation
+
+* PostgreSQL
+* Sequelize migrations
+* Foreign keys
+* Constraints
+* Indexes
+* Timestamps
+* Database transactions
+
+## Phase 2 — Identity
+
+* Telegram authentication
+* Users
+* Profiles
+* Devices
+* Preferences
+* Sessions
+
+## Phase 3 — Wallet
+
+* Wallets
+* Ledger
+* Transactions
+* Atomic operations
+* Idempotency
+
+## Phase 4 — Earning
+
+* Offers
+* Tasks
+* Games
+* Contests
+* Lucky draws
+* Daily rewards
+
+## Phase 5 — Growth
+
+* Referrals
+* Referral rewards
+* Fraud signals
+* Quality scoring
+
+## Phase 6 — Finance
+
+* Withdrawals
+* Payout methods
+* Payout tiers
+* Approval/rejection
+* Refunds
+
+## Phase 7 — Communication
+
+* Notifications
+* Broadcasts
+* Telegram messaging
+* Notification tracking
+
+## Phase 8 — Admin
+
+* Supreme Admin authentication
+* Dashboard
+* User management
+* Finance
+* Earning management
+* Fraud
+* Analytics
+* Settings
+* Audit logs
+
+## Phase 9 — Events
+
+* User events
+* Outbox
+* Event workers
+* Background jobs
+
+## Phase 10 — Analytics
+
+* DAU
+* WAU
+* MAU
+* Retention
+* Funnels
+* Earning analytics
+* Financial analytics
+
+## Phase 11 — Automation
+
+* n8n
+* Internal API
+* Event workflows
+* Scheduled workflows
+* Notification workflows
+
+## Phase 12 — AI
+
+* User behavior analysis
+* Retention scoring
+* AI decisions
+* Personalized notifications
+* Feedback loop
+
+---
+
+# 66. Final Architecture
+
+```text
+                         TELEGRAM
+                            |
+                            v
+                  +--------------------+
+                  | Telegram Mini App  |
+                  |      Next.js       |
+                  +---------+----------+
+                            |
+                            v
+                  +--------------------+
+                  |    Express API     |
+                  +---------+----------+
+                            |
+        +-------------------+--------------------+
+        |                   |                    |
+        v                   v                    v
+      AUTH              BUSINESS              ADMIN
+        |                   |                    |
+        |          +--------+--------+           |
+        |          |        |        |           |
+        |       Earning   Wallet   Finance       |
+        |                   |                    |
+        +-------------------+--------------------+
+                            |
+                            v
+                      PostgreSQL
+                   SOURCE OF TRUTH
+                            |
+            +---------------+---------------+
+            |               |               |
+            v               v               v
+          Redis          User Events     Analytics
+                            |
+                            v
+                      Outbox / Queue
+                            |
+                            v
+                           n8n
+                            |
+               +------------+-------------+
+               |                          |
+               v                          v
+          Automation                  AI Agent
+               |                          |
+               +------------+-------------+
+                            |
+                            v
+                    Notification API
+                            |
+                            v
+                         Telegram
+```
+
+---
+
+# 67. Final Design Philosophy
+
+Rewardly V2 should be built as a **platform**, not simply as a Telegram Mini App.
+
+The core platform should provide:
+
+```text
+IDENTITY
+   ↓
+USER MANAGEMENT
+   ↓
+EARNING
+   ↓
+WALLET
+   ↓
+TRANSACTIONS
+   ↓
+WITHDRAWALS
+   ↓
+REFERRALS
+   ↓
+FRAUD
+   ↓
+NOTIFICATIONS
+   ↓
+ANALYTICS
+   ↓
+ADMIN
+   ↓
+EVENTS
+   ↓
+AUTOMATION
+   ↓
+AI
+```
+
+The most important architectural separation is:
+
+```text
+CORE PLATFORM
+       |
+       +---- User
+       +---- Earning
+       +---- Wallet
+       +---- Finance
+       +---- Referral
+       +---- Fraud
+       +---- Admin
+       +---- Analytics
+       |
+       +---- Event Layer
+                    |
+                    v
+                  n8n
+                    |
+                    v
+             Automation / AI
+```
+
+**Core application = reliable and deterministic.**
+
+**n8n = automation.**
+
+**AI = intelligence.**
+
+This gives Rewardly a clean foundation that can support the current Mini App while remaining ready for Stuearn, RewardVerse and future applications without forcing the entire system to be rebuilt.

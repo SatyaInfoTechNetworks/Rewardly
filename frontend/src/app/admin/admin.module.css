@@ -483,74 +483,92 @@
 }
 
 .lteSmallBox {
+  background-color: #ffffff !important;
   border-radius: 10px;
   position: relative;
-  display: block;
+  display: flex;
+  flex-direction: column;
   box-shadow: 0px 0px 28px rgba(0, 0, 0, 0.08);
-  color: #fff;
+  color: #031e23 !important;
   overflow: hidden;
+  padding: 20px;
+  border: 1px solid #f0f0f0;
 }
 
-.lteBgInfo {
-  background-color: #17a2b8 !important;
+.lteBgInfo .lteIcon {
+  color: #1b00ff;
+  background: rgba(27, 0, 255, 0.1);
 }
 
-.lteBgSuccess {
-  background-color: #28a745 !important;
+.lteBgSuccess .lteIcon {
+  color: #28a745;
+  background: rgba(40, 167, 69, 0.1);
 }
 
-.lteBgWarning {
-  background-color: #ffc107 !important;
-  color: #1f2d3d !important;
-}
-
-.lteBgWarning .lteSmallBoxFooter {
-  color: #1f2d3d !important;
+.lteBgWarning .lteIcon {
+  color: #ffc107;
+  background: rgba(255, 193, 7, 0.1);
 }
 
 .lteInner {
-  padding: 20px;
+  padding: 0;
+  z-index: 1;
 }
 
 .lteInner h3 {
-  font-size: 2.2rem;
+  font-size: 2rem;
   font-weight: 700;
-  margin: 0 0 10px 0;
+  margin: 0 0 5px 0;
   white-space: nowrap;
+  color: #031e23;
 }
 
 .lteInner p {
-  font-size: 1rem;
+  font-size: 14px;
+  font-weight: 500;
   margin: 0;
+  color: #8c909a;
 }
 
 .lteIcon {
   position: absolute;
-  top: 15px;
-  right: 15px;
+  top: 20px;
+  right: 20px;
   z-index: 0;
-  opacity: 0.15;
+  opacity: 1;
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.lteIcon svg {
+  width: 30px;
+  height: 30px;
 }
 
 .lteSmallBoxFooter {
   position: relative;
-  text-align: center;
-  padding: 4px 0;
-  color: rgba(255, 255, 255, 0.8);
+  text-align: left;
+  padding: 15px 0 0 0;
+  margin-top: 15px;
+  color: #1b00ff !important;
   display: flex;
   align-items: center;
-  justify-content: center;
-  background-color: rgba(0, 0, 0, 0.1);
-  border: none;
+  justify-content: flex-start;
+  background-color: transparent;
+  border-top: 1px solid #f0f0f0;
   width: 100%;
   font-size: 13px;
+  font-weight: 600;
   cursor: pointer;
   transition: all 0.15s ease;
 }
 
 .lteSmallBoxFooter:hover {
-  background-color: rgba(0, 0, 0, 0.15);
-  color: #fff;
+  color: #1500c2 !important;
 }
 
 /* Card layout */
@@ -563,7 +581,7 @@
 }
 
 .lteBorderPrimary {
-  border-top-color: #007bff !important;
+  border-top: none !important;
 }
 
 .lteCardHeader {

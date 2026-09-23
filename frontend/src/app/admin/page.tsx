@@ -5641,8 +5641,7 @@ export default function AdminPanel() {
                 </div>
               </div>
             </div>
-        </div>
-      )}
+          )}
       </div> {/* closes .content */}
     </div>   {/* closes .contentWrapper */ }
     </div >
